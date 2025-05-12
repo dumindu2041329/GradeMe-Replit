@@ -18,7 +18,7 @@ export function StatCard({
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn("border-none", className)}>
+    <Card className={cn("border shadow", className)}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>

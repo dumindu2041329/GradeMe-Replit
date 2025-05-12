@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Link } from "@/components/ui/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginUserSchema } from "@shared/schema";
@@ -124,9 +125,9 @@ export default function Login() {
               </Button>
 
               <div className="text-center mt-4">
-                <a href="#" className="text-primary hover:text-primary/80 text-sm">
+                <Link href="/reset-password" className="text-primary hover:text-primary/80 text-sm">
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </form>
           </Form>

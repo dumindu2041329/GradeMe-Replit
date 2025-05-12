@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 
 const formSchema = insertStudentSchema.extend({
-  enrollmentDate: z.date(),
+  enrollmentDate: z.date().or(z.string().transform(val => new Date(val))),
   email: z.string().email("Invalid email format"),
   class: z.string().min(2, "Class must be at least 2 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -40,7 +40,7 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
     name: student?.name || "",
     email: student?.email || "",
     class: student?.class || "",
-    enrollmentDate: student?.enrollmentDate || new Date(),
+    enrollmentDate: student?.enrollmentDate ? new Date(student.enrollmentDate) : new Date(),
   };
 
   const form = useForm<StudentFormValues>({

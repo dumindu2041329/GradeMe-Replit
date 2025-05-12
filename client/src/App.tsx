@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
+import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
 import Students from "@/pages/students";
@@ -93,6 +94,7 @@ function Router() {
         {/* Skip PageFade for faster navigation */}
         <Switch>
           <Route path="/login" component={Login} />
+          <Route path="/reset-password" component={ResetPassword} />
           
           <Route path="/">
             <ProtectedRoute>

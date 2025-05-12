@@ -116,6 +116,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Password reset endpoint (simplified for demo purposes)
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      
+      // For security reasons, always return success whether the email exists or not
+      // This prevents user enumeration attacks
+      res.status(200).json({ 
+        message: "If an account with that email exists, a password reset link has been sent." 
+      });
+      
+      // In a real application, you would:
+      // 1. Generate a reset token and store it in the database with an expiration
+      // 2. Send an email with a link containing the token
+      // 3. Create an endpoint to validate the token and allow setting a new password
+      
+      console.log(`Password reset requested for email: ${email}. User exists: ${!!user}`);
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "An error occurred while processing your request" });
+    }
+  });
+
   app.get("/api/auth/session", (req, res) => {
     if (req.isAuthenticated()) {
       const user = req.user as any;
