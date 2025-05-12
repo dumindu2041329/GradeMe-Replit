@@ -11,6 +11,7 @@ import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
 import Students from "@/pages/students";
 import Results from "@/pages/results";
+import Profile from "@/pages/profile";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -117,6 +118,12 @@ function Router() {
           <Route path="/results">
             <ProtectedRoute>
               <Results />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/profile">
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           </Route>
           

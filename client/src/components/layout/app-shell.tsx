@@ -1,12 +1,21 @@
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, User, X } from "lucide-react";
+import { Menu, User, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DialogTitle } from "@/components/ui/dialog";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { useLocation } from "wouter";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -15,8 +24,9 @@ interface AppShellProps {
 
 export function AppShell({ children, title }: AppShellProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const [, navigate] = useLocation();
   
   const initials = user?.name
     ? user.name
@@ -25,6 +35,15 @@ export function AppShell({ children, title }: AppShellProps) {
         .join("")
         .toUpperCase()
     : "U";
+    
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   // Close sidebar when switching to desktop view
   useEffect(() => {
@@ -93,12 +112,43 @@ export function AppShell({ children, title }: AppShellProps) {
               <span className="sr-only">Toggle menu</span>
             </Button>
             
-            <h1 className="text-xl font-semibold">{title}</h1>
+            <h1 
+              className="text-xl font-semibold cursor-pointer" 
+              onClick={() => navigate('/')}
+            >
+              {title}
+            </h1>
           </div>
           
-          <Avatar className="h-8 w-8 bg-primary">
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8 bg-primary">
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user?.name}</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>View Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </header>
         
         <main className="flex-1 overflow-y-auto p-6 main-content">

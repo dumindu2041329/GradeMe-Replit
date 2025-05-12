@@ -1,11 +1,9 @@
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavLink } from "@/components/ui/nav-link";
-import { useAuth } from "@/hooks/use-auth";
-import { BookOpen, GraduationCap, Home, BarChart2, LogOut } from "lucide-react";
+import { BookOpen, GraduationCap, Home, BarChart2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -14,13 +12,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
-  const [location] = useLocation();
-  const { logout } = useAuth();
+  const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
-
-  const isActive = (path: string) => {
-    return location === path;
-  };
 
   const links = [
     {
@@ -51,13 +44,21 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
     }
   };
 
+  const goToHome = () => {
+    navigate('/');
+    handleClick();
+  };
+
   return (
     <div className={cn(
       "w-64 bg-sidebar-background border-r border-sidebar-border flex flex-col",
       className || "h-screen hidden md:flex"
     )}>
       <div className="h-16 flex items-center border-b border-sidebar-border px-6">
-        <div className="flex items-center gap-2">
+        <div 
+          className="flex items-center gap-2 cursor-pointer" 
+          onClick={goToHome}
+        >
           <GraduationCap className="h-6 w-6 text-primary" />
           <span className="text-xl font-semibold text-primary">GradeMe</span>
         </div>
@@ -84,18 +85,6 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
 
         <div className="mt-auto px-3 space-y-1">
           <Separator className="my-4 bg-sidebar-border" />
-          
-          <Button
-            variant="ghost"
-            className="w-full justify-start font-normal h-10 hover:bg-sidebar-accent"
-            onClick={async () => {
-              await logout();
-              handleClick();
-            }}
-          >
-            <LogOut className="mr-3 h-5 w-5" />
-            Logout
-          </Button>
           
           <div className="w-full px-3 py-2">
             <ThemeToggle />
