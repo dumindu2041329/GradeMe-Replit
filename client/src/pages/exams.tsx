@@ -35,16 +35,12 @@ export default function Exams() {
     queryKey: ["/api/exams"],
   });
 
+  // Search exams only by name
   const filteredExams = exams.filter((exam) => {
     if (!searchQuery) return true;
     
     const query = searchQuery.toLowerCase();
-    return (
-      exam.name.toLowerCase().includes(query) ||
-      exam.subject.toLowerCase().includes(query) ||
-      format(new Date(exam.date), "yyyy-MM-dd").includes(query) ||
-      exam.status.toLowerCase().includes(query)
-    );
+    return exam.name.toLowerCase().includes(query);
   });
 
   const handleEditExam = (exam: Exam) => {

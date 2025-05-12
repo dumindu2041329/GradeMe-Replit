@@ -34,15 +34,12 @@ export default function Students() {
     queryKey: ["/api/students"],
   });
 
+  // Search students only by name
   const filteredStudents = students.filter((student) => {
     if (!searchQuery) return true;
     
     const query = searchQuery.toLowerCase();
-    return (
-      student.name.toLowerCase().includes(query) ||
-      student.email.toLowerCase().includes(query) ||
-      student.class.toLowerCase().includes(query)
-    );
+    return student.name.toLowerCase().includes(query);
   });
 
   const handleEditStudent = (student: Student) => {
@@ -130,7 +127,7 @@ export default function Students() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search students..."
+            placeholder="Search by student name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
