@@ -1,10 +1,12 @@
 import { Moon, Sun } from "lucide-react";
 import { Button } from "./button";
 import { useTheme, useThemeDetection } from "@/hooks/use-theme";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function ThemeToggle() {
   const { setTheme } = useTheme();
   const { isDark } = useThemeDetection();
+  const isMobile = useIsMobile();
 
   const toggleTheme = () => {
     setTheme(isDark ? "light" : "dark");
@@ -22,7 +24,7 @@ export function ThemeToggle() {
       ) : (
         <Moon className="h-[1rem] w-[1rem] text-indigo-400" />
       )}
-      <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+      {!isMobile && <span>{isDark ? "Light Mode" : "Dark Mode"}</span>}
     </Button>
   );
 }

@@ -275,16 +275,19 @@
     z-index: -1;
   }
   
-  /* Page transition animations */
+  /* Page transition animations - optimized for speed */
   .page-container {
     position: relative;
     height: 100%;
+    min-height: 100vh;
+    background-color: hsl(var(--background));
   }
   
   .page-fade {
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
+    opacity: 1;
+    transition: opacity 0.12s ease-in-out;
     min-height: 100vh;
+    background-color: hsl(var(--background));
   }
   
   .page-fade-visible {
@@ -292,8 +295,9 @@
   }
   
   .content-fade {
-    opacity: 0;
-    transition: opacity 0.25s ease-in-out;
+    opacity: 0.98;
+    transition: opacity 0.12s ease-in-out;
+    background-color: hsl(var(--background));
   }
   
   .content-fade-visible {
@@ -303,13 +307,18 @@
   .page-transition {
     opacity: 1;
     transform: translateY(0);
-    transition: opacity 0.15s ease, transform 0.2s ease;
+    transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: opacity, transform;
+    background-color: hsl(var(--background));
+    min-height: 100vh;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
   
   .page-transition.transitioning {
-    opacity: 0.5;
-    transform: translateY(8px);
+    opacity: 0.96;
+    transform: translateY(3px);
   }
   
   /* Preload animation for content */

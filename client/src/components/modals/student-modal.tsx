@@ -51,12 +51,21 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
   const onSubmit = async (data: StudentFormValues) => {
     try {
       setIsSubmitting(true);
+      console.log("Submitting student form with data:", data);
       
       if (mode === "create") {
         await apiRequest("POST", "/api/students", data);
         toast({
           title: "Success",
           description: "Student created successfully",
+        });
+        
+        // Reset form fields on successful creation
+        form.reset({
+          name: "",
+          email: "",
+          class: "",
+          enrollmentDate: new Date(),
         });
       } else if (mode === "edit" && student) {
         await apiRequest("PUT", `/api/students/${student.id}`, data);
@@ -67,6 +76,7 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting student form:", error);
@@ -87,6 +97,12 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
           <DialogTitle>
             {mode === "create" ? "Add New Student" : "Edit Student"}
           </DialogTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            {mode === "create" 
+              ? "Register a new student by filling out the form below." 
+              : "Update the student information using the form below."
+            }
+          </p>
         </DialogHeader>
         
         <Form {...form}>

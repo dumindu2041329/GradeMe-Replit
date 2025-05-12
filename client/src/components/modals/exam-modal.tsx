@@ -56,12 +56,23 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
   const onSubmit = async (data: ExamFormValues) => {
     try {
       setIsSubmitting(true);
+      console.log("Submitting exam form with data:", data);
       
       if (mode === "create") {
         await apiRequest("POST", "/api/exams", data);
         toast({
           title: "Success",
           description: "Exam created successfully",
+        });
+        
+        // Reset form fields on successful creation
+        form.reset({
+          name: "",
+          subject: "",
+          date: new Date(),
+          duration: 60,
+          totalMarks: 100,
+          status: "upcoming"
         });
       } else if (mode === "edit" && exam) {
         await apiRequest("PUT", `/api/exams/${exam.id}`, data);
@@ -93,6 +104,12 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           <DialogTitle>
             {mode === "create" ? "Create New Exam" : "Edit Exam"}
           </DialogTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            {mode === "create" 
+              ? "Add a new exam to the system by filling out the form below." 
+              : "Update the exam details using the form below."
+            }
+          </p>
         </DialogHeader>
         
         <Form {...form}>

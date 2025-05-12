@@ -30,6 +30,7 @@ export const students = pgTable("students", {
   enrollmentDate: timestamp("enrollment_date").notNull().defaultNow(),
 });
 
+// Define the student schema
 export const insertStudentSchema = createInsertSchema(students).pick({
   name: true,
   email: true,
@@ -47,6 +48,7 @@ export const exams = pgTable("exams", {
   status: text("status").notNull().default("upcoming"), // upcoming, active, completed
 });
 
+// Define the exam schema
 export const insertExamSchema = createInsertSchema(exams).pick({
   name: true,
   subject: true,

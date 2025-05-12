@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { z } from "zod";
 import { 
   loginUserSchema, 
   insertStudentSchema, 
@@ -154,41 +155,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/students", isAuthenticated, async (req, res) => {
     try {
-      const studentData = insertStudentSchema.parse(req.body);
+      console.log("Creating student with data:", req.body);
+      
+      // Create a custom schema to properly handle the date field
+      const validData = z.object({
+        name: z.string(),
+        email: z.string().email(),
+        class: z.string(),
+        enrollmentDate: z.string().or(z.date()).transform((val: string | Date) => new Date(val)),
+      }).parse(req.body);
+      
+      console.log("Parsed student data:", validData);
       
       // Check if student with email already exists
-      const existingStudent = await storage.getStudentByEmail(studentData.email);
+      const existingStudent = await storage.getStudentByEmail(validData.email);
       if (existingStudent) {
         return res.status(400).json({ message: "Student with this email already exists" });
       }
       
-      const student = await storage.createStudent(studentData);
+      const student = await storage.createStudent(validData);
       res.status(201).json(student);
     } catch (error) {
-      res.status(400).json({ message: "Invalid student data" });
+      console.error("Error creating student:", error);
+      res.status(400).json({ message: "Invalid student data", error: String(error) });
     }
   });
 
   app.put("/api/students/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const studentData = insertStudentSchema.partial().parse(req.body);
+      console.log(`Updating student ${id} with data:`, req.body);
+      
+      // We've removed the .partial() call and manually pick only the fields we need
+      const validData = z.object({
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        class: z.string().optional(),
+        enrollmentDate: z.string().or(z.date()).optional().transform((val: string | Date | undefined) => val ? new Date(val) : undefined),
+      }).parse(req.body);
+      
+      console.log("Parsed student data for update:", validData);
       
       // Check if email is being updated and if it already exists
-      if (studentData.email) {
-        const existingStudent = await storage.getStudentByEmail(studentData.email);
+      if (validData.email) {
+        const existingStudent = await storage.getStudentByEmail(validData.email);
         if (existingStudent && existingStudent.id !== id) {
           return res.status(400).json({ message: "Student with this email already exists" });
         }
       }
       
-      const student = await storage.updateStudent(id, studentData);
+      const student = await storage.updateStudent(id, validData);
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
       res.json(student);
     } catch (error) {
-      res.status(400).json({ message: "Invalid student data" });
+      console.error(`Error updating student ${req.params.id}:`, error);
+      res.status(400).json({ message: "Invalid student data", error: String(error) });
     }
   });
 
@@ -230,25 +253,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/exams", isAuthenticated, async (req, res) => {
     try {
-      const examData = insertExamSchema.parse(req.body);
-      const exam = await storage.createExam(examData);
+      console.log("Creating exam with data:", req.body);
+      
+      // Create a custom schema to properly handle the date field
+      const validData = z.object({
+        name: z.string(),
+        subject: z.string(),
+        date: z.string().or(z.date()).transform((val: string | Date) => new Date(val)),
+        duration: z.number().or(z.string().transform((val: string) => parseInt(val))),
+        totalMarks: z.number().or(z.string().transform((val: string) => parseInt(val))),
+        status: z.enum(["upcoming", "active", "completed"]).default("upcoming"),
+      }).parse(req.body);
+      
+      console.log("Parsed exam data:", validData);
+      const exam = await storage.createExam(validData);
       res.status(201).json(exam);
     } catch (error) {
-      res.status(400).json({ message: "Invalid exam data" });
+      console.error("Error creating exam:", error);
+      res.status(400).json({ message: "Invalid exam data", error: String(error) });
     }
   });
 
   app.put("/api/exams/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const examData = insertExamSchema.partial().parse(req.body);
-      const exam = await storage.updateExam(id, examData);
+      console.log(`Updating exam ${id} with data:`, req.body);
+      
+      // We've removed the .partial() call and manually pick only the fields we need
+      const validData = z.object({
+        name: z.string().optional(),
+        subject: z.string().optional(),
+        date: z.string().or(z.date()).optional().transform((val: string | Date | undefined) => val ? new Date(val) : undefined),
+        duration: z.number().or(z.string().transform((val: string) => parseInt(val))).optional(),
+        totalMarks: z.number().or(z.string().transform((val: string) => parseInt(val))).optional(),
+        status: z.enum(["upcoming", "active", "completed"]).optional(),
+      }).parse(req.body);
+      
+      console.log("Parsed exam data for update:", validData);
+      const exam = await storage.updateExam(id, validData);
       if (!exam) {
         return res.status(404).json({ message: "Exam not found" });
       }
       res.json(exam);
     } catch (error) {
-      res.status(400).json({ message: "Invalid exam data" });
+      console.error(`Error updating exam ${req.params.id}:`, error);
+      res.status(400).json({ message: "Invalid exam data", error: String(error) });
     }
   });
 
@@ -268,9 +317,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Result routes
   app.get("/api/results", isAuthenticated, async (req, res) => {
     try {
+      console.log("Fetching all results");
       const results = await storage.getResults();
+      console.log(`Fetched ${results.length} results`);
       res.json(results);
     } catch (error) {
+      console.error("Error fetching results:", error);
       res.status(500).json({ message: "Failed to fetch results" });
     }
   });
