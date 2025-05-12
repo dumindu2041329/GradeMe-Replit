@@ -252,331 +252,327 @@ export default function Profile() {
 
   return (
     <AppShell title="Profile Settings">
-      <div className="max-h-[calc(100vh-4rem)] overflow-y-auto pb-8">
-        <Tabs defaultValue="view" className="w-full max-w-4xl mx-auto">
-          <TabsList className="grid w-full grid-cols-2 mb-6 sticky top-0 z-10 bg-background">
-            <TabsTrigger value="view">View Profile</TabsTrigger>
-            <TabsTrigger value="edit">Edit Profile</TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="view" className="w-full max-w-4xl mx-auto h-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="view">View Profile</TabsTrigger>
+          <TabsTrigger value="edit">Edit Profile</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="view" className="h-[calc(100%-3.5rem)] overflow-y-auto">
+          <Card className="border shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
+                <Avatar className="h-24 w-24 bg-primary text-2xl">
+                  {user?.profileImage ? (
+                    <AvatarImage src={user.profileImage} alt={user.name} />
+                  ) : (
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+                
+                <div className="space-y-2 text-center md:text-left">
+                  <div className="space-y-0.5">
+                    <h2 className="text-2xl font-bold">{user?.name}</h2>
+                    <p className="text-muted-foreground">{user?.email}</p>
+                  </div>
+                  
+                  <div className="flex justify-center md:justify-start">
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-none">
+                      {user?.isAdmin ? "Administrator" : "User"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="view">
+          <div className="mt-6 space-y-6">
             <Card className="border shadow-sm">
               <CardContent className="p-6">
-                <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
-                  <Avatar className="h-24 w-24 bg-primary text-2xl">
-                    {user?.profileImage ? (
-                      <AvatarImage src={user.profileImage} alt={user.name} />
-                    ) : (
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    )}
-                  </Avatar>
-                  
-                  <div className="space-y-2 text-center md:text-left">
-                    <div className="space-y-0.5">
-                      <h2 className="text-2xl font-bold">{user?.name}</h2>
-                      <p className="text-muted-foreground">{user?.email}</p>
+                <h3 className="text-lg font-medium mb-4">Account Information</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Full Name</h4>
+                      <p>{user?.name}</p>
                     </div>
-                    
-                    <div className="flex justify-center md:justify-start">
-                      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-none">
-                        {user?.isAdmin ? "Administrator" : "User"}
-                      </Badge>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Email Address</h4>
+                      <p>{user?.email}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Account Type</h4>
+                      <p>{user?.isAdmin ? "Administrator" : "User"}</p>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            
-            <div className="mt-6 space-y-6">
-              <Card className="border shadow-sm">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4">Account Information</h3>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Full Name</h4>
-                        <p>{user?.name}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Email Address</h4>
-                        <p>{user?.email}</p>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Account Type</h4>
-                        <p>{user?.isAdmin ? "Administrator" : "User"}</p>
-                      </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="edit" className="h-[calc(100%-3.5rem)] overflow-y-auto">
+          {/* Profile Information Form */}
+          <Card className="border shadow-sm mb-6">
+            <CardContent className="p-6">
+              <Form {...profileForm}>
+                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                  <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6 mb-6">
+                    <div className="relative">
+                      <Avatar className="h-24 w-24 bg-primary text-2xl">
+                        {user?.profileImage ? (
+                          <AvatarImage src={user.profileImage} alt={user.name} />
+                        ) : (
+                          <AvatarFallback>{initials}</AvatarFallback>
+                        )}
+                      </Avatar>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={imageLoading}
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                      
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                      />
+                    </div>
+                    
+                    <div className="text-center md:text-left">
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Upload a new profile picture
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG or GIF. Max size 2MB.
+                      </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+                  
+                  <FormField
+                    control={profileForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={profileForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit">Save Changes</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="edit">
-            {/* Profile Information Form */}
-            <Card className="border shadow-sm mb-6">
-              <CardContent className="p-6">
-                <Form {...profileForm}>
-                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                    <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6 mb-6">
-                      <div className="relative">
-                        <Avatar className="h-24 w-24 bg-primary text-2xl">
-                          {user?.profileImage ? (
-                            <AvatarImage src={user.profileImage} alt={user.name} />
-                          ) : (
-                            <AvatarFallback>{initials}</AvatarFallback>
-                          )}
-                        </Avatar>
-                        
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={imageLoading}
-                        >
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                        
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          className="hidden"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                        />
-                      </div>
-                      
-                      <div className="text-center md:text-left">
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Upload a new profile picture
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          JPG, PNG or GIF. Max size 2MB.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={profileForm.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit">Save Changes</Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-            
-            {/* Notification Settings Form */}
-            <Card className="border shadow-sm mb-6">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4">
-                  <span className="inline-flex items-center">
-                    <span className="mr-2">Notification Settings</span>
-                  </span>
-                </h3>
-                
-                <Form {...notificationForm}>
-                  <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                    <FormField
-                      control={notificationForm.control}
-                      name="emailNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel>Email Notifications</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Receive exam submission notifications via email
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
+          {/* Notification Settings Form */}
+          <Card className="border shadow-sm mb-6">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium mb-4">
+                <span className="inline-flex items-center">
+                  <span className="mr-2">Notification Settings</span>
+                </span>
+              </h3>
+              
+              <Form {...notificationForm}>
+                <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
+                  <FormField
+                    control={notificationForm.control}
+                    name="emailNotifications"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between">
+                        <div className="space-y-0.5">
+                          <FormLabel>Email Notifications</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Receive exam submission notifications via email
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={notificationForm.control}
+                    name="smsNotifications"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between">
+                        <div className="space-y-0.5">
+                          <FormLabel>SMS Notifications</FormLabel>
+                          <p className="text-sm text-muted-foreground">
+                            Receive exam submission notifications via SMS
+                          </p>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit">Save Changes</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+          
+          {/* Password Form */}
+          <Card className="border shadow-sm">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium mb-4">
+                <span className="inline-flex items-center">
+                  <span className="mr-2">Change Password</span>
+                </span>
+              </h3>
+              
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showCurrentPassword ? "text" : "password"}
                             />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="smsNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel>SMS Notifications</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Receive exam submission notifications via SMS
-                            </p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            >
+                              {showCurrentPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showCurrentPassword ? "Hide" : "Show"} password
+                              </span>
+                            </Button>
                           </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showNewPassword ? "text" : "password"}
                             />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit" className="w-full">Save Changes</Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-            
-            {/* Password Form */}
-            <Card className="border shadow-sm">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4">
-                  <span className="inline-flex items-center">
-                    <span className="mr-2">Change Password</span>
-                  </span>
-                </h3>
-                
-                <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                    <FormField
-                      control={passwordForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showCurrentPassword ? "text" : "password"}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3"
-                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                              >
-                                {showCurrentPassword ? (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
-                                )}
-                                <span className="sr-only">
-                                  {showCurrentPassword ? "Hide" : "Show"} password
-                                </span>
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showNewPassword ? "text" : "password"}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3"
-                                onClick={() => setShowNewPassword(!showNewPassword)}
-                              >
-                                {showNewPassword ? (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
-                                )}
-                                <span className="sr-only">
-                                  {showNewPassword ? "Hide" : "Show"} password
-                                </span>
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm New Password</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                {...field}
-                                type={showConfirmPassword ? "text" : "password"}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              >
-                                {showConfirmPassword ? (
-                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                ) : (
-                                  <Eye className="h-4 w-4 text-muted-foreground" />
-                                )}
-                                <span className="sr-only">
-                                  {showConfirmPassword ? "Hide" : "Show"} password
-                                </span>
-                              </Button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button type="submit" className="w-full">
-                      Update Password
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                            >
+                              {showNewPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showNewPassword ? "Hide" : "Show"} password
+                              </span>
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showConfirmPassword ? "text" : "password"}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                              {showConfirmPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground" />
+                              )}
+                              <span className="sr-only">
+                                {showConfirmPassword ? "Hide" : "Show"} password
+                              </span>
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <Button type="submit">Update Password</Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

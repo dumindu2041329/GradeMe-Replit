@@ -52,9 +52,9 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
   return (
     <div className={cn(
       "w-64 bg-sidebar-background border-r border-sidebar-border flex flex-col",
-      className || "h-screen hidden md:flex"
+      className || "h-screen max-h-screen hidden md:flex"
     )}>
-      <div className="h-16 flex items-center border-b border-sidebar-border px-6">
+      <div className="h-16 min-h-16 flex items-center border-b border-sidebar-border px-6">
         <div 
           className="flex items-center gap-2 cursor-pointer" 
           onClick={goToHome}
@@ -64,7 +64,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
         </div>
       </div>
 
-      <div className="flex-1 py-6 flex flex-col gap-1 overflow-y-auto sidebar-content">
+      <div className="flex-1 py-6 flex flex-col gap-1 overflow-y-auto sidebar-content" style={{ maxHeight: "calc(100vh - 4rem)" }}>
         <nav className="px-3 space-y-1">
           {links.map((link) => {
             const Icon = link.icon;

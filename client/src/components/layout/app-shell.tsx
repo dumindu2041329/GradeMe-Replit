@@ -57,11 +57,11 @@ export function AppShell({ children, title }: AppShellProps) {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen max-h-screen">
       {/* Desktop sidebar - hidden on mobile */}
-      <Sidebar className="h-screen hidden md:flex" />
+      <Sidebar className="h-screen max-h-screen hidden md:flex" />
       
-      <div className="flex flex-col flex-1 overflow-hidden">
+      <div className="flex flex-col flex-1 overflow-hidden max-h-screen">
         {/* Mobile sidebar with sheet component - positioned absolutely over content */}
         <Sheet 
           open={isMobileSidebarOpen} 
@@ -154,8 +154,10 @@ export function AppShell({ children, title }: AppShellProps) {
           </DropdownMenu>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-6 main-content">
-          {children}
+        <main className="flex-1 overflow-y-auto p-6 main-content" style={{ height: "calc(100vh - 4rem)" }}>
+          <div className="h-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>
