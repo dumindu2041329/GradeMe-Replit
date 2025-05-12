@@ -252,13 +252,13 @@ export default function Profile() {
 
   return (
     <AppShell title="Profile Settings">
-      <Tabs defaultValue="view" className="w-full max-w-4xl mx-auto h-full">
+      <Tabs defaultValue="view" className="w-full max-w-4xl mx-auto">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="view">View Profile</TabsTrigger>
           <TabsTrigger value="edit">Edit Profile</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="view" className="h-[calc(100%-3.5rem)] overflow-y-auto">
+        <TabsContent value="view">
           <Card className="border shadow-sm">
             <CardContent className="p-6">
               <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
@@ -311,7 +311,7 @@ export default function Profile() {
           </div>
         </TabsContent>
         
-        <TabsContent value="edit" className="h-[calc(100%-3.5rem)] overflow-y-auto">
+        <TabsContent value="edit">
           {/* Profile Information Form */}
           <Card className="border shadow-sm mb-6">
             <CardContent className="p-6">

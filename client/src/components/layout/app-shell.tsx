@@ -1,4 +1,5 @@
 import { Sidebar } from "./sidebar";
+import { StudentSidebar } from "./student-sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu, User, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -39,7 +40,8 @@ export function AppShell({ children, title }: AppShellProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/login");
+      // Redirect to the appropriate login page based on user role
+      navigate(isStudent ? "/student/login" : "/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -56,10 +58,14 @@ export function AppShell({ children, title }: AppShellProps) {
     setIsMobileSidebarOpen(false);
   };
 
+  // Determine which sidebar to use based on the user's role
+  const isStudent = user?.role === "student";
+  const SidebarComponent = isStudent ? StudentSidebar : Sidebar;
+
   return (
     <div className="flex h-screen max-h-screen">
       {/* Desktop sidebar - hidden on mobile */}
-      <Sidebar className="h-screen max-h-screen hidden md:flex" />
+      <SidebarComponent className="h-screen max-h-screen hidden md:flex" />
       
       <div className="flex flex-col flex-1 overflow-hidden max-h-screen">
         {/* Mobile sidebar with sheet component - positioned absolutely over content */}
@@ -93,7 +99,7 @@ export function AppShell({ children, title }: AppShellProps) {
               <X className="size-4" />
             </Button>
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
-            <Sidebar 
+            <SidebarComponent 
               className="h-full flex" 
               onItemClick={closeMobileSidebar} 
             />
@@ -136,7 +142,7 @@ export function AppShell({ children, title }: AppShellProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => navigate('/profile')}
+                onClick={() => navigate(isStudent ? '/student/profile' : '/profile')}
                 className="cursor-pointer hover:bg-accent"
               >
                 <User className="mr-2 h-4 w-4" />
@@ -154,8 +160,8 @@ export function AppShell({ children, title }: AppShellProps) {
           </DropdownMenu>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-6 main-content" style={{ height: "calc(100vh - 4rem)" }}>
-          <div className="h-full">
+        <main className="flex-1 overflow-y-auto p-6 main-content">
+          <div className="pb-6">
             {children}
           </div>
         </main>

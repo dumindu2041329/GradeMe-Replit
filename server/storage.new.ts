@@ -5,11 +5,7 @@ import {
   type Result,
   type ResultWithDetails,
   type StudentDashboardData,
-  type ExamStatus,
-  type InsertUser,
-  type InsertStudent,
-  type InsertExam,
-  type InsertResult
+  type ExamStatus
 } from "@shared/schema";
 
 export interface IStorage {

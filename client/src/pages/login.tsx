@@ -124,10 +124,18 @@ export default function Login() {
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
 
-              <div className="text-center mt-4">
+              <div className="text-center mt-4 space-y-2">
                 <Link href="/reset-password" className="text-primary hover:text-primary/80 text-sm">
                   Forgot your password?
                 </Link>
+                <div className="pt-4 border-t mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Are you a student?
+                  </p>
+                  <Link href="/student/login" className="text-primary hover:text-primary/80 text-sm font-medium">
+                    Login to Student Dashboard
+                  </Link>
+                </div>
               </div>
             </form>
           </Form>

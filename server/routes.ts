@@ -7,7 +7,8 @@ import {
   insertStudentSchema, 
   insertExamSchema, 
   insertResultSchema,
-  updateUserSchema
+  updateUserSchema,
+  studentLoginSchema
 } from "@shared/schema";
 import session from "express-session";
 import memorystore from "memorystore";
@@ -448,6 +449,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(statistics);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+  
+  // Student-specific routes
+  app.post("/api/auth/student/login", async (req, res) => {
+    try {
+      const { email, password } = studentLoginSchema.parse(req.body);
+      
+      const student = await storage.authenticateStudent(email, password);
+      
+      if (!student) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Create session for the student
+      req.login({
+        id: student.id,
+        email: student.email,
+        name: student.name,
+        isAdmin: false,
+        role: "student",
+        studentId: student.id
+      }, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Error creating session" });
+        }
+        
+        return res.json({
+          id: student.id,
+          email: student.email,
+          name: student.name,
+          isAdmin: false,
+          role: "student",
+          studentId: student.id
+        });
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data" });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Student dashboard data
+  app.get("/api/student/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if user is a student
+      if (!user.studentId) {
+        return res.status(403).json({ message: "Access denied. Student only resource." });
+      }
+      
+      const dashboardData = await storage.getStudentDashboardData(user.studentId);
+      res.json(dashboardData);
+    } catch (error) {
+      console.error("Error fetching student dashboard data:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+  
+  // Available exams for a student
+  app.get("/api/student/exams/available", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if user is a student
+      if (!user.studentId) {
+        return res.status(403).json({ message: "Access denied. Student only resource." });
+      }
+      
+      const upcomingExams = await storage.getExamsByStatus("upcoming");
+      const activeExams = await storage.getExamsByStatus("active");
+      
+      // Combine and sort by date
+      const availableExams = [...upcomingExams, ...activeExams]
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      res.json(availableExams);
+    } catch (error) {
+      console.error("Error fetching available exams:", error);
+      res.status(500).json({ message: "Failed to fetch available exams" });
+    }
+  });
+  
+  // Exam history for a student
+  app.get("/api/student/exams/history", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      // Check if user is a student
+      if (!user.studentId) {
+        return res.status(403).json({ message: "Access denied. Student only resource." });
+      }
+      
+      const examHistory = await storage.getResultsByStudentId(user.studentId);
+      res.json(examHistory);
+    } catch (error) {
+      console.error("Error fetching exam history:", error);
+      res.status(500).json({ message: "Failed to fetch exam history" });
     }
   });
 

@@ -12,22 +12,42 @@ import Exams from "@/pages/exams";
 import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
+import StudentLogin from "@/pages/student-login";
+import StudentDashboard from "@/pages/student-dashboard";
+import StudentProfile from "@/pages/student-profile";
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   // Always start visible for faster transitions
   const [isContentVisible, setIsContentVisible] = useState(true);
-
+  
   useEffect(() => {
     if (!isLoading && !user) {
-      navigate("/login");
+      // Redirect to appropriate login page based on the current path
+      if (location.startsWith("/student")) {
+        navigate("/student/login");
+      } else {
+        navigate("/login");
+      }
     } else if (!isLoading && user) {
-      // No delay, show content immediately
-      setIsContentVisible(true);
+      // Check if student is trying to access admin pages or admin trying to access student pages
+      const isStudentPath = location.startsWith("/student");
+      const isStudentUser = user.role === "student";
+      
+      if (isStudentPath && !isStudentUser) {
+        // Admin trying to access student pages
+        navigate("/");
+      } else if (!isStudentPath && isStudentUser) {
+        // Student trying to access admin pages
+        navigate("/student/dashboard");
+      } else {
+        // User is allowed to access the requested page
+        setIsContentVisible(true);
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location]);
 
   // Simplified loading indicator
   if (isLoading) {
@@ -96,7 +116,9 @@ function Router() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/reset-password" component={ResetPassword} />
+          <Route path="/student/login" component={StudentLogin} />
           
+          {/* Admin routes */}
           <Route path="/">
             <ProtectedRoute>
               <Dashboard />
@@ -124,6 +146,19 @@ function Router() {
           <Route path="/profile">
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          </Route>
+          
+          {/* Student routes */}
+          <Route path="/student/dashboard">
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/student/profile">
+            <ProtectedRoute>
+              <StudentProfile />
             </ProtectedRoute>
           </Route>
           
