@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   isAdmin: boolean("is_admin").default(false).notNull(),
+  profileImage: text("profile_image"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -15,6 +16,13 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   name: true,
   isAdmin: true,
+  profileImage: true,
+});
+
+export const updateUserSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().email("Invalid email format").optional(),
+  profileImage: z.string().optional(),
 });
 
 export const loginUserSchema = z.object({

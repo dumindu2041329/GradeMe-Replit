@@ -8,6 +8,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  setUser: (user: User) => void;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -87,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         login: handleLogin,
         logout: handleLogout,
+        setUser,
       }}
     >
       {children}

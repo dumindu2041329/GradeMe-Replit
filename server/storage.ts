@@ -11,6 +11,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   
   // Student operations
   getStudents(): Promise<Student[]>;
@@ -160,6 +161,16 @@ export class MemStorage implements IStorage {
     const newUser = { ...user, id };
     this.users.set(id, newUser);
     return newUser;
+  }
+  
+  async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) {
+      return undefined;
+    }
+    const updatedUser = { ...existingUser, ...user };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // Student operations

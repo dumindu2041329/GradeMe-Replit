@@ -112,10 +112,7 @@ export function AppShell({ children, title }: AppShellProps) {
               <span className="sr-only">Toggle menu</span>
             </Button>
             
-            <h1 
-              className="text-xl font-semibold cursor-pointer" 
-              onClick={() => navigate('/')}
-            >
+            <h1 className="text-xl font-semibold">
               {title}
             </h1>
           </div>

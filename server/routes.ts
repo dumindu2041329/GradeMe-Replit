@@ -6,7 +6,8 @@ import {
   loginUserSchema, 
   insertStudentSchema, 
   insertExamSchema, 
-  insertResultSchema 
+  insertResultSchema,
+  updateUserSchema
 } from "@shared/schema";
 import session from "express-session";
 import memorystore from "memorystore";
@@ -153,10 +154,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: user.id, 
         email: user.email, 
         name: user.name, 
-        isAdmin: user.isAdmin 
+        isAdmin: user.isAdmin,
+        profileImage: user.profileImage 
       });
     } else {
       res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  // User profile update
+  app.put("/api/users/profile", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as any;
+      const validData = updateUserSchema.parse(req.body);
+      
+      // Check if email is being updated and if it already exists
+      if (validData.email && validData.email !== user.email) {
+        const existingUser = await storage.getUserByEmail(validData.email);
+        if (existingUser) {
+          return res.status(400).json({ message: "User with this email already exists" });
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(user.id, validData);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ 
+        id: updatedUser.id, 
+        email: updatedUser.email, 
+        name: updatedUser.name, 
+        isAdmin: updatedUser.isAdmin,
+        profileImage: updatedUser.profileImage 
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(400).json({ message: "Invalid user data", error: String(error) });
     }
   });
 

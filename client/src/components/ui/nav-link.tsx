@@ -31,7 +31,8 @@ export function NavLink({
       if (onClick) onClick();
       
       // Navigate to the new location with transition effect
-      if (location !== href) {
+      // Only navigate if the href is a specific route
+      if (location !== href && href !== "#") {
         navigateWithTransition(href);
       }
     },
