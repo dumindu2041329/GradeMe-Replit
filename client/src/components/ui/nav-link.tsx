@@ -33,14 +33,21 @@ export function NavLink({
     (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
       
+      // For debugging
+      console.log(`NavLink clicked: ${href}`);
+      
       // Call any onClick handlers passed to the component
       if (onClick) onClick();
       
-      // Navigate to the new location with transition effect
-      // Even if href is the same as current location, force navigation
+      // Always navigate even if already on the same route
+      // This forces re-render of components when clicking the same nav item twice
       if (href !== "#") {
-        // Force navigation by using navigate directly
+        // Force reload by navigating through transition
+        // We force this even if we're already on this page for re-rendering
         navigateWithTransition(href);
+        
+        // Additional logging to track navigation
+        console.log(`Navigating to: ${href}`);
       }
     },
     [href, navigateWithTransition, onClick]

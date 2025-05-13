@@ -44,9 +44,35 @@ export function useRouteTransition() {
   
   // Virtually instant navigation with no delay
   const navigateWithTransition = useCallback((to: string) => {
-    // Always navigate to ensure the page content refreshes even if URL appears the same
-    // This helps fix issues where clicking the same link doesn't refresh the page
-    navigate(to, { replace: to === location }); // Use replace if same URL to prevent history stack growth
+    // For debugging
+    console.log(`useRouteTransition navigating to: ${to}`);
+    console.log(`Current location: ${location}`);
+    
+    // Always force navigation, even to the same route
+    // This is crucial for re-rendering components when clicking on an already active link
+    if (to === location) {
+      // If navigating to the same location, force a re-render by using
+      // a temporary different URL and then the actual URL
+      console.log("Same location detected, forcing re-navigation");
+      
+      // Using a promise to create sequence of navigation events
+      Promise.resolve()
+        .then(() => {
+          // First navigate to a dummy location to force change
+          navigate("/nav-transition-temp", { replace: true });
+        })
+        .then(() => {
+          // Then navigate to the actual target after a small delay
+          setTimeout(() => {
+            navigate(to, { replace: true });
+            console.log(`Navigation completed to: ${to}`);
+          }, 10);
+        });
+    } else {
+      // Normal navigation to a different route
+      navigate(to);
+      console.log(`Normal navigation to: ${to}`);
+    }
   }, [location, navigate]);
   
   return {
