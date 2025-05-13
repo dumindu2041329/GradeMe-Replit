@@ -202,18 +202,21 @@ export class MemStorage implements IStorage {
     });
   }
 
+  // Convert map values to array safely
+  private mapToArray<T>(map: Map<number, T>): T[] {
+    const result: T[] = [];
+    map.forEach(item => result.push(item));
+    return result;
+  }
+
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
-      if (user.email === email) {
-        return user;
-      }
-    }
-    return undefined;
+    const userArray = this.mapToArray(this.users);
+    return userArray.find(user => user.email === email);
   }
 
   async createUser(user: any): Promise<User> {
@@ -235,7 +238,7 @@ export class MemStorage implements IStorage {
 
   // Student operations
   async getStudents(): Promise<Student[]> {
-    return Array.from(this.students.values());
+    return this.mapToArray(this.students);
   }
 
   async getStudent(id: number): Promise<Student | undefined> {
@@ -243,12 +246,8 @@ export class MemStorage implements IStorage {
   }
 
   async getStudentByEmail(email: string): Promise<Student | undefined> {
-    for (const student of this.students.values()) {
-      if (student.email === email) {
-        return student;
-      }
-    }
-    return undefined;
+    const studentArray = this.mapToArray(this.students);
+    return studentArray.find(student => student.email === email);
   }
 
   async createStudent(student: any): Promise<Student> {
@@ -288,7 +287,7 @@ export class MemStorage implements IStorage {
 
   // Exam operations
   async getExams(): Promise<Exam[]> {
-    return Array.from(this.exams.values());
+    return this.mapToArray(this.exams);
   }
 
   async getExam(id: number): Promise<Exam | undefined> {
@@ -296,7 +295,8 @@ export class MemStorage implements IStorage {
   }
 
   async getExamsByStatus(status: string): Promise<Exam[]> {
-    return Array.from(this.exams.values()).filter(exam => exam.status === status);
+    const allExams = this.mapToArray(this.exams);
+    return allExams.filter(exam => exam.status === status);
   }
 
   async createExam(exam: any): Promise<Exam> {
@@ -322,7 +322,8 @@ export class MemStorage implements IStorage {
 
   // Result operations
   async getResults(): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values()).map(result => {
+    const allResults = this.mapToArray(this.results);
+    return allResults.map(result => {
       const student = this.students.get(result.studentId);
       const exam = this.exams.get(result.examId);
       
@@ -359,7 +360,8 @@ export class MemStorage implements IStorage {
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values())
+    const allResults = this.mapToArray(this.results);
+    return allResults
       .filter(result => result.studentId === studentId)
       .map(result => {
         const student = this.students.get(result.studentId);
@@ -378,7 +380,8 @@ export class MemStorage implements IStorage {
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values())
+    const allResults = this.mapToArray(this.results);
+    return allResults
       .filter(result => result.examId === examId)
       .map(result => {
         const student = this.students.get(result.studentId);

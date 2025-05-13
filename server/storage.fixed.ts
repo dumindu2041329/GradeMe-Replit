@@ -1,15 +1,16 @@
 import { 
-  users, type User, type InsertUser, 
-  students, type Student, type InsertStudent,
-  exams, type Exam, type InsertExam,
-  results, type Result, type InsertResult,
+  type User, 
+  type Student,
+  type Exam,
+  type Result,
   type ResultWithDetails,
   type StudentDashboardData,
-  type ExamStatus
+  type ExamStatus,
+  type InsertUser,
+  type InsertStudent,
+  type InsertExam,
+  type InsertResult
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, and, desc, sql, gte, lte } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // User operations
@@ -108,12 +109,33 @@ export class MemStorage implements IStorage {
       password: "student123",
       enrollmentDate: new Date("2024-01-20")
     });
+    
+    // Create student user accounts
+    await this.createUser({
+      email: john.email,
+      password: "student123",
+      name: john.name,
+      role: "student",
+      isAdmin: false,
+      profileImage: null,
+      studentId: john.id
+    });
+    
+    await this.createUser({
+      email: jane.email,
+      password: "student123",
+      name: jane.name,
+      role: "student",
+      isAdmin: false,
+      profileImage: null,
+      studentId: jane.id
+    });
 
     // Create sample exams
     const mathExam = await this.createExam({
       name: "Mathematics Final",
       subject: "Mathematics",
-      date: new Date("2024-03-25"),
+      date: new Date("2024-06-25"),
       duration: 180, // 3 hours
       totalMarks: 100,
       status: "upcoming"
@@ -122,37 +144,69 @@ export class MemStorage implements IStorage {
     const physicsExam = await this.createExam({
       name: "Physics Mid-term",
       subject: "Physics",
-      date: new Date("2024-03-15"),
+      date: new Date("2024-05-15"),
       duration: 120, // 2 hours
       totalMarks: 75,
-      status: "completed"
+      status: "active"
     });
 
     const chemistryExam = await this.createExam({
       name: "Chemistry Quiz",
       subject: "Chemistry",
-      date: new Date("2024-03-10"),
+      date: new Date("2024-04-10"),
       duration: 60, // 1 hour
       totalMarks: 50,
+      status: "completed"
+    });
+    
+    const biologyExam = await this.createExam({
+      name: "Biology Semester Test",
+      subject: "Biology",
+      date: new Date("2024-03-20"),
+      duration: 90,
+      totalMarks: 60,
       status: "completed"
     });
 
     // Create sample results
     await this.createResult({
       studentId: john.id,
-      examId: mathExam.id,
-      score: 85,
-      percentage: 85,
+      examId: biologyExam.id,
+      score: 52,
+      percentage: 87,
       submittedAt: new Date("2024-03-20")
+    });
+    
+    await this.createResult({
+      studentId: john.id,
+      examId: chemistryExam.id,
+      score: 43,
+      percentage: 86,
+      submittedAt: new Date("2024-04-10")
     });
 
     await this.createResult({
       studentId: jane.id,
-      examId: physicsExam.id,
-      score: 69,
-      percentage: 92,
-      submittedAt: new Date("2024-03-15")
+      examId: chemistryExam.id,
+      score: 44,
+      percentage: 88,
+      submittedAt: new Date("2024-04-10")
     });
+    
+    await this.createResult({
+      studentId: jane.id,
+      examId: biologyExam.id,
+      score: 54,
+      percentage: 90,
+      submittedAt: new Date("2024-03-20")
+    });
+  }
+
+  // Convert map values to array safely
+  private mapToArray<T>(map: Map<number, T>): T[] {
+    const result: T[] = [];
+    map.forEach(item => result.push(item));
+    return result;
   }
 
   // User operations
@@ -161,12 +215,8 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
-      if (user.email === email) {
-        return user;
-      }
-    }
-    return undefined;
+    const userArray = this.mapToArray(this.users);
+    return userArray.find(user => user.email === email);
   }
 
   async createUser(user: InsertUser): Promise<User> {
@@ -176,19 +226,19 @@ export class MemStorage implements IStorage {
     return newUser;
   }
 
-  async updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
     const existingUser = this.users.get(id);
     if (!existingUser) {
       return undefined;
     }
-    const updatedUser = { ...existingUser, ...user };
+    const updatedUser = { ...existingUser, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
 
   // Student operations
   async getStudents(): Promise<Student[]> {
-    return Array.from(this.students.values());
+    return this.mapToArray(this.students);
   }
 
   async getStudent(id: number): Promise<Student | undefined> {
@@ -196,12 +246,8 @@ export class MemStorage implements IStorage {
   }
 
   async getStudentByEmail(email: string): Promise<Student | undefined> {
-    for (const student of this.students.values()) {
-      if (student.email === email) {
-        return student;
-      }
-    }
-    return undefined;
+    const studentArray = this.mapToArray(this.students);
+    return studentArray.find(student => student.email === email);
   }
 
   async createStudent(student: InsertStudent): Promise<Student> {
@@ -231,7 +277,7 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    // Simple password comparison (in a real app, use bcrypt.compare)
+    // Simple password comparison for mock data
     if (student.password !== password) {
       return null;
     }
@@ -241,7 +287,7 @@ export class MemStorage implements IStorage {
 
   // Exam operations
   async getExams(): Promise<Exam[]> {
-    return Array.from(this.exams.values());
+    return this.mapToArray(this.exams);
   }
 
   async getExam(id: number): Promise<Exam | undefined> {
@@ -249,7 +295,8 @@ export class MemStorage implements IStorage {
   }
 
   async getExamsByStatus(status: string): Promise<Exam[]> {
-    return Array.from(this.exams.values()).filter(exam => exam.status === status);
+    const allExams = this.mapToArray(this.exams);
+    return allExams.filter(exam => exam.status === status);
   }
 
   async createExam(exam: InsertExam): Promise<Exam> {
@@ -275,7 +322,8 @@ export class MemStorage implements IStorage {
 
   // Result operations
   async getResults(): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values()).map(result => {
+    const allResults = this.mapToArray(this.results);
+    return allResults.map(result => {
       const student = this.students.get(result.studentId);
       const exam = this.exams.get(result.examId);
       
@@ -312,7 +360,8 @@ export class MemStorage implements IStorage {
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values())
+    const allResults = this.mapToArray(this.results);
+    return allResults
       .filter(result => result.studentId === studentId)
       .map(result => {
         const student = this.students.get(result.studentId);
@@ -331,7 +380,8 @@ export class MemStorage implements IStorage {
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    return Array.from(this.results.values())
+    const allResults = this.mapToArray(this.results);
+    return allResults
       .filter(result => result.examId === examId)
       .map(result => {
         const student = this.students.get(result.studentId);
@@ -426,305 +476,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
-    return user;
-  }
-
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
-    const [user] = await db
-      .update(users)
-      .set(userData)
-      .where(eq(users.id, id))
-      .returning();
-    return user;
-  }
-
-  // Student operations
-  async getStudents(): Promise<Student[]> {
-    return db.select().from(students);
-  }
-
-  async getStudent(id: number): Promise<Student | undefined> {
-    const [student] = await db.select().from(students).where(eq(students.id, id));
-    return student;
-  }
-
-  async getStudentByEmail(email: string): Promise<Student | undefined> {
-    const [student] = await db.select().from(students).where(eq(students.email, email));
-    return student;
-  }
-
-  async createStudent(studentData: InsertStudent): Promise<Student> {
-    // In the DB implementation, we should hash passwords
-    let hashedPassword = null;
-    if (studentData.password) {
-      hashedPassword = await bcrypt.hash(studentData.password, 10);
-    }
-    
-    const [student] = await db
-      .insert(students)
-      .values({
-        ...studentData,
-        password: hashedPassword
-      })
-      .returning();
-    return student;
-  }
-
-  async updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined> {
-    // If password is included, hash it
-    if (studentData.password) {
-      studentData.password = await bcrypt.hash(studentData.password, 10);
-    }
-    
-    const [student] = await db
-      .update(students)
-      .set(studentData)
-      .where(eq(students.id, id))
-      .returning();
-    return student;
-  }
-
-  async deleteStudent(id: number): Promise<boolean> {
-    const result = await db
-      .delete(students)
-      .where(eq(students.id, id))
-      .returning({ id: students.id });
-    return result.length > 0;
-  }
-
-  async authenticateStudent(email: string, password: string): Promise<Student | null> {
-    const student = await this.getStudentByEmail(email);
-    if (!student || !student.password) {
-      return null;
-    }
-    
-    const validPassword = await bcrypt.compare(password, student.password);
-    if (!validPassword) {
-      return null;
-    }
-    
-    return student;
-  }
-
-  // Exam operations
-  async getExams(): Promise<Exam[]> {
-    return db.select().from(exams);
-  }
-
-  async getExam(id: number): Promise<Exam | undefined> {
-    const [exam] = await db.select().from(exams).where(eq(exams.id, id));
-    return exam;
-  }
-
-  async getExamsByStatus(status: string): Promise<Exam[]> {
-    return db.select().from(exams).where(eq(exams.status, status as ExamStatus));
-  }
-
-  async createExam(examData: InsertExam): Promise<Exam> {
-    const [exam] = await db.insert(exams).values(examData).returning();
-    return exam;
-  }
-
-  async updateExam(id: number, examData: Partial<InsertExam>): Promise<Exam | undefined> {
-    const [exam] = await db
-      .update(exams)
-      .set(examData)
-      .where(eq(exams.id, id))
-      .returning();
-    return exam;
-  }
-
-  async deleteExam(id: number): Promise<boolean> {
-    const result = await db
-      .delete(exams)
-      .where(eq(exams.id, id))
-      .returning({ id: exams.id });
-    return result.length > 0;
-  }
-
-  // Result operations
-  async getResults(): Promise<ResultWithDetails[]> {
-    const resultsList = await db.select().from(results);
-    const resultDetails: ResultWithDetails[] = [];
-    
-    for (const result of resultsList) {
-      const student = await this.getStudent(result.studentId);
-      const exam = await this.getExam(result.examId);
-      
-      if (student && exam) {
-        resultDetails.push({
-          ...result,
-          student,
-          exam
-        });
-      }
-    }
-    
-    return resultDetails;
-  }
-
-  async getResult(id: number): Promise<ResultWithDetails | undefined> {
-    const [result] = await db.select().from(results).where(eq(results.id, id));
-    
-    if (!result) {
-      return undefined;
-    }
-    
-    const student = await this.getStudent(result.studentId);
-    const exam = await this.getExam(result.examId);
-    
-    if (!student || !exam) {
-      return undefined;
-    }
-    
-    return {
-      ...result,
-      student,
-      exam
-    };
-  }
-
-  async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    const resultsList = await db
-      .select()
-      .from(results)
-      .where(eq(results.studentId, studentId));
-    
-    const resultDetails: ResultWithDetails[] = [];
-    
-    for (const result of resultsList) {
-      const student = await this.getStudent(result.studentId);
-      const exam = await this.getExam(result.examId);
-      
-      if (student && exam) {
-        resultDetails.push({
-          ...result,
-          student,
-          exam
-        });
-      }
-    }
-    
-    return resultDetails;
-  }
-
-  async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    const resultsList = await db
-      .select()
-      .from(results)
-      .where(eq(results.examId, examId));
-    
-    const resultDetails: ResultWithDetails[] = [];
-    
-    for (const result of resultsList) {
-      const student = await this.getStudent(result.studentId);
-      const exam = await this.getExam(result.examId);
-      
-      if (student && exam) {
-        resultDetails.push({
-          ...result,
-          student,
-          exam
-        });
-      }
-    }
-    
-    return resultDetails;
-  }
-
-  async createResult(resultData: InsertResult): Promise<Result> {
-    const [result] = await db.insert(results).values(resultData).returning();
-    return result;
-  }
-
-  async updateResult(id: number, resultData: Partial<InsertResult>): Promise<Result | undefined> {
-    const [result] = await db
-      .update(results)
-      .set(resultData)
-      .where(eq(results.id, id))
-      .returning();
-    return result;
-  }
-
-  async deleteResult(id: number): Promise<boolean> {
-    const result = await db
-      .delete(results)
-      .where(eq(results.id, id))
-      .returning({ id: results.id });
-    return result.length > 0;
-  }
-
-  // Dashboard statistics
-  async getStatistics(): Promise<{ 
-    totalStudents: number; 
-    activeExams: number; 
-    completedExams: number; 
-    upcomingExams: number;
-  }> {
-    const totalStudents = await db.select({ count: sql`count(*)` }).from(students);
-    const activeExams = await db.select({ count: sql`count(*)` }).from(exams).where(eq(exams.status, 'active'));
-    const completedExams = await db.select({ count: sql`count(*)` }).from(exams).where(eq(exams.status, 'completed'));
-    const upcomingExams = await db.select({ count: sql`count(*)` }).from(exams).where(eq(exams.status, 'upcoming'));
-    
-    return {
-      totalStudents: Number(totalStudents[0]?.count || 0),
-      activeExams: Number(activeExams[0]?.count || 0),
-      completedExams: Number(completedExams[0]?.count || 0),
-      upcomingExams: Number(upcomingExams[0]?.count || 0)
-    };
-  }
-  
-  // Student dashboard data
-  async getStudentDashboardData(studentId: number): Promise<StudentDashboardData> {
-    // Check if student exists
-    const student = await this.getStudent(studentId);
-    if (!student) {
-      throw new Error(`Student with ID ${studentId} not found`);
-    }
-    
-    // Get student exam results
-    const examHistory = await this.getResultsByStudentId(studentId);
-    
-    // Calculate total exams and average score
-    const totalExams = examHistory.length;
-    const averageScore = totalExams > 0
-      ? examHistory.reduce((sum, result) => sum + result.percentage, 0) / totalExams
-      : 0;
-    
-    // Get upcoming and active exams
-    const upcomingExams = await this.getExamsByStatus('upcoming');
-    const activeExams = await this.getExamsByStatus('active');
-    const availableExams = [...upcomingExams, ...activeExams]
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    // For best rank calculation - this is a simplified version
-    // In a real app, would require more complex query to determine ranking
-    const bestRank = 1; // Placeholder implementation
-    
-    return {
-      totalExams,
-      averageScore,
-      bestRank,
-      availableExams,
-      examHistory: examHistory.sort((a, b) => 
-        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-      )
-    };
-  }
-}
-
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

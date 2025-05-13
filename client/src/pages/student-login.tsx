@@ -113,10 +113,10 @@ export default function StudentLogin() {
                       if (response.ok) {
                         toast({
                           title: "Logged out successfully",
-                          description: "You have been signed out of your account",
+                          description: "You have been logged out of your account"
                         });
                         setLoginSuccess(false);
-                        // Force page reload to clear user state
+                        // Hard reload to clear all states
                         window.location.reload();
                       }
                     } catch (error) {
@@ -124,72 +124,66 @@ export default function StudentLogin() {
                       toast({
                         variant: "destructive",
                         title: "Logout failed",
-                        description: "There was a problem logging you out."
+                        description: "There was an error logging out"
                       });
                     }
                   }}
                 >
-                  Log Out
+                  Logout
                 </Button>
               </>
             ) : (
-              <>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="student@example.com" 
-                              {...field} 
-                              disabled={isLoading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="password" 
-                              placeholder="••••••••" 
-                              {...field} 
-                              disabled={isLoading}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button className="w-full" type="submit" disabled={isLoading}>
-                      {isLoading ? "Logging in..." : "Login"}
-                    </Button>
-                  </form>
-                </Form>
-                
-                <div className="mt-4 text-center text-sm">
-                  <a href="#" className="text-primary hover:underline">
-                    Forgot your password?
-                  </a>
-                </div>
-              </>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="student@example.com" 
+                            type="email" 
+                            {...field}
+                            disabled={isLoading} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="••••••••" 
+                            type="password" 
+                            {...field}
+                            disabled={isLoading} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-primary" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Logging in..." : "Login"}
+                  </Button>
+                </form>
+              </Form>
             )}
           </CardContent>
-          <Separator />
-          <CardFooter className="flex flex-col space-y-4 mt-4">
-            <div className="text-center text-sm">
+          <CardFooter className="flex flex-col items-center">
+            <div className="text-sm text-center">
               <span className="text-muted-foreground">Are you an administrator? </span>
               <a href="/login" className="text-primary hover:underline">
                 Login here

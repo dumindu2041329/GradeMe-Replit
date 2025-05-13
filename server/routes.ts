@@ -1,500 +1,256 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { z } from "zod";
-import { 
-  loginUserSchema, 
-  insertStudentSchema, 
-  insertExamSchema, 
-  insertResultSchema,
-  updateUserSchema,
-  studentLoginSchema
-} from "@shared/schema";
-import session from "express-session";
-import memorystore from "memorystore";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
+import path from "path";
+import { loginUserSchema, studentLoginSchema, User } from "@shared/schema";
 import bcrypt from "bcryptjs";
+import session from "express-session";
 
-const MemoryStore = memorystore(session);
+// Augment express-session with our user type
+declare module 'express-session' {
+  interface SessionData {
+    user: Omit<User, 'password'>;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Session setup
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "grademe-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      cookie: { secure: process.env.NODE_ENV === "production", maxAge: 24 * 60 * 60 * 1000 }, // 1 day
-      store: new MemoryStore({
-        checkPeriod: 86400000, // prune expired entries every 24h
-      }),
-    })
-  );
-
-  // Passport setup
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // User serialization
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      done(null, user);
-    } catch (err) {
-      done(err);
+  // Configure session middleware
+  app.use(session({
+    secret: 'grademesecret2024',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-  });
+  }));
 
-  // Local strategy setup
-  passport.use(
-    new LocalStrategy(
-      { usernameField: "email" },
-      async (email, password, done) => {
-        try {
-          const user = await storage.getUserByEmail(email);
-          if (!user) {
-            return done(null, false, { message: "User not found" });
-          }
-
-          // For simplicity, we're not hashing passwords in this example
-          // In production, you should use bcrypt.compare
-          if (user.password !== password) {
-            return done(null, false, { message: "Incorrect password" });
-          }
-
-          return done(null, user);
-        } catch (err) {
-          return done(err);
-        }
-      }
-    )
-  );
-
-  // Authentication middleware
-  const isAuthenticated = (req: Request, res: Response, next: Function) => {
-    if (req.isAuthenticated()) {
-      return next();
-    }
-    res.status(401).json({ message: "Not authenticated" });
-  };
-
-  // Authentication routes
-  app.post("/api/auth/login", (req, res, next) => {
-    try {
-      const { email, password } = loginUserSchema.parse(req.body);
-      
-      passport.authenticate("local", (err: Error, user: any, info: any) => {
-        if (err) {
-          return next(err);
-        }
-        if (!user) {
-          return res.status(401).json({ message: info.message || "Authentication failed" });
-        }
-        req.logIn(user, (err) => {
-          if (err) {
-            return next(err);
-          }
-          return res.json({ 
-            id: user.id, 
-            email: user.email, 
-            name: user.name, 
-            isAdmin: user.isAdmin 
-          });
-        });
-      })(req, res, next);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid input data" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout(() => {
-      res.status(200).json({ message: "Logged out successfully" });
-    });
-  });
-
-  // Password reset endpoint (simplified for demo purposes)
-  app.post("/api/auth/reset-password", async (req, res) => {
-    try {
-      const { email } = req.body;
-      
-      if (!email) {
-        return res.status(400).json({ message: "Email is required" });
-      }
-      
-      // Check if user exists
-      const user = await storage.getUserByEmail(email);
-      
-      // For security reasons, always return success whether the email exists or not
-      // This prevents user enumeration attacks
-      res.status(200).json({ 
-        message: "If an account with that email exists, a password reset link has been sent." 
-      });
-      
-      // In a real application, you would:
-      // 1. Generate a reset token and store it in the database with an expiration
-      // 2. Send an email with a link containing the token
-      // 3. Create an endpoint to validate the token and allow setting a new password
-      
-      console.log(`Password reset requested for email: ${email}. User exists: ${!!user}`);
-    } catch (error) {
-      console.error("Password reset error:", error);
-      res.status(500).json({ message: "An error occurred while processing your request" });
-    }
-  });
-
+  // Session endpoint
   app.get("/api/auth/session", (req, res) => {
-    if (req.isAuthenticated()) {
-      const user = req.user as any;
-      res.json({ 
-        id: user.id, 
-        email: user.email, 
-        name: user.name, 
-        isAdmin: user.isAdmin,
-        profileImage: user.profileImage 
-      });
+    if (req.session.user) {
+      res.json(req.session.user);
     } else {
       res.status(401).json({ message: "Not authenticated" });
     }
   });
 
-  // User profile update
-  app.put("/api/users/profile", isAuthenticated, async (req, res) => {
+  // Admin login endpoint
+  app.post("/api/auth/login", async (req, res) => {
     try {
-      const user = req.user as any;
-      const validData = updateUserSchema.parse(req.body);
-      
-      // Check if email is being updated and if it already exists
-      if (validData.email && validData.email !== user.email) {
-        const existingUser = await storage.getUserByEmail(validData.email);
-        if (existingUser) {
-          return res.status(400).json({ message: "User with this email already exists" });
-        }
+      // Validate request body
+      const result = loginUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid input", errors: result.error.errors });
       }
+
+      const { email, password } = result.data;
       
-      const updatedUser = await storage.updateUser(user.id, validData);
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
       }
-      
-      res.json({ 
-        id: updatedUser.id, 
-        email: updatedUser.email, 
-        name: updatedUser.name, 
-        isAdmin: updatedUser.isAdmin,
-        profileImage: updatedUser.profileImage 
-      });
+
+      // Check if user is admin
+      if (user.role !== "admin") {
+        return res.status(403).json({ message: "Not authorized as admin" });
+      }
+
+      // Simple password comparison for demo
+      if (user.password !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Store user in session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isAdmin: user.isAdmin,
+        profileImage: user.profileImage,
+        studentId: user.studentId,
+      };
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
     } catch (error) {
-      console.error("Error updating user profile:", error);
-      res.status(400).json({ message: "Invalid user data", error: String(error) });
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Student routes
-  app.get("/api/students", isAuthenticated, async (req, res) => {
+  // Student login endpoint
+  app.post("/api/auth/student/login", async (req, res) => {
+    try {
+      // Validate request body
+      const result = studentLoginSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid input", errors: result.error.errors });
+      }
+
+      const { email, password } = result.data;
+      
+      // Find student by email
+      const student = await storage.getStudentByEmail(email);
+      if (!student) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Simple password comparison for demo
+      if (student.password !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Find corresponding user
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "User account not found" });
+      }
+
+      // Store user in session
+      req.session.user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        isAdmin: user.isAdmin,
+        profileImage: user.profileImage,
+        studentId: user.studentId
+      };
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Student login error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Logout endpoint
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  // Password reset endpoint (stub)
+  app.post("/api/auth/reset-password", (req, res) => {
+    // In a real application, this would send an email with a reset link
+    res.json({ message: "Password reset email sent" });
+  });
+
+  // Students routes
+  app.get("/api/students", async (req, res) => {
     try {
       const students = await storage.getStudents();
       res.json(students);
     } catch (error) {
+      console.error("Error fetching students:", error);
       res.status(500).json({ message: "Failed to fetch students" });
     }
   });
 
-  app.get("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/students/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+
       const student = await storage.getStudent(id);
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
+
       res.json(student);
     } catch (error) {
+      console.error("Error fetching student:", error);
       res.status(500).json({ message: "Failed to fetch student" });
     }
   });
 
-  app.post("/api/students", isAuthenticated, async (req, res) => {
+  app.post("/api/students", async (req, res) => {
     try {
-      console.log("Creating student with data:", req.body);
-      
-      // Create a custom schema to properly handle the date field
-      const validData = z.object({
-        name: z.string(),
-        email: z.string().email(),
-        class: z.string(),
-        enrollmentDate: z.string().or(z.date()).transform((val: string | Date) => new Date(val)),
-      }).parse(req.body);
-      
-      console.log("Parsed student data:", validData);
-      
-      // Check if student with email already exists
-      const existingStudent = await storage.getStudentByEmail(validData.email);
-      if (existingStudent) {
-        return res.status(400).json({ message: "Student with this email already exists" });
-      }
-      
-      const student = await storage.createStudent(validData);
-      res.status(201).json(student);
+      const newStudent = await storage.createStudent(req.body);
+      res.status(201).json(newStudent);
     } catch (error) {
       console.error("Error creating student:", error);
-      res.status(400).json({ message: "Invalid student data", error: String(error) });
+      res.status(500).json({ message: "Failed to create student" });
     }
   });
 
-  app.put("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.put("/api/students/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      console.log(`Updating student ${id} with data:`, req.body);
-      
-      // We've removed the .partial() call and manually pick only the fields we need
-      const validData = z.object({
-        name: z.string().optional(),
-        email: z.string().email().optional(),
-        class: z.string().optional(),
-        enrollmentDate: z.string().or(z.date()).optional().transform((val: string | Date | undefined) => val ? new Date(val) : undefined),
-      }).parse(req.body);
-      
-      console.log("Parsed student data for update:", validData);
-      
-      // Check if email is being updated and if it already exists
-      if (validData.email) {
-        const existingStudent = await storage.getStudentByEmail(validData.email);
-        if (existingStudent && existingStudent.id !== id) {
-          return res.status(400).json({ message: "Student with this email already exists" });
-        }
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid student ID" });
       }
-      
-      const student = await storage.updateStudent(id, validData);
-      if (!student) {
+
+      const updatedStudent = await storage.updateStudent(id, req.body);
+      if (!updatedStudent) {
         return res.status(404).json({ message: "Student not found" });
       }
-      res.json(student);
+
+      res.json(updatedStudent);
     } catch (error) {
-      console.error(`Error updating student ${req.params.id}:`, error);
-      res.status(400).json({ message: "Invalid student data", error: String(error) });
+      console.error("Error updating student:", error);
+      res.status(500).json({ message: "Failed to update student" });
     }
   });
 
-  app.delete("/api/students/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/students/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteStudent(id);
-      if (!success) {
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+
+      const result = await storage.deleteStudent(id);
+      if (!result) {
         return res.status(404).json({ message: "Student not found" });
       }
-      res.status(204).send();
+
+      res.json({ success: true });
     } catch (error) {
+      console.error("Error deleting student:", error);
       res.status(500).json({ message: "Failed to delete student" });
     }
   });
 
-  // Exam routes
-  app.get("/api/exams", isAuthenticated, async (req, res) => {
+  // Statistics endpoint
+  app.get("/api/statistics", async (req, res) => {
+    try {
+      const stats = await storage.getStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+
+  // Exams routes
+  app.get("/api/exams", async (req, res) => {
     try {
       const exams = await storage.getExams();
       res.json(exams);
     } catch (error) {
+      console.error("Error fetching exams:", error);
       res.status(500).json({ message: "Failed to fetch exams" });
     }
   });
 
-  app.get("/api/exams/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const exam = await storage.getExam(id);
-      if (!exam) {
-        return res.status(404).json({ message: "Exam not found" });
-      }
-      res.json(exam);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch exam" });
-    }
+  // Health check endpoint
+  app.get("/api/health", (req, res) => {
+    res.json({ status: "ok" });
   });
-
-  app.post("/api/exams", isAuthenticated, async (req, res) => {
-    try {
-      console.log("Creating exam with data:", req.body);
-      
-      // Create a custom schema to properly handle the date field
-      const validData = z.object({
-        name: z.string(),
-        subject: z.string(),
-        date: z.string().or(z.date()).transform((val: string | Date) => new Date(val)),
-        duration: z.number().or(z.string().transform((val: string) => parseInt(val))),
-        totalMarks: z.number().or(z.string().transform((val: string) => parseInt(val))),
-        status: z.enum(["upcoming", "active", "completed"]).default("upcoming"),
-      }).parse(req.body);
-      
-      console.log("Parsed exam data:", validData);
-      const exam = await storage.createExam(validData);
-      res.status(201).json(exam);
-    } catch (error) {
-      console.error("Error creating exam:", error);
-      res.status(400).json({ message: "Invalid exam data", error: String(error) });
-    }
-  });
-
-  app.put("/api/exams/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      console.log(`Updating exam ${id} with data:`, req.body);
-      
-      // We've removed the .partial() call and manually pick only the fields we need
-      const validData = z.object({
-        name: z.string().optional(),
-        subject: z.string().optional(),
-        date: z.string().or(z.date()).optional().transform((val: string | Date | undefined) => val ? new Date(val) : undefined),
-        duration: z.number().or(z.string().transform((val: string) => parseInt(val))).optional(),
-        totalMarks: z.number().or(z.string().transform((val: string) => parseInt(val))).optional(),
-        status: z.enum(["upcoming", "active", "completed"]).optional(),
-      }).parse(req.body);
-      
-      console.log("Parsed exam data for update:", validData);
-      const exam = await storage.updateExam(id, validData);
-      if (!exam) {
-        return res.status(404).json({ message: "Exam not found" });
-      }
-      res.json(exam);
-    } catch (error) {
-      console.error(`Error updating exam ${req.params.id}:`, error);
-      res.status(400).json({ message: "Invalid exam data", error: String(error) });
-    }
-  });
-
-  app.delete("/api/exams/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteExam(id);
-      if (!success) {
-        return res.status(404).json({ message: "Exam not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete exam" });
-    }
-  });
-
-  // Result routes
-  app.get("/api/results", isAuthenticated, async (req, res) => {
-    try {
-      console.log("Fetching all results");
-      const results = await storage.getResults();
-      console.log(`Fetched ${results.length} results`);
-      res.json(results);
-    } catch (error) {
-      console.error("Error fetching results:", error);
-      res.status(500).json({ message: "Failed to fetch results" });
-    }
-  });
-
-  app.get("/api/results/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await storage.getResult(id);
-      if (!result) {
-        return res.status(404).json({ message: "Result not found" });
-      }
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch result" });
-    }
-  });
-
-  app.post("/api/results", isAuthenticated, async (req, res) => {
-    try {
-      const resultData = insertResultSchema.parse(req.body);
-      const result = await storage.createResult(resultData);
-      res.status(201).json(result);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid result data" });
-    }
-  });
-
-  app.put("/api/results/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const resultData = insertResultSchema.partial().parse(req.body);
-      const result = await storage.updateResult(id, resultData);
-      if (!result) {
-        return res.status(404).json({ message: "Result not found" });
-      }
-      res.json(result);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid result data" });
-    }
-  });
-
-  app.delete("/api/results/:id", isAuthenticated, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteResult(id);
-      if (!success) {
-        return res.status(404).json({ message: "Result not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete result" });
-    }
-  });
-
-  // Dashboard statistics
-  app.get("/api/statistics", isAuthenticated, async (req, res) => {
-    try {
-      const statistics = await storage.getStatistics();
-      res.json(statistics);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch statistics" });
-    }
-  });
-  
-  // Student-specific routes
-  app.post("/api/auth/student/login", async (req, res) => {
-    try {
-      const { email, password } = studentLoginSchema.parse(req.body);
-      
-      const student = await storage.authenticateStudent(email, password);
-      
-      if (!student) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-      
-      // Create session for the student
-      req.login({
-        id: student.id,
-        email: student.email,
-        name: student.name,
-        isAdmin: false,
-        role: "student",
-        studentId: student.id
-      }, (err) => {
-        if (err) {
-          return res.status(500).json({ message: "Error creating session" });
-        }
-        
-        return res.json({
-          id: student.id,
-          email: student.email,
-          name: student.name,
-          isAdmin: false,
-          role: "student",
-          studentId: student.id
-        });
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data" });
-      }
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-  
-  // Student routes have been removed as per requirements
 
   const httpServer = createServer(app);
+
   return httpServer;
 }

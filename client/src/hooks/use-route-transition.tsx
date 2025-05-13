@@ -44,11 +44,9 @@ export function useRouteTransition() {
   
   // Virtually instant navigation with no delay
   const navigateWithTransition = useCallback((to: string) => {
-    // Only navigate if going to a different route
-    if (to !== location) {
-      // No delay, navigate immediately
-      navigate(to);
-    }
+    // Always navigate to ensure the page content refreshes even if URL appears the same
+    // This helps fix issues where clicking the same link doesn't refresh the page
+    navigate(to, { replace: to === location }); // Use replace if same URL to prevent history stack growth
   }, [location, navigate]);
   
   return {

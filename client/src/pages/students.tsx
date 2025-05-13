@@ -1,13 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Pencil, Trash2, Users, Search } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Users, Search, CalendarIcon } from "lucide-react";
 import { Student } from "@shared/schema";
-import { StudentModal } from "@/components/modals/student-modal";
-import { format } from "date-fns";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +19,24 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+
+const formSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  class: z.string().min(2, "Class must be at least 2 characters"),
+  enrollmentDate: z.date(),
+});
+
+type StudentFormValues = z.infer<typeof formSchema>;
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,13 +44,14 @@ export default function Students() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const { data: students = [], isLoading } = useQuery<Student[]>({
     queryKey: ["/api/students"],
   });
 
-  // Search students only by name
+  // Search students by name
   const filteredStudents = students.filter((student) => {
     if (!searchQuery) return true;
     
@@ -73,6 +90,100 @@ export default function Students() {
     } finally {
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
+    }
+  };
+
+  // Create student form
+  const createForm = useForm<StudentFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      class: "",
+      enrollmentDate: new Date(),
+    },
+  });
+
+  // Edit student form
+  const editForm = useForm<StudentFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: selectedStudent?.name || "",
+      email: selectedStudent?.email || "",
+      class: selectedStudent?.class || "",
+      enrollmentDate: selectedStudent?.enrollmentDate ? new Date(selectedStudent.enrollmentDate) : new Date(),
+    },
+  });
+
+  // Reset edit form when selected student changes
+  useEffect(() => {
+    if (selectedStudent) {
+      editForm.reset({
+        name: selectedStudent.name,
+        email: selectedStudent.email,
+        class: selectedStudent.class,
+        enrollmentDate: new Date(selectedStudent.enrollmentDate),
+      });
+    }
+  }, [selectedStudent, editForm]);
+
+  const onCreateSubmit = async (data: StudentFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      await apiRequest("POST", "/api/students", data);
+      toast({
+        title: "Success",
+        description: "Student created successfully",
+      });
+      
+      // Reset form fields on successful creation
+      createForm.reset({
+        name: "",
+        email: "",
+        class: "",
+        enrollmentDate: new Date(),
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create student",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onEditSubmit = async (data: StudentFormValues) => {
+    if (!selectedStudent) return;
+    
+    try {
+      setIsSubmitting(true);
+      
+      await apiRequest("PUT", `/api/students/${selectedStudent.id}`, data);
+      toast({
+        title: "Success",
+        description: "Student updated successfully",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      setIsEditModalOpen(false);
+      setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update student",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -164,21 +275,243 @@ export default function Students() {
         </div>
       </div>
 
-      <StudentModal
-        isOpen={isCreateModalOpen}
-        onOpenChange={setIsCreateModalOpen}
-        mode="create"
-      />
+      {/* Create Student Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800">
+          <DialogHeader>
+            <DialogTitle>Add New Student</DialogTitle>
+            <p className="text-sm text-slate-400 mt-1">
+              Register a new student by filling out the form below.
+            </p>
+          </DialogHeader>
+          
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
+              <FormField
+                control={createForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="john@example.com" type="email" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
+                name="class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Class 10A" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
+                name="enrollmentDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Enrollment Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal bg-slate-800 border-slate-700",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="bg-slate-800 border-slate-700"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                >
+                  {isSubmitting ? "Saving..." : "Save Student"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-      {selectedStudent && (
-        <StudentModal
-          isOpen={isEditModalOpen}
-          onOpenChange={setIsEditModalOpen}
-          student={selectedStudent}
-          mode="edit"
-        />
-      )}
+      {/* Edit Student Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800">
+          <DialogHeader>
+            <DialogTitle>Edit Student</DialogTitle>
+            <p className="text-sm text-slate-400 mt-1">
+              Update the student information using the form below.
+            </p>
+          </DialogHeader>
+          
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="john@example.com" type="email" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="class"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Class</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Class 10A" {...field} className="bg-slate-800 border-slate-700" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
+                name="enrollmentDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Enrollment Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal bg-slate-800 border-slate-700",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter className="mt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="bg-slate-800 border-slate-700"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                >
+                  {isSubmitting ? "Saving..." : "Update Student"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-slate-900 border-slate-800">
           <AlertDialogHeader>
