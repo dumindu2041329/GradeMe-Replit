@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Helmet } from 'react-helmet';
 import { Card, CardContent } from "@/components/ui/card";
-import { ProfileSettings } from "@/components/profile-settings";
+import { StudentProfileSettings } from "@/components/student-profile-settings";
 
 interface StudentProfileData {
   id: number;
@@ -93,10 +93,9 @@ export default function StudentProfile() {
             </Card>
           </TabsContent>
           
-          {/* Edit Profile Tab - Using the reusable ProfileSettings component */}
+          {/* Edit Profile Tab - Using the enhanced StudentProfileSettings component */}
           <TabsContent value="edit">
-            <ProfileSettings 
-              userRole="student"
+            <StudentProfileSettings 
               profileEndpoint="/api/student/profile"
               notificationEndpoint="/api/student/notifications" 
               passwordEndpoint="/api/auth/reset-password"

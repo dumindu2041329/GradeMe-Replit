@@ -384,13 +384,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // We'll add notification settings to the user object in the database
+      // Update notification settings to the user object in the database
       const updatedUser = await storage.updateUser(user.id, {
-        // Store notification preferences
-        notificationPreferences: {
-          email: emailNotifications,
-          sms: smsNotifications
-        }
+        // Store specific notification flags
+        emailNotifications,
+        smsNotifications
       });
       
       if (!updatedUser) {
@@ -402,19 +400,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the user session with notification preferences
         req.session.user = {
           ...req.session.user,
-          notificationPreferences: {
-            email: emailNotifications,
-            sms: smsNotifications
-          }
+          emailNotifications,
+          smsNotifications
         }
       }
       
       return res.status(200).json({ 
         message: "Notification settings updated successfully",
-        notificationPreferences: {
-          email: emailNotifications,
-          sms: smsNotifications
-        }
+        emailNotifications,
+        smsNotifications
       });
     } catch (error) {
       console.error("Error updating notification settings:", error);
@@ -462,15 +456,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update notification preferences to the user object in the database
       const updatedUser = await storage.updateUser(user.id, {
-        // Store notification preferences
-        notificationPreferences: {
-          email: emailNotifications,
-          sms: smsNotifications,
-          emailExamResults,
-          emailUpcomingExams,
-          smsExamResults,
-          smsUpcomingExams
-        }
+        // Store specific notification flags
+        emailNotifications,
+        smsNotifications,
+        emailExamResults,
+        emailUpcomingExams,
+        smsExamResults,
+        smsUpcomingExams
       });
       
       if (!updatedUser) {
@@ -482,27 +474,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update the user session with notification preferences
         req.session.user = {
           ...req.session.user,
-          notificationPreferences: {
-            email: emailNotifications,
-            sms: smsNotifications,
-            emailExamResults,
-            emailUpcomingExams,
-            smsExamResults,
-            smsUpcomingExams
-          }
-        }
-      }
-      
-      return res.status(200).json({ 
-        message: "Notification settings updated successfully",
-        notificationPreferences: {
-          email: emailNotifications,
-          sms: smsNotifications,
+          emailNotifications,
+          smsNotifications,
           emailExamResults,
           emailUpcomingExams,
           smsExamResults,
           smsUpcomingExams
         }
+      }
+      
+      return res.status(200).json({ 
+        message: "Notification settings updated successfully",
+        emailNotifications,
+        smsNotifications,
+        emailExamResults,
+        emailUpcomingExams,
+        smsExamResults,
+        smsUpcomingExams
       });
     } catch (error) {
       console.error("Error updating student notification settings:", error);
@@ -563,13 +551,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Student ID not found" });
       }
       
-      const { name, email } = req.body;
+      const { 
+        email, 
+        profileImage, 
+        phone, 
+        address, 
+        dateOfBirth, 
+        guardianName, 
+        guardianPhone 
+      } = req.body;
       
-      // Validate required fields
-      if (!name || !email) {
+      // Validate email is required and has a valid format
+      if (!email) {
         return res.status(400).json({ 
-          message: "Name and email are required fields" 
+          message: "Email is required" 
         });
+      }
+      
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
       }
       
       // Update the student information
@@ -579,11 +580,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Student not found" });
       }
       
-      // Update only email for students
-      // Name, class, and enrollment date can only be updated by admins in admin panel
+      // Update student record with the new data
       const studentUpdateData = {
-        email
+        email,
+        phone: phone !== undefined ? phone : student.phone,
+        address: address !== undefined ? address : student.address,
+        dateOfBirth: dateOfBirth !== undefined ? 
+          (dateOfBirth ? dateOfBirth.toString() : null) : 
+          student.dateOfBirth,
+        guardianName: guardianName !== undefined ? guardianName : student.guardianName,
+        guardianPhone: guardianPhone !== undefined ? guardianPhone : student.guardianPhone,
+        profileImage: profileImage !== undefined ? profileImage : student.profileImage
       };
+      
+      console.log("Updating student data:", studentUpdateData);
       
       // Update the student record
       const updatedStudent = await storage.updateStudent(user.studentId, studentUpdateData);
@@ -592,21 +602,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Failed to update profile" });
       }
       
-      // Also update the user record (only email for students)
+      // Also update the user record (only email and profile image)
       const updatedUser = await storage.updateUser(user.id, {
-        email
+        email,
+        profileImage: profileImage !== undefined ? profileImage : user.profileImage
       });
       
-      // Update the user in session (only email for students)
+      // Update the user in session
       if (req.session.user && updatedUser) {
         req.session.user = {
           ...req.session.user,
-          email
+          email,
+          profileImage: profileImage !== undefined ? profileImage : req.session.user.profileImage
         };
       }
       
       return res.status(200).json({ 
         message: "Profile updated successfully",
+        name: updatedStudent.name,
+        email: updatedStudent.email,
+        phone: updatedStudent.phone,
+        address: updatedStudent.address,
+        dateOfBirth: updatedStudent.dateOfBirth,
+        class: updatedStudent.class,
+        guardianName: updatedStudent.guardianName,
+        guardianPhone: updatedStudent.guardianPhone,
+        profileImage: updatedUser?.profileImage || null,
         user: req.session.user,
         student: updatedStudent
       });

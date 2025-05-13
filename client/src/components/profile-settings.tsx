@@ -129,12 +129,12 @@ export function ProfileSettings({
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
-      emailNotifications: user?.notificationPreferences?.email || false,
-      smsNotifications: user?.notificationPreferences?.sms || false,
-      emailExamResults: user?.notificationPreferences?.emailExamResults || false,
-      emailUpcomingExams: user?.notificationPreferences?.emailUpcomingExams || false,
-      smsExamResults: user?.notificationPreferences?.smsExamResults || false,
-      smsUpcomingExams: user?.notificationPreferences?.smsUpcomingExams || false,
+      emailNotifications: user?.emailNotifications || false,
+      smsNotifications: user?.smsNotifications || false,
+      emailExamResults: user?.emailExamResults || false,
+      emailUpcomingExams: user?.emailUpcomingExams || false,
+      smsExamResults: user?.smsExamResults || false,
+      smsUpcomingExams: user?.smsUpcomingExams || false,
     },
   });
   
@@ -172,13 +172,18 @@ export function ProfileSettings({
         ? {
             // For admins, allow name and email updates
             name: data.name,
-            email: data.email
+            email: data.email,
+            profileImage: imagePreview
           } 
         : {
             // For students, only allow email updates
             // Name, class, and enrollment date can only be updated by admins
-            email: data.email
+            name: data.name,  // Include name, even though server might not use it
+            email: data.email,
+            profileImage: imagePreview
           };
+      
+      console.log('Submitting profile update:', requestBody);
       
       // For file uploads, we'll add support later using FormData
       
@@ -192,6 +197,7 @@ export function ProfileSettings({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('Profile update error:', errorData);
         throw new Error(errorData.message || 'Failed to update profile');
       }
       
@@ -257,10 +263,15 @@ export function ProfileSettings({
     },
     onSuccess: (data) => {
       // Update user state with notification preferences
-      if (user && data.notificationPreferences) {
+      if (user) {
         setUser({
           ...user,
-          notificationPreferences: data.notificationPreferences
+          emailNotifications: data.emailNotifications,
+          smsNotifications: data.smsNotifications,
+          emailExamResults: data.emailExamResults,
+          emailUpcomingExams: data.emailUpcomingExams,
+          smsExamResults: data.smsExamResults,
+          smsUpcomingExams: data.smsUpcomingExams
         });
       }
       
