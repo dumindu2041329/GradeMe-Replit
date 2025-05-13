@@ -8,7 +8,7 @@ import MemoryStore from 'memorystore';
 // Session types for TypeScript
 declare module "express-session" {
   interface SessionData {
-    user: User;
+    user: Omit<User, 'password'> & { password?: string };
   }
 }
 
@@ -94,11 +94,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Set user in session
-      req.session.user = user;
-      
-      // Return user data (without password)
+      // First create a sanitized user object without the password
       const { password: _, ...userWithoutPassword } = user;
+      
+      // Store only the sanitized user object in the session
+      req.session.user = userWithoutPassword;
       return res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error("Login error:", error);
@@ -136,11 +136,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
-      // Set user in session
-      req.session.user = user;
-      
-      // Return user data (without password)
+      // First create a sanitized user object without the password
       const { password: _, ...userWithoutPassword } = user;
+      
+      // Store only the sanitized user object in the session
+      req.session.user = userWithoutPassword;
       return res.status(200).json(userWithoutPassword);
     } catch (error) {
       console.error("Student login error:", error);
