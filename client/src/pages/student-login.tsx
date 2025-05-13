@@ -69,21 +69,25 @@ export default function StudentLogin() {
       // Manually update the auth context user state
       setUser(userData);
       
-      // Invalidate the session query to force a refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
-      
       // Set login success to display the success message
       setLoginSuccess(true);
       
-      // Navigate to student dashboard
-      console.log("Student login form submit - Redirecting to dashboard");
-      navigate("/student/dashboard");
+      // Wait for a short duration to ensure the auth state is properly updated
+      // This helps with consistent redirection behavior
+      setTimeout(() => {
+        // Navigate to student dashboard
+        console.log("Student login form submit - Redirecting to dashboard");
+        navigate("/student/dashboard", { replace: true });
+        
+        // Show success toast
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${userData.name}!`,
+        });
+      }, 100);
       
-      // Show success toast
-      toast({
-        title: "Login successful",
-        description: `Welcome back, ${userData.name}!`,
-      });
+      // Invalidate the session query to force a refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       
     } catch (error) {
       console.error("Login error:", error);
@@ -124,20 +128,19 @@ export default function StudentLogin() {
                   variant="destructive"
                   onClick={async () => {
                     try {
-                      const response = await fetch("/api/auth/logout", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" }
+                      // Use the auth context's logout function to properly clear user state
+                      await logout();
+                      
+                      toast({
+                        title: "Logged out successfully",
+                        description: "You have been logged out of your account"
                       });
                       
-                      if (response.ok) {
-                        toast({
-                          title: "Logged out successfully",
-                          description: "You have been logged out of your account"
-                        });
-                        setLoginSuccess(false);
-                        // Hard reload to clear all states
-                        window.location.reload();
-                      }
+                      setLoginSuccess(false);
+                      setUser(null);
+                      
+                      // Refresh the page to ensure clean state
+                      window.location.reload();
                     } catch (error) {
                       console.error("Logout error:", error);
                       toast({

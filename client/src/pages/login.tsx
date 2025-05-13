@@ -34,7 +34,11 @@ export default function Login() {
     try {
       setIsLoading(true);
       await login(data.email, data.password);
-      navigate("/");
+      
+      // Use setTimeout to ensure auth state is updated before navigation
+      setTimeout(() => {
+        navigate("/", { replace: true });
+      }, 100);
     } catch (error) {
       console.error("Login error:", error);
       setIsLoading(false);

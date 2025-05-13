@@ -23,12 +23,17 @@ export function StudentHeader() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account",
-      });
-      navigate("/student/login");
+      // Use the auth context's logout function to properly clear user state
+      await logout();
+      // Use setTimeout to ensure state updates before navigation
+      setTimeout(() => {
+        // Use replace: true to ensure back button doesn't return to dashboard
+        navigate("/student/login", { replace: true });
+        toast({
+          title: "Logged out successfully",
+          description: "You have been logged out of your account",
+        });
+      }, 100);
     } catch (error) {
       console.error("Logout error:", error);
       toast({
@@ -65,7 +70,7 @@ export function StudentHeader() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
               <Avatar className="h-9 w-9">
-                <AvatarImage src={user?.profileImage} alt={user?.name} />
+                <AvatarImage src={user?.profileImage || undefined} alt={user?.name || 'User'} />
                 <AvatarFallback>
                   {user?.name ? getInitials(user.name) : "S"}
                 </AvatarFallback>

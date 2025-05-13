@@ -5,6 +5,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavLink } from "@/components/ui/nav-link";
 import { BookOpen, GraduationCap, LayoutDashboard, History, User } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentSidebarProps {
   className?: string;
@@ -14,6 +16,8 @@ interface StudentSidebarProps {
 export function StudentSidebar({ className, onItemClick }: StudentSidebarProps = {}) {
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
+  const { logout } = useAuth();
+  const { toast } = useToast();
 
   const links = [
     {
@@ -90,18 +94,33 @@ export function StudentSidebar({ className, onItemClick }: StudentSidebarProps =
             <ThemeToggle />
           </div>
           
-          <NavLink
-            href="/api/auth/logout"
-            className="sidebar-link text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20"
-            onClick={(e) => {
-              e.preventDefault();
-              fetch('/api/auth/logout', { method: 'POST' })
-                .then(() => navigate('/student/login'))
-                .catch(err => console.error('Logout error:', err));
+          <div
+            className="sidebar-link text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20 cursor-pointer"
+            onClick={async () => {
+              try {
+                // Use the auth context's logout function to properly clear user state
+                await logout();
+                // Use setTimeout to ensure state updates before navigation
+                setTimeout(() => {
+                  // Use replace: true to ensure back button doesn't return to dashboard
+                  navigate("/student/login", { replace: true });
+                  toast({
+                    title: "Logged out successfully",
+                    description: "You have been logged out of your account",
+                  });
+                }, 100);
+              } catch (error) {
+                console.error("Logout error:", error);
+                toast({
+                  variant: "destructive",
+                  title: "Logout failed",
+                  description: "There was an error logging out",
+                });
+              }
             }}
           >
             <span>Logout</span>
-          </NavLink>
+          </div>
         </div>
       </div>
     </div>
