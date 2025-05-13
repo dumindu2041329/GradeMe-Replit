@@ -51,9 +51,7 @@ export default function StudentLogin() {
     try {
       // Show the loading state first, before making the request
       // This prevents the UI from flickering during the authentication process
-      
-      // Pre-set login success to true to maintain UI during transition
-      setLoginSuccess(true);
+      // Don't set loginSuccess until we actually have a successful response
       
       console.log("Attempting student login with values:", values);
       const response = await fetch("/api/auth/student/login", {
@@ -76,6 +74,9 @@ export default function StudentLogin() {
       // Update auth context with user data
       setUser(userData);
       
+      // Now that we have successfully logged in, set loginSuccess to true
+      setLoginSuccess(true);
+      
       // Invalidate the session query to force a refresh
       queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       
@@ -94,6 +95,18 @@ export default function StudentLogin() {
       
     } catch (error) {
       console.error("Login error:", error);
+      
+      // Clear the password field when login fails
+      form.setValue("password", "");
+      
+      // Reset form focus to password field
+      setTimeout(() => {
+        const passwordInput = document.querySelector('input[name="password"]');
+        if (passwordInput) {
+          (passwordInput as HTMLInputElement).focus();
+        }
+      }, 0);
+      
       toast({
         variant: "destructive",
         title: "Login failed",

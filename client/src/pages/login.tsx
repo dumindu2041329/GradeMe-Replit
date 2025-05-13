@@ -41,6 +41,15 @@ export default function Login() {
       }, 100);
     } catch (error) {
       console.error("Login error:", error);
+      // Clear the password field when login fails
+      form.setValue("password", "");
+      // Reset form focus to password field
+      setTimeout(() => {
+        const passwordInput = document.querySelector('input[name="password"]');
+        if (passwordInput) {
+          (passwordInput as HTMLInputElement).focus();
+        }
+      }, 0);
       setIsLoading(false);
     }
   };
