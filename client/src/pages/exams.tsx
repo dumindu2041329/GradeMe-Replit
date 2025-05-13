@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,32 @@ export default function Exams() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const { toast } = useToast();
-
+  
   const { data: exams = [], isLoading } = useQuery<Exam[]>({
     queryKey: ["/api/exams"],
   });
+
+  // Check if we should open create modal from dashboard or edit a specific exam
+  useEffect(() => {
+    // Check for create modal flag
+    const shouldOpenModal = sessionStorage.getItem("openExamCreateModal");
+    if (shouldOpenModal === "true") {
+      setIsCreateModalOpen(true);
+      sessionStorage.removeItem("openExamCreateModal");
+    }
+    
+    // Check for edit exam flag
+    const editExamId = sessionStorage.getItem("editExamId");
+    if (editExamId && exams.length > 0) {
+      // Find the exam with this ID when data is loaded
+      const examToEdit = exams.find(exam => exam.id === parseInt(editExamId));
+      if (examToEdit) {
+        setSelectedExam(examToEdit);
+        setIsEditModalOpen(true);
+        sessionStorage.removeItem("editExamId");
+      }
+    }
+  }, [exams]);
 
   // Search exams only by name
   const filteredExams = exams.filter((exam) => {

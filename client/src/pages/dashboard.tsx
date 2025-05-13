@@ -1,12 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/app-shell";
 import { StatCard } from "@/components/ui/stat-card";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, BookOpen, CheckCircle, Calendar, Clock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Users, BookOpen, CheckCircle, Calendar, Clock, PlusCircle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Exam } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/components/ui/link";
+import { useLocation } from "wouter";
 
 interface Statistics {
   totalStudents: number;
@@ -20,9 +23,11 @@ export default function Dashboard() {
     queryKey: ["/api/statistics"],
   });
 
-  const { data: exams, isLoading: isExamsLoading } = useQuery<Exam[]>({
+  const { data: exams = [], isLoading: isExamsLoading } = useQuery<Exam[]>({
     queryKey: ["/api/exams"],
   });
+  
+  const [, navigate] = useLocation();
 
   const recentExams = exams
     ? [...exams]
@@ -99,9 +104,84 @@ export default function Dashboard() {
         )}
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card className="shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold">Quick Actions - Exams</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <p className="text-muted-foreground mb-4">
+              Manage, create and schedule exams for students
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                className="flex gap-2"
+                onClick={() => navigate("/exams")}
+              >
+                <BookOpen className="h-4 w-4" />
+                View All Exams
+              </Button>
+              <Button
+                className="flex gap-2 bg-primary hover:bg-primary/90"
+                onClick={() => {
+                  navigate("/exams");
+                  // We'll need to trigger the create modal on the exams page
+                  sessionStorage.setItem("openExamCreateModal", "true");
+                }}
+              >
+                <PlusCircle className="h-4 w-4" />
+                Create New Exam
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold">Quick Actions - Students</CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <p className="text-muted-foreground mb-4">
+              Manage students, enrollment and view their progress
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                className="flex gap-2"
+                onClick={() => navigate("/students")}
+              >
+                <Users className="h-4 w-4" />
+                View All Students
+              </Button>
+              <Button
+                className="flex gap-2 bg-primary hover:bg-primary/90"
+                onClick={() => {
+                  navigate("/students");
+                  // We'll need to trigger the create modal on the students page
+                  sessionStorage.setItem("openStudentCreateModal", "true");
+                }}
+              >
+                <PlusCircle className="h-4 w-4" />
+                Add New Student
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="shadow">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 flex justify-between items-center">
           <CardTitle className="text-lg font-semibold">Recent Exams</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="flex items-center gap-1 text-primary" 
+            onClick={() => navigate("/exams")}
+          >
+            View All
+            <ArrowRight className="h-4 w-4" />
+          </Button>
         </CardHeader>
         <CardContent>
           {isExamsLoading ? (
@@ -132,7 +212,15 @@ export default function Dashboard() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {recentExams.map((exam) => (
-                    <tr key={exam.id}>
+                    <tr 
+                      key={exam.id}
+                      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                      onClick={() => {
+                        navigate("/exams");
+                        // Open the edit modal for this exam when navigating
+                        sessionStorage.setItem("editExamId", String(exam.id));
+                      }}
+                    >
                       <td className="py-3 px-4 whitespace-nowrap">{exam.name}</td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         {format(new Date(exam.date), "yyyy-MM-dd")}

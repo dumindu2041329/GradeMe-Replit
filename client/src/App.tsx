@@ -9,6 +9,7 @@ import Login from "@/pages/login";
 import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
+import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
 
@@ -107,6 +108,12 @@ function Router() {
           <Route path="/exams">
             <ProtectedRoute>
               <Exams />
+            </ProtectedRoute>
+          </Route>
+          
+          <Route path="/students">
+            <ProtectedRoute>
+              <Students />
             </ProtectedRoute>
           </Route>
           
