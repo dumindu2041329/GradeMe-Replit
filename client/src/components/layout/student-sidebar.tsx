@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavLink } from "@/components/ui/nav-link";
-import { BookOpen, GraduationCap, LayoutDashboard, History, User } from "lucide-react";
+import { BookOpen, GraduationCap, LayoutDashboard, History, User, BarChart2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,11 @@ export function StudentSidebar({ className, onItemClick }: StudentSidebarProps =
       name: "Exam History",
       href: "/student/history",
       icon: History,
+    },
+    {
+      name: "Academic Info",
+      href: "/student/academic-info",
+      icon: BarChart2,
     },
     {
       name: "Profile",

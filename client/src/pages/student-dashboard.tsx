@@ -88,7 +88,9 @@ export default function StudentDashboard() {
               </div>
               <div className="flex flex-col">
                 <span className="text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
-                <span className="text-xs text-muted-foreground">Based on {dashboardData?.totalExams || 0} exams</span>
+                <span className="text-xs text-muted-foreground">
+                  Total score across {dashboardData?.totalExams || 0} {dashboardData?.totalExams === 1 ? 'exam' : 'exams'}
+                </span>
               </div>
             </CardContent>
           </Card>

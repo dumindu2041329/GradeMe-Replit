@@ -451,25 +451,13 @@ export class MemStorage implements IStorage {
     const studentResults = await this.getResultsByStudentId(studentId);
     
     // Get available exams (upcoming and active)
-    // First collect all exam IDs that the student has already completed
-    const completedExamIds = studentResults.map(result => result.examId);
-    
-    // Filter out exams that are either not active/upcoming or already completed by the student
     const availableExams = allExams
-      .filter(exam => {
-        // Check if exam is upcoming or active
-        const isActiveOrUpcoming = exam.status === 'upcoming' || exam.status === 'active';
-        // Check if student has already completed this exam
-        const isNotCompleted = !completedExamIds.includes(exam.id);
-        // Only include exams that are active/upcoming AND not completed
-        return isActiveOrUpcoming && isNotCompleted;
-      })
+      .filter(exam => exam.status === 'upcoming' || exam.status === 'active')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     // Calculate average score
     const averageScore = studentResults.length > 0
-      ? (studentResults.reduce((sum, result) => sum + result.score, 0) / 
-         studentResults.reduce((sum, result) => sum + result.exam.totalMarks, 0)) * 100
+      ? studentResults.reduce((sum, result) => sum + result.percentage, 0) / studentResults.length
       : 0;
     
     // For best rank, we would need to compare against other students
