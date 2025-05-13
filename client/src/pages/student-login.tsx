@@ -40,8 +40,9 @@ export default function StudentLogin() {
   useEffect(() => {
     if (user && user.role === "student") {
       setLoginSuccess(true);
+      navigate("/student"); // Redirect to student dashboard
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const onSubmit = async (values: StudentLoginFormValues) => {
     setIsLoading(true);
@@ -65,6 +66,9 @@ export default function StudentLogin() {
       
       // Set login success to display the success message
       setLoginSuccess(true);
+      
+      // Navigate to student dashboard
+      navigate("/student");
       
     } catch (error) {
       console.error("Login error:", error);

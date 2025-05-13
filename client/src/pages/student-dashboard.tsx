@@ -1,376 +1,153 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle,
-  CardDescription,
-  CardFooter
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { AppShell } from "@/components/layout/app-shell";
 import { useAuth } from "@/hooks/use-auth";
-import { Separator } from "@/components/ui/separator";
-import { 
-  BookOpenText, 
-  Calendar, 
-  Clock, 
-  Award, 
-  BarChart, 
-  BookCheck, 
-  Trophy, 
-  ChevronRight 
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "wouter";
-
-// Function to format date with day suffix (1st, 2nd, 3rd, etc.)
-function formatDateWithSuffix(date: Date) {
-  const day = date.getDate();
-  const suffix = getDaySuffix(day);
-  return format(date, `MMMM d'${suffix}', yyyy`);
-}
-
-function getDaySuffix(day: number) {
-  if (day > 3 && day < 21) return 'th';
-  switch (day % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
-  }
-}
-
-// Grade badge component based on percentage
-const GradeBadge = ({ percentage }: { percentage: number }) => {
-  let color;
-  let grade;
-
-  if (percentage >= 90) {
-    color = "bg-green-500";
-    grade = "A";
-  } else if (percentage >= 80) {
-    color = "bg-green-400";
-    grade = "B";
-  } else if (percentage >= 70) {
-    color = "bg-yellow-400";
-    grade = "C";
-  } else if (percentage >= 60) {
-    color = "bg-orange-400";
-    grade = "D";
-  } else {
-    color = "bg-red-500";
-    grade = "F";
-  }
-
-  return (
-    <Badge className={`${color} text-white font-bold text-sm`}>
-      {grade}
-    </Badge>
-  );
-};
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { BookOpen, BarChart2, Award, ArrowRight } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
+import { useLocation } from "wouter";
+import { StudentHeader } from "@/components/layout/student-header";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("overview");
-  
+  const [, navigate] = useLocation();
+
   // Fetch student dashboard data
-  const { data: dashboardData, isLoading: isLoadingDashboard } = useQuery({
-    queryKey: ["/api/student/dashboard"],
-    enabled: !!user?.studentId
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ["/api/student/dashboard", user?.studentId],
+    enabled: !!user?.studentId,
   });
 
-  if (isLoadingDashboard) {
+  if (isLoading) {
     return (
-      <AppShell title="Student Dashboard">
-        <div className="p-6">
-          <div className="flex flex-col gap-4">
-            <div className="w-full h-12 bg-gray-200 animate-pulse rounded-md" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="w-full h-36 bg-gray-200 animate-pulse rounded-md" />
-              <div className="w-full h-36 bg-gray-200 animate-pulse rounded-md" />
-              <div className="w-full h-36 bg-gray-200 animate-pulse rounded-md" />
-            </div>
-            <div className="w-full h-64 bg-gray-200 animate-pulse rounded-md" />
-          </div>
-        </div>
-      </AppShell>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
     );
   }
-
-  if (!dashboardData) {
-    return (
-      <AppShell title="Student Dashboard">
-        <div className="p-6">
-          <div className="text-center py-8">
-            <h2 className="text-2xl font-semibold mb-2">Data Not Available</h2>
-            <p className="text-muted-foreground">Unable to load dashboard data. Please try again later.</p>
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-
-  const { 
-    totalExams, 
-    averageScore, 
-    bestRank, 
-    availableExams, 
-    examHistory 
-  } = dashboardData;
 
   return (
-    <AppShell title="Student Dashboard">
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Welcome back, {user?.name}</h1>
-          <p className="text-muted-foreground">Here's an overview of your academic performance</p>
+    <div className="min-h-screen bg-background">
+      <StudentHeader />
+      
+      <main className="container mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Student Dashboard</h1>
+        
+        {/* Stats cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="border-primary/10 dark:border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <BookOpen className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-3xl font-bold">{dashboardData?.totalExams || 0}</span>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/10 dark:border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <BarChart2 className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-3xl font-bold">{dashboardData?.averageScore.toFixed(1) || 0}%</span>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-primary/10 dark:border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Best Rank</CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <div className="bg-primary/10 p-3 rounded-full">
+                <Award className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-3xl font-bold">{dashboardData?.bestRank || 0}</span>
+            </CardContent>
+          </Card>
         </div>
-
-        <Tabs defaultValue="overview" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="exams">Upcoming Exams</TabsTrigger>
-            <TabsTrigger value="history">Exam History</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <BookOpenText className="mr-2 h-4 w-4" />
-                    Total Exams Taken
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{totalExams}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <BarChart className="mr-2 h-4 w-4" />
-                    Average Score
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{Math.round(averageScore)}%</div>
-                  <Progress value={averageScore} className="h-2 mt-2" />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    Best Rank
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">#{bestRank}</div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Next Exam Card */}
-            {availableExams.length > 0 && (
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle>Next Exam</CardTitle>
-                  <CardDescription>Prepare for your upcoming exams</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start">
-                      <div className="bg-primary/10 p-3 rounded-full mr-4">
-                        <Calendar className="h-6 w-6 text-primary" />
-                      </div>
+        
+        {/* Available Exams */}
+        <Card className="mb-8 border-primary/10 dark:border-primary/20">
+          <CardHeader>
+            <CardTitle>Available Exams</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dashboardData?.availableExams?.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No exams available at the moment.</p>
+            ) : (
+              <div className="space-y-4">
+                {dashboardData?.availableExams?.map((exam) => (
+                  <div 
+                    key={exam.id} 
+                    className="p-4 border border-border rounded-lg dark:bg-muted/20"
+                  >
+                    <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-bold text-xl">{availableExams[0].name}</h3>
-                        <p className="text-muted-foreground">{availableExams[0].subject}</p>
+                        <h3 className="font-semibold text-lg">{exam.name}</h3>
+                        <p className="text-sm text-muted-foreground">{exam.subject}</p>
                       </div>
+                      <Button 
+                        className="flex items-center gap-1" 
+                        onClick={() => navigate(`/student/exam/${exam.id}`)}
+                      >
+                        Start Exam <ArrowRight className="h-4 w-4 ml-1" />
+                      </Button>
                     </div>
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{formatDateWithSuffix(new Date(availableExams[0].date))}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{availableExams[0].duration} minutes</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Award className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span>{availableExams[0].totalMarks} marks</span>
-                      </div>
+                    <div className="text-sm text-muted-foreground">
+                      Date: {new Date(exam.date).toLocaleDateString()} | Duration: {exam.duration} minutes | Marks: {exam.totalMarks}
                     </div>
                   </div>
-                </CardContent>
-                <CardFooter>
-                  <Button className="w-full" onClick={() => setActiveTab("exams")}>
-                    View All Upcoming Exams
-                  </Button>
-                </CardFooter>
-              </Card>
+                ))}
+              </div>
             )}
-            
-            {/* Recent Results */}
-            {examHistory.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Results</CardTitle>
-                  <CardDescription>Your latest exam performances</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {examHistory.slice(0, 3).map((result) => (
-                      <div key={result.id} className="flex items-center justify-between border-b pb-4">
-                        <div className="flex items-center">
-                          <div className="mr-4">
-                            <GradeBadge percentage={result.percentage} />
-                          </div>
-                          <div>
-                            <h4 className="font-semibold">{result.exam.name}</h4>
-                            <p className="text-muted-foreground text-sm">{result.exam.subject}</p>
-                          </div>
+          </CardContent>
+        </Card>
+        
+        {/* Exam History */}
+        <Card className="border-primary/10 dark:border-primary/20">
+          <CardHeader>
+            <CardTitle>Exam History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dashboardData?.examHistory?.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No exam history available.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Exam</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Score</TableHead>
+                    <TableHead>Rank</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dashboardData?.examHistory?.map((result) => (
+                    <TableRow key={result.id}>
+                      <TableCell className="font-medium">{result.exam.name}</TableCell>
+                      <TableCell>{new Date(result.submittedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Progress value={result.percentage} className="h-2 w-24" />
+                          <span>{result.score}/{result.exam.totalMarks}</span>
                         </div>
-                        <div className="text-right">
-                          <div className="font-semibold">{result.score}/{result.exam.totalMarks}</div>
-                          <div className="text-muted-foreground text-sm">{result.percentage}%</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full" onClick={() => setActiveTab("history")}>
-                    View All Results
-                  </Button>
-                </CardFooter>
-              </Card>
+                      </TableCell>
+                      <TableCell>{result.rank || "-"} of {result.totalParticipants || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </TabsContent>
-          
-          <TabsContent value="exams">
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Exams</CardTitle>
-                <CardDescription>Be prepared for these upcoming exams</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {availableExams.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No Upcoming Exams</h3>
-                    <p className="text-muted-foreground">You're all caught up! Check back later for new exams.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {availableExams.map((exam) => (
-                      <div key={exam.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-all">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                          <div className="mb-2 md:mb-0">
-                            <h3 className="font-bold text-lg">{exam.name}</h3>
-                            <p className="text-muted-foreground">{exam.subject}</p>
-                          </div>
-                          <Badge variant={exam.status === 'active' ? 'destructive' : 'outline'}>
-                            {exam.status === 'active' ? 'Active' : 'Upcoming'}
-                          </Badge>
-                        </div>
-                        <Separator className="my-3" />
-                        <div className="flex flex-col sm:flex-row gap-3 text-sm">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{format(new Date(exam.date), "MMM d, yyyy")}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{exam.duration} minutes</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Award className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{exam.totalMarks} marks</span>
-                          </div>
-                        </div>
-                        {exam.status === 'active' && (
-                          <div className="mt-4">
-                            <Button className="w-full sm:w-auto">
-                              Start Exam
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Exam History</CardTitle>
-                <CardDescription>Review your past exam performances</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {examHistory.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookCheck className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium">No Exam History</h3>
-                    <p className="text-muted-foreground">You haven't taken any exams yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {examHistory.map((result) => (
-                      <div key={result.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-all">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                          <div className="flex items-center mb-2 md:mb-0">
-                            <div className="mr-4">
-                              <GradeBadge percentage={result.percentage} />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-lg">{result.exam.name}</h3>
-                              <p className="text-muted-foreground">{result.exam.subject}</p>
-                            </div>
-                          </div>
-                          <div className="text-lg font-bold">
-                            {result.score}/{result.exam.totalMarks}
-                            <span className="text-muted-foreground text-sm ml-2">({result.percentage}%)</span>
-                          </div>
-                        </div>
-                        <Separator className="my-3" />
-                        <div className="flex flex-col sm:flex-row gap-3 text-sm">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>Taken on {format(new Date(result.submittedAt), "MMM d, yyyy")}</span>
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                            <span>{result.exam.duration} minutes</span>
-                          </div>
-                        </div>
-                        <div className="mt-4">
-                          <Button variant="outline" className="w-full sm:w-auto">
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AppShell>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
   );
 }

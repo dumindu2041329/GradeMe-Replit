@@ -45,6 +45,8 @@ export type Result = {
 export type ResultWithDetails = Result & {
   student: Student;
   exam: Exam;
+  rank?: number;
+  totalParticipants?: number;
 };
 
 export type ExamStatus = "upcoming" | "active" | "completed";
