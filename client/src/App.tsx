@@ -9,10 +9,8 @@ import Login from "@/pages/login";
 import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
-import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
-import StudentLogin from "@/pages/student-login";
 
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 
@@ -24,27 +22,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     if (!isLoading && !user) {
-      // Redirect to appropriate login page based on the current path
-      if (location.startsWith("/student")) {
-        navigate("/student/login");
-      } else {
-        navigate("/login");
-      }
+      navigate("/login");
     } else if (!isLoading && user) {
-      // Check if student is trying to access admin pages
-      const isStudentPath = location.startsWith("/student");
-      const isStudentUser = user.role === "student";
-      
-      if (isStudentPath && !isStudentUser && location !== "/student/login") {
-        // Admin trying to access student login page
-        navigate("/");
-      } else if (!isStudentPath && isStudentUser && location !== "/login" && location !== "/student/login") {
-        // Student has logged in but student dashboard is removed, redirect to login
-        navigate("/student/login");
-      } else {
-        // User is allowed to access the requested page
-        setIsContentVisible(true);
-      }
+      // User is allowed to access the requested page
+      setIsContentVisible(true);
     }
   }, [user, isLoading, navigate, location]);
 
@@ -115,7 +96,6 @@ function Router() {
         <Switch>
           <Route path="/login" component={Login} />
           <Route path="/reset-password" component={ResetPassword} />
-          <Route path="/student/login" component={StudentLogin} />
           
           {/* Admin routes */}
           <Route path="/">
@@ -127,12 +107,6 @@ function Router() {
           <Route path="/exams">
             <ProtectedRoute>
               <Exams />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/students">
-            <ProtectedRoute>
-              <Students />
             </ProtectedRoute>
           </Route>
           

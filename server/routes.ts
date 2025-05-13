@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import path from "path";
-import { loginUserSchema, studentLoginSchema, User } from "@shared/schema";
+import { loginUserSchema, User } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import session from "express-session";
 
@@ -77,54 +77,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  });
-
-  // Student login endpoint
-  app.post("/api/auth/student/login", async (req, res) => {
-    try {
-      // Validate request body
-      const result = studentLoginSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid input", errors: result.error.errors });
-      }
-
-      const { email, password } = result.data;
-      
-      // Find student by email
-      const student = await storage.getStudentByEmail(email);
-      if (!student) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Simple password comparison for demo
-      if (student.password !== password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Find corresponding user
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "User account not found" });
-      }
-
-      // Store user in session
-      req.session.user = {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isAdmin: user.isAdmin,
-        profileImage: user.profileImage,
-        studentId: user.studentId
-      };
-
-      // Return user without password
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
-    } catch (error) {
-      console.error("Student login error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

@@ -20,7 +20,7 @@ import { useLocation } from "wouter";
 interface AppShellProps {
   children: React.ReactNode;
   title: string;
-  sidebar?: "student" | "admin";
+  sidebar?: "admin";
 }
 
 export function AppShell({ children, title, sidebar }: AppShellProps) {
@@ -40,8 +40,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      // Redirect to the appropriate login page based on user role
-      navigate(isStudent ? "/student/login" : "/login");
+      navigate("/login");
     } catch (error) {
       console.error("Logout error:", error);
     }
@@ -58,16 +57,10 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
     setIsMobileSidebarOpen(false);
   };
 
-  // Always use the admin sidebar since student dashboard is removed
-  const SidebarComponent = Sidebar;
-  
-  // No student dashboard, only use login link for student user
-  const isStudent = false;
-
   return (
     <div className="flex h-screen max-h-screen">
       {/* Desktop sidebar - hidden on mobile */}
-      <SidebarComponent className="h-screen max-h-screen hidden md:flex" />
+      <Sidebar className="h-screen max-h-screen hidden md:flex" />
       
       <div className="flex flex-col flex-1 overflow-hidden max-h-screen">
         {/* Mobile sidebar with sheet component - positioned absolutely over content */}
@@ -101,7 +94,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
               <X className="size-4" />
             </Button>
             <DialogTitle className="sr-only">Navigation menu</DialogTitle>
-            <SidebarComponent 
+            <Sidebar 
               className="h-full flex" 
               onItemClick={closeMobileSidebar} 
             />
@@ -144,7 +137,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
-                onClick={() => navigate(isStudent ? '/student/profile' : '/profile')}
+                onClick={() => navigate('/profile')}
                 className="cursor-pointer hover:bg-accent"
               >
                 <User className="mr-2 h-4 w-4" />
