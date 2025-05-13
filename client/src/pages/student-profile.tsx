@@ -63,7 +63,7 @@ export default function StudentProfile() {
           <TabsContent value="view" className="space-y-6">
             <Card className="border shadow-sm">
               <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center p-6 bg-slate-950 rounded-md text-white">
+                <div className="flex flex-col items-center text-center p-6 bg-[#070b14] rounded-md text-white">
                   <Avatar className="h-24 w-24 mb-4 bg-slate-800">
                     <AvatarImage src={user?.profileImage || ""} alt={user?.name || "Student"} />
                     <AvatarFallback className="text-3xl">

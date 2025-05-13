@@ -431,10 +431,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Authentication required" });
       }
       
-      const { emailNotifications, smsNotifications } = req.body;
+      // Destructure all notification settings from request body
+      const { 
+        emailExamResults, 
+        emailUpcomingExams, 
+        smsExamResults, 
+        smsUpcomingExams 
+      } = req.body;
       
-      // Validate that all required fields are present and of correct type
-      if (typeof emailNotifications !== 'boolean' || typeof smsNotifications !== 'boolean') {
+      // Validate that all fields are present and of correct type
+      if (typeof emailExamResults !== 'boolean' || 
+          typeof emailUpcomingExams !== 'boolean' ||
+          typeof smsExamResults !== 'boolean' || 
+          typeof smsUpcomingExams !== 'boolean') {
         return res.status(400).json({ 
           message: "Invalid notification settings format" 
         });
@@ -447,12 +456,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // We'll add notification settings to the user object in the database
+      // Determine whether any email or SMS notifications are enabled
+      const emailNotifications = emailExamResults || emailUpcomingExams;
+      const smsNotifications = smsExamResults || smsUpcomingExams;
+      
+      // Update notification preferences to the user object in the database
       const updatedUser = await storage.updateUser(user.id, {
         // Store notification preferences
         notificationPreferences: {
           email: emailNotifications,
-          sms: smsNotifications
+          sms: smsNotifications,
+          emailExamResults,
+          emailUpcomingExams,
+          smsExamResults,
+          smsUpcomingExams
         }
       });
       
@@ -467,7 +484,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...req.session.user,
           notificationPreferences: {
             email: emailNotifications,
-            sms: smsNotifications
+            sms: smsNotifications,
+            emailExamResults,
+            emailUpcomingExams,
+            smsExamResults,
+            smsUpcomingExams
           }
         }
       }
@@ -476,7 +497,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Notification settings updated successfully",
         notificationPreferences: {
           email: emailNotifications,
-          sms: smsNotifications
+          sms: smsNotifications,
+          emailExamResults,
+          emailUpcomingExams,
+          smsExamResults,
+          smsUpcomingExams
         }
       });
     } catch (error) {
@@ -554,27 +579,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Student not found" });
       }
       
-      // Update the student record
-      const updatedStudent = await storage.updateStudent(user.studentId, {
-        name,
+      // Update only email for students
+      // Name, class, and enrollment date can only be updated by admins in admin panel
+      const studentUpdateData = {
         email
-      });
+      };
+      
+      // Update the student record
+      const updatedStudent = await storage.updateStudent(user.studentId, studentUpdateData);
       
       if (!updatedStudent) {
         return res.status(404).json({ message: "Failed to update profile" });
       }
       
-      // Also update the user record
+      // Also update the user record (only email for students)
       const updatedUser = await storage.updateUser(user.id, {
-        name,
         email
       });
       
-      // Update the user in session
+      // Update the user in session (only email for students)
       if (req.session.user && updatedUser) {
         req.session.user = {
           ...req.session.user,
-          name,
           email
         };
       }

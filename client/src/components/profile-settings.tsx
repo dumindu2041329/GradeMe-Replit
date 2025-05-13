@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
+import { ArrowUpFromLine } from 'lucide-react';
 
 import {
   Card,
@@ -33,6 +34,7 @@ const profileFormSchema = z.object({
     message: 'Please enter a valid email address.',
   }),
   profileImage: z.any().optional(),
+  // Student-specific fields removed - now read-only
 });
 
 const notificationFormSchema = z.object({
@@ -90,6 +92,22 @@ export function ProfileSettings({
     user?.profileImage || null
   );
   
+  // Define type for student profile data
+  interface StudentProfile {
+    id: number;
+    name: string;
+    email: string;
+    class: string;
+    enrollmentDate: string;
+    password?: string;
+  }
+
+  // For student profile, fetch additional student data
+  const { data: studentProfile, isLoading: isLoadingProfile } = useQuery<StudentProfile>({
+    queryKey: ["/api/student/profile"],
+    enabled: userRole === 'student' && !!user?.studentId,
+  });
+  
   // Initialize profile form with user data
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -98,6 +116,14 @@ export function ProfileSettings({
       email: user?.email || '',
     },
   });
+  
+  // Update form values when student profile data is loaded
+  React.useEffect(() => {
+    if (studentProfile && userRole === 'student') {
+      profileForm.setValue('name', studentProfile.name || user?.name || '');
+      profileForm.setValue('email', studentProfile.email || user?.email || '');
+    }
+  }, [studentProfile, user, profileForm, userRole]);
   
   // Initialize notification form
   const notificationForm = useForm<NotificationFormValues>({
@@ -141,12 +167,20 @@ export function ProfileSettings({
   // Profile update mutation
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      // For student profile, just use JSON data for now
-      // Later we can refactor to use FormData with multipart/form-data for file uploads
-      const requestBody = {
-        name: data.name,
-        email: data.email
-      };
+      // Prepare the request body based on user role
+      const requestBody = userRole === 'admin' 
+        ? {
+            // For admins, allow name and email updates
+            name: data.name,
+            email: data.email
+          } 
+        : {
+            // For students, only allow email updates
+            // Name, class, and enrollment date can only be updated by admins
+            email: data.email
+          };
+      
+      // For file uploads, we'll add support later using FormData
       
       const response = await fetch(profileEndpoint, {
         method: 'PUT',
@@ -191,15 +225,27 @@ export function ProfileSettings({
   // Notification settings mutation
   const notificationMutation = useMutation({
     mutationFn: async (data: NotificationFormValues) => {
+      // Prepare request body based on user role
+      const requestBody = userRole === 'student' 
+        ? {
+            // For student role, send detailed notification preferences
+            emailExamResults: data.emailExamResults,
+            emailUpcomingExams: data.emailUpcomingExams,
+            smsExamResults: data.smsExamResults,
+            smsUpcomingExams: data.smsUpcomingExams,
+          }
+        : {
+            // For admin role, just use the basic email/sms flags
+            emailNotifications: data.emailNotifications,
+            smsNotifications: data.smsNotifications,
+          };
+      
       const response = await fetch(notificationEndpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          emailNotifications: data.emailExamResults || data.emailUpcomingExams,
-          smsNotifications: data.smsExamResults || data.smsUpcomingExams,
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (!response.ok) {
@@ -301,8 +347,8 @@ export function ProfileSettings({
           
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-              <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <div className="w-24 h-24 rounded-full border overflow-hidden flex items-center justify-center bg-muted">
+              <div className="flex flex-col items-center gap-4 mb-6">
+                <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-[#070b14] relative group">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -310,14 +356,12 @@ export function ProfileSettings({
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-2xl text-muted-foreground">
-                      {user?.name?.charAt(0) || 'U'}
+                    <span className="text-2xl text-white">
+                      {user?.name?.charAt(0) || 'U'}{user?.name?.split(' ')[1]?.charAt(0) || ''}
                     </span>
                   )}
-                </div>
-                
-                <div>
-                  <div className="relative">
+                  
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Input
                       id="profile-image"
                       type="file"
@@ -327,36 +371,41 @@ export function ProfileSettings({
                     />
                     <label
                       htmlFor="profile-image"
-                      className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
+                      className="cursor-pointer"
                     >
-                      Upload Image
+                      <div className="rounded-full p-1 bg-black/30">
+                        <ArrowUpFromLine className="h-5 w-5 text-white" />
+                      </div>
                     </label>
                   </div>
-                  
-                  <div className="text-center md:text-left">
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Upload a new profile picture
-                    </p>
-                    <div className="flex items-center space-x-1">
-                      <PhotoGuidelines />
-                    </div>
+                </div>
+                
+                <div className="text-center space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Upload a new profile picture
+                  </p>
+                  <div className="flex items-center justify-center space-x-1">
+                    <PhotoGuidelines />
                   </div>
                 </div>
               </div>
               
-              <FormField
-                control={profileForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Full Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Full Name field - only visible to admins */}
+              {userRole === 'admin' && (
+                <FormField
+                  control={profileForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               
               <FormField
                 control={profileForm.control}
@@ -372,9 +421,29 @@ export function ProfileSettings({
                 )}
               />
               
-              <Button type="submit" disabled={profileMutation.isPending}>
-                {profileMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
+              {/* Student-specific fields removed completely */}
+              
+              <div className="flex flex-row space-x-2">
+                <Button type="submit" disabled={profileMutation.isPending}>
+                  {profileMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                
+                {userRole === 'student' && (
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => {
+                      if (studentProfile) {
+                        profileForm.reset({
+                          email: studentProfile.email
+                        });
+                      }
+                    }}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </form>
           </Form>
         </CardContent>
