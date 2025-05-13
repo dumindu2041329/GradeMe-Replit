@@ -452,6 +452,230 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin CRUD operations for exams
+  
+  // Get all exams
+  app.get("/api/exams", requireAuth, async (req, res) => {
+    try {
+      const exams = await storage.getExams();
+      return res.status(200).json(exams);
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Get a single exam
+  app.get("/api/exams/:id", requireAuth, async (req, res) => {
+    try {
+      const examId = parseInt(req.params.id);
+      if (isNaN(examId)) {
+        return res.status(400).json({ message: "Invalid exam ID" });
+      }
+      
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      return res.status(200).json(exam);
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Create a new exam
+  app.post("/api/exams", requireAuth, async (req, res) => {
+    try {
+      const examData = req.body;
+      if (!examData.name || !examData.subject || !examData.date) {
+        return res.status(400).json({ message: "Required fields missing" });
+      }
+      
+      const newExam = await storage.createExam(examData);
+      return res.status(201).json(newExam);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Update an exam
+  app.put("/api/exams/:id", requireAuth, async (req, res) => {
+    try {
+      const examId = parseInt(req.params.id);
+      if (isNaN(examId)) {
+        return res.status(400).json({ message: "Invalid exam ID" });
+      }
+      
+      const examData = req.body;
+      if (!examData) {
+        return res.status(400).json({ message: "Exam data is required" });
+      }
+      
+      const updatedExam = await storage.updateExam(examId, examData);
+      if (!updatedExam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      return res.status(200).json(updatedExam);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Delete an exam
+  app.delete("/api/exams/:id", requireAuth, async (req, res) => {
+    try {
+      const examId = parseInt(req.params.id);
+      if (isNaN(examId)) {
+        return res.status(400).json({ message: "Invalid exam ID" });
+      }
+      
+      const success = await storage.deleteExam(examId);
+      if (!success) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Admin CRUD operations for students
+  
+  // Get all students
+  app.get("/api/students", requireAuth, async (req, res) => {
+    try {
+      const students = await storage.getStudents();
+      return res.status(200).json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Get a single student
+  app.get("/api/students/:id", requireAuth, async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.id);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+      
+      const student = await storage.getStudent(studentId);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      return res.status(200).json(student);
+    } catch (error) {
+      console.error("Error fetching student:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Create a new student
+  app.post("/api/students", requireAuth, async (req, res) => {
+    try {
+      const studentData = req.body;
+      if (!studentData.name || !studentData.email) {
+        return res.status(400).json({ message: "Name and email are required" });
+      }
+      
+      // Check if a student with this email already exists
+      const existingStudent = await storage.getStudentByEmail(studentData.email);
+      if (existingStudent) {
+        return res.status(409).json({ message: "A student with this email already exists" });
+      }
+      
+      const newStudent = await storage.createStudent(studentData);
+      return res.status(201).json(newStudent);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Update a student
+  app.put("/api/students/:id", requireAuth, async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.id);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+      
+      const studentData = req.body;
+      if (!studentData) {
+        return res.status(400).json({ message: "Student data is required" });
+      }
+      
+      // If email is being changed, check if the new email already exists
+      if (studentData.email) {
+        const existingStudent = await storage.getStudentByEmail(studentData.email);
+        if (existingStudent && existingStudent.id !== studentId) {
+          return res.status(409).json({ message: "A student with this email already exists" });
+        }
+      }
+      
+      const updatedStudent = await storage.updateStudent(studentId, studentData);
+      if (!updatedStudent) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      return res.status(200).json(updatedStudent);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Delete a student
+  app.delete("/api/students/:id", requireAuth, async (req, res) => {
+    try {
+      const studentId = parseInt(req.params.id);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+      
+      const success = await storage.deleteStudent(studentId);
+      if (!success) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // API route for getting dashboard statistics
+  app.get("/api/statistics", requireAuth, async (req, res) => {
+    try {
+      const statistics = await storage.getStatistics();
+      return res.status(200).json(statistics);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // API route for getting all results
+  app.get("/api/results", requireAuth, async (req, res) => {
+    try {
+      const results = await storage.getResults();
+      return res.status(200).json(results);
+    } catch (error) {
+      console.error("Error fetching results:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

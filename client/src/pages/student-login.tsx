@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const studentLoginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -119,6 +120,9 @@ export default function StudentLogin() {
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-background p-4">
+      <div className="absolute top-6 right-6">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         <Card className="border-border">
           <CardHeader className="space-y-1 text-center">

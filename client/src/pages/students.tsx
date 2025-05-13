@@ -252,7 +252,7 @@ export default function Students() {
           <h1 className="text-2xl font-bold">Students</h1>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="bg-primary hover:bg-primary/90"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Student
@@ -265,33 +265,33 @@ export default function Students() {
             placeholder="Search students..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 w-full bg-slate-800 border-slate-700"
+            className="pl-10 w-full"
           />
         </div>
 
-        <div className="rounded-md border overflow-hidden dark:border-slate-700">
+        <div className="rounded-md border overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-b dark:border-slate-700 bg-slate-800">
-                <TableHead className="font-medium text-slate-300">Name</TableHead>
-                <TableHead className="font-medium text-slate-300">Email</TableHead>
-                <TableHead className="font-medium text-slate-300">Class</TableHead>
-                <TableHead className="font-medium text-slate-300">Enrollment Date</TableHead>
-                <TableHead className="font-medium text-slate-300 text-right">Actions</TableHead>
+              <TableRow>
+                <TableHead className="font-medium">Name</TableHead>
+                <TableHead className="font-medium">Email</TableHead>
+                <TableHead className="font-medium">Class</TableHead>
+                <TableHead className="font-medium">Enrollment Date</TableHead>
+                <TableHead className="font-medium text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody className="bg-slate-900">
+            <TableBody>
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     <div className="flex justify-center">
-                      <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
-                  <TableRow key={student.id} className="border-b border-slate-800 hover:bg-slate-800/50">
+                  <TableRow key={student.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{student.name}</TableCell>
                     <TableCell>{student.email}</TableCell>
                     <TableCell>{student.class}</TableCell>
@@ -312,13 +312,13 @@ export default function Students() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     <div className="flex flex-col items-center justify-center p-8">
-                      <Users className="h-10 w-10 text-slate-400 mb-3" />
+                      <Users className="h-10 w-10 text-muted-foreground mb-3" />
                       <h3 className="text-lg font-medium">No students found</h3>
-                      <p className="text-sm text-slate-400 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         Add your first student to get started.
                       </p>
                       <Button 
-                        className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
+                        className="mt-4 bg-primary hover:bg-primary/90"
                         onClick={() => setIsCreateModalOpen(true)}
                       >
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -546,7 +546,7 @@ export default function Students() {
             <AlertDialogAction
               onClick={onDeleteConfirm}
               disabled={isSubmitting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {isSubmitting ? "Deleting..." : "Delete Student"}
             </AlertDialogAction>
