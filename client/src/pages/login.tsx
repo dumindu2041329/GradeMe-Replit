@@ -129,6 +129,13 @@ export default function Login() {
                   Forgot your password?
                 </Link>
               </div>
+              
+              <div className="text-center mt-4">
+                <span className="text-muted-foreground text-sm">Are you a student? </span>
+                <Link href="/student/login" className="text-primary hover:text-primary/80 text-sm">
+                  Login to student portal
+                </Link>
+              </div>
             </form>
           </Form>
         </CardContent>

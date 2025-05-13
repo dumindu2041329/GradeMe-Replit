@@ -31,6 +31,7 @@ export type Exam = {
   duration: number; // in minutes
   totalMarks: number;
   status: ExamStatus;
+  description?: string;
 };
 
 export type Result = {

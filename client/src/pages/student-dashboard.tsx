@@ -56,7 +56,7 @@ export default function StudentDashboard() {
               <div className="bg-primary/10 p-3 rounded-full">
                 <BarChart2 className="h-6 w-6 text-primary" />
               </div>
-              <span className="text-3xl font-bold">{dashboardData?.averageScore.toFixed(1) || 0}%</span>
+              <span className="text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
             </CardContent>
           </Card>
           

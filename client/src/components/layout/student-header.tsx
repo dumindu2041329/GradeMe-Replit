@@ -23,7 +23,7 @@ export function StudentHeader() {
 
   const handleLogout = async () => {
     try {
-      await logout();
+      await fetch('/api/auth/logout', { method: 'POST' });
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account",
@@ -48,63 +48,42 @@ export function StudentHeader() {
   };
 
   return (
-    <header className="border-b border-border sticky top-0 z-50 bg-background">
-      <div className="container mx-auto px-4 flex justify-between items-center h-16">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-6 w-6 text-primary" />
-          <Link href="/student">
-            <a className="font-bold text-xl">GradeMe</a>
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <nav className="hidden md:flex items-center space-x-4">
-            <Link href="/student">
-              <a className="px-3 py-2 rounded-md hover:bg-muted transition-colors text-sm font-medium">
-                Dashboard
-              </a>
-            </Link>
-            <Link href="/student/exams">
-              <a className="px-3 py-2 rounded-md hover:bg-muted transition-colors text-sm font-medium">
-                Exams
-              </a>
-            </Link>
-            <Link href="/student/results">
-              <a className="px-3 py-2 rounded-md hover:bg-muted transition-colors text-sm font-medium">
-                Results
-              </a>
-            </Link>
-          </nav>
-
-          <ThemeToggle />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  {user?.profileImage ? (
-                    <AvatarImage src={user.profileImage} alt={user.name} />
-                  ) : (
-                    <AvatarFallback>{user?.name ? getInitials(user.name) : "ST"}</AvatarFallback>
-                  )}
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+    <header className="h-16 border-b border-border px-4 flex items-center justify-between bg-background">
+      <div className="md:hidden flex items-center gap-2">
+        <Link href="/student/dashboard">
+          <div className="flex items-center gap-2 cursor-pointer">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <span className="text-xl font-semibold text-primary">GradeMe</span>
+          </div>
+        </Link>
+      </div>
+      
+      <div className="flex items-center gap-4 ml-auto">
+        <ThemeToggle />
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user?.profileImage} alt={user?.name} />
+                <AvatarFallback>
+                  {user?.name ? getInitials(user.name) : "S"}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/student/profile">Profile</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-red-500 cursor-pointer">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
