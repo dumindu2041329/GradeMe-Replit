@@ -1,5 +1,6 @@
 import { apiRequest } from "./queryClient";
 import { User } from "@shared/schema";
+import { queryClient } from "./queryClient";
 
 interface LoginCredentials {
   email: string;
@@ -8,11 +9,22 @@ interface LoginCredentials {
 
 export async function login(credentials: LoginCredentials): Promise<User> {
   const user = await apiRequest<User>("POST", "/api/auth/login", credentials);
+  // Invalidate the session query to force a refresh
+  queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+  return user;
+}
+
+export async function studentLogin(credentials: LoginCredentials): Promise<User> {
+  const user = await apiRequest<User>("POST", "/api/auth/student/login", credentials);
+  // Invalidate the session query to force a refresh
+  queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
   return user;
 }
 
 export async function logout(): Promise<void> {
   await apiRequest("POST", "/api/auth/logout");
+  // Invalidate the session query to force a refresh
+  queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
 }
 
 export async function getSession(): Promise<User | null> {

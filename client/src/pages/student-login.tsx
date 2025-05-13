@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -25,7 +25,7 @@ export default function StudentLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [loginSuccess, setLoginSuccess] = useState(false);
 
   const form = useForm<StudentLoginFormValues>({
@@ -38,15 +38,19 @@ export default function StudentLogin() {
   
   // Check if user is already logged in
   useEffect(() => {
+    console.log("Student login - Current user:", user);
     if (user && user.role === "student") {
+      console.log("Student login - Redirecting to dashboard");
       setLoginSuccess(true);
-      navigate("/student"); // Redirect to student dashboard
+      navigate("/student/dashboard"); // Redirect to student dashboard
     }
   }, [user, navigate]);
 
   const onSubmit = async (values: StudentLoginFormValues) => {
     setIsLoading(true);
     try {
+      // Use direct fetch to login
+      console.log("Attempting student login with values:", values);
       const response = await fetch("/api/auth/student/login", {
         method: "POST",
         headers: {
@@ -59,16 +63,27 @@ export default function StudentLogin() {
         throw new Error("Login failed");
       }
       
-      toast({
-        title: "Login successful",
-        description: "You have successfully logged in",
-      });
+      const userData = await response.json();
+      console.log("Student login successful, got user:", userData);
+      
+      // Manually update the auth context user state
+      setUser(userData);
+      
+      // Invalidate the session query to force a refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       
       // Set login success to display the success message
       setLoginSuccess(true);
       
       // Navigate to student dashboard
-      navigate("/student");
+      console.log("Student login form submit - Redirecting to dashboard");
+      navigate("/student/dashboard");
+      
+      // Show success toast
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${userData.name}!`,
+      });
       
     } catch (error) {
       console.error("Login error:", error);

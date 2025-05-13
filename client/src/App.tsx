@@ -58,14 +58,20 @@ function ProtectedStudentRoute({ children }: { children: React.ReactNode }) {
   const [isContentVisible, setIsContentVisible] = useState(true);
   
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/student/login");
-    } else if (!isLoading && user && user.role !== "student") {
-      // User is not a student, redirect to student login
-      navigate("/student/login");
-    } else if (!isLoading && user) {
-      // User is allowed to access the requested page
-      setIsContentVisible(true);
+    console.log("ProtectedStudentRoute - Current user:", user, "Location:", location);
+    if (!isLoading) {
+      if (!user) {
+        console.log("ProtectedStudentRoute - No user, redirecting to student login");
+        navigate("/student/login");
+      } else if (user.role !== "student") {
+        // User is not a student, redirect to student login
+        console.log("ProtectedStudentRoute - User is not a student, redirecting to student login");
+        navigate("/student/login");
+      } else {
+        // User is allowed to access the requested page
+        console.log("ProtectedStudentRoute - User is a student, showing content");
+        setIsContentVisible(true);
+      }
     }
   }, [user, isLoading, navigate, location]);
 
@@ -117,10 +123,21 @@ function Router() {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
   
-  // Immediately redirect from login page if already authenticated
+  // Redirect based on user role when already authenticated
   useEffect(() => {
-    if (user && location === "/login") {
-      navigate("/", { replace: true });
+    if (user) {
+      // If on login page, redirect to appropriate dashboard
+      if (location === "/login") {
+        navigate("/", { replace: true });
+      } 
+      // If on student login page and user is a student, redirect to student dashboard
+      else if (location === "/student/login" && user.role === "student") {
+        navigate("/student/dashboard", { replace: true });
+      }
+      // If on student login page and user is an admin, redirect to admin dashboard
+      else if (location === "/student/login" && user.role !== "student") {
+        navigate("/", { replace: true });
+      }
     }
   }, [user, location, navigate]);
 
@@ -171,7 +188,7 @@ function Router() {
           {/* Student routes */}
           <Route path="/student/login" component={StudentLogin} />
           
-          <Route path="/student">
+          <Route path="/student/dashboard">
             <ProtectedStudentRoute>
               <StudentDashboard />
             </ProtectedStudentRoute>
@@ -186,6 +203,13 @@ function Router() {
           <Route path="/student/results">
             <ProtectedStudentRoute>
               <StudentResults />
+            </ProtectedStudentRoute>
+          </Route>
+          
+          {/* Root student dashboard route - should be last in the student routes */}
+          <Route path="/student">
+            <ProtectedStudentRoute>
+              <StudentDashboard />
             </ProtectedStudentRoute>
           </Route>
           

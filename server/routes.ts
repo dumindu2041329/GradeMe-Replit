@@ -134,6 +134,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current session user
+  app.get("/api/auth/session", (req, res) => {
+    console.log("Session request, current session:", req.session.user ? "User exists" : "No user in session");
+    if (!req.session.user) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    // Return user data without password
+    const { password: _, ...userWithoutPassword } = req.session.user;
+    return res.status(200).json(userWithoutPassword);
+  });
+
   app.post("/api/auth/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {
