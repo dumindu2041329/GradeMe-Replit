@@ -47,6 +47,11 @@ interface ExamResult {
   percentage: number;
   rank?: number;
   totalParticipants?: number;
+  attemptedMarks: number;
+  exam: {
+    totalMarks: number;
+    [key: string]: any;
+  };
 }
 
 export default function StudentExamPage() {
@@ -336,11 +341,11 @@ export default function StudentExamPage() {
               <div className="grid grid-cols-1 gap-6 mb-6">
                 <div className="text-center p-6 rounded-lg bg-primary/5 border border-primary/10">
                   <h3 className="text-2xl font-bold text-primary mb-2">
-                    {examResult.score}/{exam.totalMarks}
+                    {examResult.score}/{examResult.attemptedMarks}
                   </h3>
                   <Progress value={examResult.percentage} className="h-2 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Your score: {examResult.percentage}%
+                    Your score: {examResult.percentage}% (based on questions answered)
                   </p>
                 </div>
                 

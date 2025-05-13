@@ -204,7 +204,7 @@ export default function StudentDashboard() {
                           <div className="flex flex-col gap-1 w-full">
                             <div className="flex justify-between text-xs">
                               <span className="font-medium">{result.percentage}%</span>
-                              <span>{result.score}/{result.exam.totalMarks}</span>
+                              <span>{result.score}/{result.exam.totalMarks} marks</span>
                             </div>
                             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                               <div 

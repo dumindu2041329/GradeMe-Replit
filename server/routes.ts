@@ -575,9 +575,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real application, you would grade the exam based on the answers
       // For this example, we'll create a mock result
       
+      // Get the exam with questions to assess only answered questions
+      const examWithQuestions = {
+        ...exam,
+        questions: [
+          {
+            id: 1,
+            question: "What is 2 + 2?",
+            type: "multiple-choice",
+            options: ["3", "4", "5", "6"],
+            marks: 1
+          },
+          {
+            id: 2,
+            question: "Explain the Pythagorean theorem.",
+            type: "text",
+            marks: 5
+          }
+        ]
+      };
+      
+      // Calculate total marks only for questions that were answered
+      const answeredQuestionIds = Object.keys(answers).map(id => parseInt(id));
+      const answeredQuestions = examWithQuestions.questions.filter(q => answeredQuestionIds.includes(q.id));
+      const attemptedMarks = answeredQuestions.reduce((total, q) => total + q.marks, 0);
+      
       // Calculate a score (this would be based on real grading in a production app)
-      const score = Math.floor(Math.random() * 20) + 75; // Random score between 75-95
-      const percentage = Math.round((score / exam.totalMarks) * 100);
+      // We're using a random score but only for the questions that were attempted
+      const score = Math.floor(Math.random() * (attemptedMarks * 0.3)) + Math.floor(attemptedMarks * 0.7); // Score between 70-100% of attempted marks
+      const percentage = attemptedMarks > 0 ? Math.round((score / attemptedMarks) * 100) : 0;
       
       // Create a result record
       const result = await storage.createResult({
@@ -605,11 +631,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rank = 15;
       }
       
-      // Return result with added rank and total participants
+      // Return result with added rank, total participants, and attempted marks
       return res.status(200).json({
         ...result,
         rank,
-        totalParticipants
+        totalParticipants,
+        attemptedMarks,
+        exam: {
+          ...exam,
+          // Include only the essential exam details
+          totalMarks: attemptedMarks // Set total marks to attempted marks so UI shows correct percentage
+        }
       });
     } catch (error) {
       console.error("Error submitting exam:", error);
