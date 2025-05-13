@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PlusCircle, Pencil, Trash2, Users, Search, CalendarIcon } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Users, Search } from "lucide-react";
 import { Student } from "@shared/schema";
 import { 
   AlertDialog,
@@ -28,12 +28,14 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email format"),
   class: z.string().min(2, "Class must be at least 2 characters"),
   enrollmentDate: z.date(),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().nullable(),
 });
 
 type StudentFormValues = z.infer<typeof formSchema>;
@@ -51,12 +53,14 @@ export default function Students() {
     queryKey: ["/api/students"],
   });
 
-  // Search students by name
+  // Search students by name or email
   const filteredStudents = students.filter((student) => {
     if (!searchQuery) return true;
     
     const query = searchQuery.toLowerCase();
-    return student.name.toLowerCase().includes(query);
+    return student.name.toLowerCase().includes(query) || 
+           student.email.toLowerCase().includes(query) ||
+           student.class.toLowerCase().includes(query);
   });
 
   const handleEditStudent = (student: Student) => {
@@ -101,6 +105,7 @@ export default function Students() {
       email: "",
       class: "",
       enrollmentDate: new Date(),
+      password: "",
     },
   });
 
@@ -112,6 +117,7 @@ export default function Students() {
       email: selectedStudent?.email || "",
       class: selectedStudent?.class || "",
       enrollmentDate: selectedStudent?.enrollmentDate ? new Date(selectedStudent.enrollmentDate) : new Date(),
+      password: null,
     },
   });
 
@@ -123,6 +129,7 @@ export default function Students() {
         email: selectedStudent.email,
         class: selectedStudent.class,
         enrollmentDate: new Date(selectedStudent.enrollmentDate),
+        password: null, // Don't show password in edit form
       });
     }
   }, [selectedStudent, editForm]);
@@ -143,6 +150,7 @@ export default function Students() {
         email: "",
         class: "",
         enrollmentDate: new Date(),
+        password: "",
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/students"] });
@@ -194,7 +202,7 @@ export default function Students() {
           <h1 className="text-2xl font-bold">Students</h1>
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-purple-500 hover:bg-purple-600 text-white"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Student
@@ -215,11 +223,11 @@ export default function Students() {
           <Table>
             <TableHeader>
               <TableRow className="border-b dark:border-slate-700 bg-slate-800">
-                <TableHead className="font-medium text-slate-400">Name</TableHead>
-                <TableHead className="font-medium text-slate-400">Email</TableHead>
-                <TableHead className="font-medium text-slate-400">Class</TableHead>
-                <TableHead className="font-medium text-slate-400">Enrollment Date</TableHead>
-                <TableHead className="font-medium text-slate-400 text-right">Actions</TableHead>
+                <TableHead className="font-medium text-slate-300">Name</TableHead>
+                <TableHead className="font-medium text-slate-300">Email</TableHead>
+                <TableHead className="font-medium text-slate-300">Class</TableHead>
+                <TableHead className="font-medium text-slate-300">Enrollment Date</TableHead>
+                <TableHead className="font-medium text-slate-300 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="bg-slate-900">
@@ -227,7 +235,7 @@ export default function Students() {
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center">
                     <div className="flex justify-center">
-                      <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -240,11 +248,11 @@ export default function Students() {
                     <TableCell>{format(new Date(student.enrollmentDate), "MM/dd/yyyy")}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEditStudent(student)}>
-                          <Pencil className="h-4 w-4 text-blue-500" />
+                        <Button variant="ghost" size="icon" onClick={() => handleEditStudent(student)} className="text-blue-500 hover:text-blue-400">
+                          <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStudent(student)}>
-                          <Trash2 className="h-4 w-4 text-red-500" />
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteStudent(student)} className="text-red-500 hover:text-red-400">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -260,7 +268,7 @@ export default function Students() {
                         Add your first student to get started.
                       </p>
                       <Button 
-                        className="mt-4 bg-purple-500 hover:bg-purple-600 text-white" 
+                        className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white" 
                         onClick={() => setIsCreateModalOpen(true)}
                       >
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -331,6 +339,26 @@ export default function Students() {
               
               <FormField
                 control={createForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="••••••••" 
+                        type="password" 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="bg-slate-800 border-slate-700" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={createForm.control}
                 name="enrollmentDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
@@ -383,7 +411,7 @@ export default function Students() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {isSubmitting ? "Saving..." : "Save Student"}
                 </Button>
@@ -449,6 +477,26 @@ export default function Students() {
               
               <FormField
                 control={editForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password (Leave blank to keep unchanged)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="••••••••" 
+                        type="password" 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="bg-slate-800 border-slate-700" 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={editForm.control}
                 name="enrollmentDate"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
@@ -501,7 +549,7 @@ export default function Students() {
                 <Button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-purple-500 hover:bg-purple-600 text-white"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
                   {isSubmitting ? "Saving..." : "Update Student"}
                 </Button>
@@ -523,7 +571,7 @@ export default function Students() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-slate-800 text-white hover:bg-slate-700">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteStudent} className="bg-red-500 hover:bg-red-600 text-white">
+            <AlertDialogAction onClick={confirmDeleteStudent} className="bg-red-600 hover:bg-red-700 text-white">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
