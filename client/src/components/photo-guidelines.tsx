@@ -21,7 +21,7 @@ export function PhotoGuidelines() {
         <Button 
           variant="link" 
           size="sm" 
-          className="px-0 text-xs text-muted-foreground hover:text-primary"
+          className="px-0 text-xs text-muted-foreground hover:text-primary mx-auto"
           onClick={() => setOpen(true)}
         >
           <InfoIcon className="w-3 h-3 mr-1" />

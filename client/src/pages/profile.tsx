@@ -460,9 +460,6 @@ export default function Profile() {
                         Upload a new profile picture
                       </p>
                       <div className="flex items-center space-x-1">
-                        <p className="text-xs text-muted-foreground">
-                          JPG, PNG, GIF, or WebP. Max size 5MB.
-                        </p>
                         <PhotoGuidelines />
                       </div>
                     </div>

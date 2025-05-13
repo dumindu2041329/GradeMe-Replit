@@ -6,6 +6,10 @@ export const userRoleEnum = z.enum(['admin', 'student']);
 export type NotificationPreferences = {
   email: boolean;
   sms: boolean;
+  emailExamResults?: boolean;
+  emailUpcomingExams?: boolean;
+  smsExamResults?: boolean;
+  smsUpcomingExams?: boolean;
 };
 
 export type User = {

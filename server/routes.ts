@@ -422,6 +422,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update student notification settings API
+  app.put("/api/student/notifications", requireStudentAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { emailNotifications, smsNotifications } = req.body;
+      
+      // Validate that all required fields are present and of correct type
+      if (typeof emailNotifications !== 'boolean' || typeof smsNotifications !== 'boolean') {
+        return res.status(400).json({ 
+          message: "Invalid notification settings format" 
+        });
+      }
+      
+      // Get the current user to update their settings
+      const currentUser = await storage.getUser(user.id);
+      
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // We'll add notification settings to the user object in the database
+      const updatedUser = await storage.updateUser(user.id, {
+        // Store notification preferences
+        notificationPreferences: {
+          email: emailNotifications,
+          sms: smsNotifications
+        }
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update notification settings" });
+      }
+      
+      // Update the user in session to include notification preferences
+      if (req.session.user) {
+        // Update the user session with notification preferences
+        req.session.user = {
+          ...req.session.user,
+          notificationPreferences: {
+            email: emailNotifications,
+            sms: smsNotifications
+          }
+        }
+      }
+      
+      return res.status(200).json({ 
+        message: "Notification settings updated successfully",
+        notificationPreferences: {
+          email: emailNotifications,
+          sms: smsNotifications
+        }
+      });
+    } catch (error) {
+      console.error("Error updating student notification settings:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Student Dashboard API
   app.get("/api/student/dashboard", requireStudentAuth, async (req, res) => {
     try {
@@ -458,6 +521,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(student);
     } catch (error) {
       console.error("Error fetching student profile data:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Update Student Profile API
+  app.put("/api/student/profile", requireStudentAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      if (!user.studentId) {
+        return res.status(400).json({ message: "Student ID not found" });
+      }
+      
+      const { name, email } = req.body;
+      
+      // Validate required fields
+      if (!name || !email) {
+        return res.status(400).json({ 
+          message: "Name and email are required fields" 
+        });
+      }
+      
+      // Update the student information
+      const student = await storage.getStudent(user.studentId);
+      
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      // Update the student record
+      const updatedStudent = await storage.updateStudent(user.studentId, {
+        name,
+        email
+      });
+      
+      if (!updatedStudent) {
+        return res.status(404).json({ message: "Failed to update profile" });
+      }
+      
+      // Also update the user record
+      const updatedUser = await storage.updateUser(user.id, {
+        name,
+        email
+      });
+      
+      // Update the user in session
+      if (req.session.user && updatedUser) {
+        req.session.user = {
+          ...req.session.user,
+          name,
+          email
+        };
+      }
+      
+      return res.status(200).json({ 
+        message: "Profile updated successfully",
+        user: req.session.user,
+        student: updatedStudent
+      });
+    } catch (error) {
+      console.error("Error updating student profile:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
