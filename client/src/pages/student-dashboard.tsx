@@ -64,39 +64,50 @@ export default function StudentDashboard() {
         
         {/* Stats cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="border-primary/10 dark:border-primary/20">
+          <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <BookOpen className="h-6 w-6 text-primary" />
+              <div className="bg-blue-100 dark:bg-blue-950/20 p-3 rounded-full">
+                <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-500" />
               </div>
               <span className="text-3xl font-bold">{dashboardData?.totalExams || 0}</span>
             </CardContent>
           </Card>
           
-          <Card className="border-primary/10 dark:border-primary/20">
+          <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-purple-500"></div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <BarChart2 className="h-6 w-6 text-primary" />
+              <div className="bg-purple-100 dark:bg-purple-950/20 p-3 rounded-full">
+                <BarChart2 className="h-6 w-6 text-purple-600 dark:text-purple-500" />
               </div>
-              <span className="text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
+              <div className="flex flex-col">
+                <span className="text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
+                <span className="text-xs text-muted-foreground">Based on {dashboardData?.totalExams || 0} exams</span>
+              </div>
             </CardContent>
           </Card>
           
-          <Card className="border-primary/10 dark:border-primary/20">
+          <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-2 h-full bg-amber-500"></div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Best Rank</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <Award className="h-6 w-6 text-primary" />
+              <div className="bg-amber-100 dark:bg-amber-950/20 p-3 rounded-full">
+                <Award className="h-6 w-6 text-amber-600 dark:text-amber-500" />
               </div>
-              <span className="text-3xl font-bold">{dashboardData?.bestRank || 0}</span>
+              <div className="flex items-baseline">
+                <span className="text-3xl font-bold">{dashboardData?.bestRank || '-'}</span>
+                {dashboardData?.examHistory && dashboardData.examHistory.length > 0 && dashboardData.examHistory[0].totalParticipants && (
+                  <span className="text-sm ml-1 text-muted-foreground">of {dashboardData.examHistory[0].totalParticipants}</span>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -157,19 +168,60 @@ export default function StudentDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {dashboardData?.examHistory?.map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell className="font-medium">{result.exam.name}</TableCell>
-                      <TableCell>{new Date(result.submittedAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={result.percentage} className="h-2 w-24" />
-                          <span>{result.score}/{result.exam.totalMarks}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{result.rank || "-"} of {result.totalParticipants || "-"}</TableCell>
-                    </TableRow>
-                  ))}
+                  {dashboardData?.examHistory?.map((result) => {
+                    // Calculate grade based on percentage
+                    let grade;
+                    if (result.percentage >= 90) grade = "A+";
+                    else if (result.percentage >= 80) grade = "A";
+                    else if (result.percentage >= 70) grade = "B";
+                    else if (result.percentage >= 60) grade = "C";
+                    else if (result.percentage >= 50) grade = "D";
+                    else grade = "F";
+                    
+                    // Determine progress bar color based on percentage
+                    let progressColor;
+                    if (result.percentage >= 80) progressColor = "bg-green-500 dark:bg-green-600";
+                    else if (result.percentage >= 70) progressColor = "bg-blue-500 dark:bg-blue-600";
+                    else if (result.percentage >= 60) progressColor = "bg-amber-500 dark:bg-amber-600";
+                    else if (result.percentage >= 50) progressColor = "bg-orange-500 dark:bg-orange-600";
+                    else progressColor = "bg-red-500 dark:bg-red-600";
+                    
+                    return (
+                      <TableRow key={result.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            {result.exam.name}
+                            {/* Include subject if available in the data model */}
+                            {'subject' in result.exam && (
+                              <p className="text-xs text-muted-foreground">{(result.exam as any).subject}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{new Date(result.submittedAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 w-full">
+                            <div className="flex justify-between text-xs">
+                              <span className="font-medium">{result.percentage}%</span>
+                              <span>{result.score}/{result.exam.totalMarks}</span>
+                            </div>
+                            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${progressColor}`} 
+                                style={{ width: `${result.percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="bg-primary/10 text-primary px-2 py-1 rounded-md text-xs font-medium">
+                              {result.rank} of {result.totalParticipants}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

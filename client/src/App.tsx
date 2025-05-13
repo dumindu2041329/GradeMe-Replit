@@ -17,6 +17,7 @@ import StudentDashboard from "@/pages/student-dashboard";
 import StudentExams from "@/pages/student-exams";
 import StudentResults from "@/pages/student-results";
 import StudentExamPage from "@/pages/student-exam-page";
+import StudentProfile from "@/pages/student-profile";
 
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 
@@ -210,6 +211,12 @@ function Router() {
           <Route path="/student/exam/:id">
             <ProtectedStudentRoute>
               <StudentExamPage />
+            </ProtectedStudentRoute>
+          </Route>
+          
+          <Route path="/student/profile">
+            <ProtectedStudentRoute>
+              <StudentProfile />
             </ProtectedStudentRoute>
           </Route>
           

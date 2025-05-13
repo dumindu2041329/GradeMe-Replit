@@ -1,281 +1,359 @@
-import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-// Profile update form schema
-const profileFormSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-});
-
-// Password change form schema
-const passwordFormSchema = z.object({
-  currentPassword: z.string().min(6, {
-    message: "Current password must be at least 6 characters.",
-  }),
-  newPassword: z.string().min(6, {
-    message: "New password must be at least 6 characters.",
-  }),
-  confirmPassword: z.string().min(6, {
-    message: "Confirm password must be at least 6 characters.",
-  }),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
-type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Eye, EyeOff, Bell } from "lucide-react";
+import { StudentHeader } from "@/components/layout/student-header";
 
 export default function StudentProfile() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isProfileUpdating, setIsProfileUpdating] = useState(false);
-  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false);
+  const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("view");
   
-  // Profile form
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      email: user?.email || "",
-      name: user?.name || "",
-    },
+  // Form state
+  const [email, setEmail] = useState(user?.email || "");
+  const [fullName, setFullName] = useState(user?.name || "");
+  
+  const [emailNotifications, setEmailNotifications] = useState({
+    examResults: true,
+    upcomingExams: true,
   });
   
-  // Password form
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordFormSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
+  const [smsNotifications, setSmsNotifications] = useState({
+    examResults: false,
+    upcomingExams: false,
   });
   
-  const onProfileSubmit = async (data: ProfileFormValues) => {
-    setIsProfileUpdating(true);
-    try {
-      // Mock API call - in a real app, you would call the API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Password visibility state
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Save changes handler
+  const handleSaveChanges = () => {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
-      });
-      
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
         variant: "destructive",
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
       });
-    } finally {
-      setIsProfileUpdating(false);
+      return;
     }
+    
+    // Here you would typically make an API call to update the user's profile
+    // For this example, we'll just show a success toast
+    
+    toast({
+      title: "Settings saved",
+      description: "Your profile settings have been updated successfully.",
+    });
+    
+    // In a real implementation, you would update the user context after a successful API call
   };
   
-  const onPasswordSubmit = async (data: PasswordFormValues) => {
-    setIsPasswordUpdating(true);
-    try {
-      // Mock API call - in a real app, you would call the API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
-      });
-      
-      passwordForm.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      
-    } catch (error) {
-      console.error("Error changing password:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to change password. Please make sure your current password is correct.",
-      });
-    } finally {
-      setIsPasswordUpdating(false);
+  // Update state when user changes
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email || "");
+      setFullName(user.name || "");
     }
+  }, [user]);
+  
+  // Change password handler
+  const handleChangePassword = () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirmation must match.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    toast({
+      title: "Password updated",
+      description: "Your password has been changed successfully.",
+    });
+    
+    // Reset password fields
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
+  
+  if (!user) {
+    return null;
+  }
   
   return (
-    <AppShell title="Student Profile">
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium">Profile</h3>
-          <p className="text-sm text-muted-foreground">
-            Update your personal information and how it is displayed on your account.
-          </p>
-        </div>
-        <Separator />
+    <div className="min-h-screen bg-background flex flex-col">
+      <StudentHeader />
+      <div className="container max-w-4xl mx-auto py-8 px-4">
+        <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
         
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-              <CardDescription>Update your personal details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Your name" {...field} disabled={isProfileUpdating} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="your.email@example.com" {...field} disabled={isProfileUpdating} />
-                        </FormControl>
-                        <FormDescription>
-                          Your email address is used for login and notifications.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={isProfileUpdating}>
-                    {isProfileUpdating ? "Saving..." : "Save changes"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="view" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="view" className="text-base">View Profile</TabsTrigger>
+            <TabsTrigger value="edit" className="text-base">Edit Profile</TabsTrigger>
+          </TabsList>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to secure your account</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                            disabled={isPasswordUpdating}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+          <TabsContent value="view" className="space-y-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
+                    {user.profileImage ? (
+                      <img 
+                        src={user.profileImage} 
+                        alt={user.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="text-4xl font-bold text-primary">
+                        {user.name?.charAt(0) || 'U'}
+                      </div>
                     )}
-                  />
-                  
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                            disabled={isPasswordUpdating}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Password must be at least 6 characters long.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="••••••••"
-                            {...field}
-                            disabled={isPasswordUpdating}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={isPasswordUpdating}>
-                    {isPasswordUpdating ? "Updating..." : "Update password"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                  </div>
+                  <h2 className="text-xl font-bold">{fullName}</h2>
+                  <p className="text-muted-foreground">{email}</p>
+                  <div className="mt-2 px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">
+                    Student
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
           
-          <Card>
-            <CardHeader>
-              <CardTitle>Class Information</CardTitle>
-              <CardDescription>Your class details</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label>Class</Label>
-                  <div className="mt-1">
-                    <Input value={"Not specified"} disabled />
+          <TabsContent value="edit" className="space-y-6">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
+                    {user.profileImage ? (
+                      <img 
+                        src={user.profileImage} 
+                        alt={user.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="text-4xl font-bold text-primary">
+                        {user.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <div>
-                  <Label>Enrollment Date</Label>
-                  <div className="mt-1">
-                    <Input value={"Not specified"} disabled />
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input
+                      id="fullName"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                
+                <div className="mt-8">
+                  <h3 className="flex items-center text-lg font-semibold mb-4">
+                    <Bell className="mr-2 h-5 w-5" />
+                    Notification Settings
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-medium mb-2">Email Notifications</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Exam Results</p>
+                            <p className="text-sm text-muted-foreground">Get notified when exam results are published</p>
+                          </div>
+                          <Switch
+                            checked={emailNotifications.examResults}
+                            onCheckedChange={(checked) => 
+                              setEmailNotifications(prev => ({ ...prev, examResults: checked }))
+                            }
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Upcoming Exams</p>
+                            <p className="text-sm text-muted-foreground">Get notified about upcoming exams</p>
+                          </div>
+                          <Switch
+                            checked={emailNotifications.upcomingExams}
+                            onCheckedChange={(checked) => 
+                              setEmailNotifications(prev => ({ ...prev, upcomingExams: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">SMS Notifications</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Exam Results</p>
+                            <p className="text-sm text-muted-foreground">Get SMS alerts when exam results are published</p>
+                          </div>
+                          <Switch
+                            checked={smsNotifications.examResults}
+                            onCheckedChange={(checked) => 
+                              setSmsNotifications(prev => ({ ...prev, examResults: checked }))
+                            }
+                          />
+                        </div>
+                        
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">Upcoming Exams</p>
+                            <p className="text-sm text-muted-foreground">Get SMS alerts about upcoming exams</p>
+                          </div>
+                          <Switch
+                            checked={smsNotifications.upcomingExams}
+                            onCheckedChange={(checked) => 
+                              setSmsNotifications(prev => ({ ...prev, upcomingExams: checked }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    className="w-full mt-6" 
+                    onClick={handleSaveChanges}
+                    variant="default"
+                  >
+                    Save Changes
+                  </Button>
+                </div>
+                
+                <div className="mt-8 pt-8 border-t">
+                  <h3 className="text-lg font-semibold mb-4">Change Password</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          {showCurrentPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <div className="relative mt-1">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      className="w-full"
+                      variant="default"
+                      onClick={handleChangePassword}
+                    >
+                      Update Password
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
-    </AppShell>
+    </div>
   );
 }

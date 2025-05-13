@@ -85,13 +85,11 @@ export function StudentHeader({ onMenuClick }: StudentHeaderProps = {}) {
               <DropdownMenuContent align="end" className="cursor-pointer">
                 <DropdownMenuLabel className="cursor-pointer">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/student/profile">
-                    <div className="flex items-center w-full cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </div>
-                  </Link>
+                <DropdownMenuItem onClick={() => navigate("/student/profile")} className="cursor-pointer">
+                  <div className="flex items-center w-full cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </div>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout} className="text-red-500 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />

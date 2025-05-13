@@ -1,15 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 // Define the structure of an exam question
 interface Question {
@@ -30,6 +38,17 @@ interface Exam {
   questions: Question[];
 }
 
+// Define the structure of an exam result
+interface ExamResult {
+  examId: number;
+  studentId: number;
+  answers: {[key: number]: string};
+  score: number;
+  percentage: number;
+  rank?: number;
+  totalParticipants?: number;
+}
+
 export default function StudentExamPage() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -37,10 +56,10 @@ export default function StudentExamPage() {
   const { toast } = useToast();
   const [answers, setAnswers] = useState<{[key: number]: string}>({});
   const [currentProgress, setCurrentProgress] = useState(0);
-  
-  // Format the duration for display - using the fixed format like "02:59:50" from the screenshot
-  // In a real application, you would calculate this based on the exam.duration value
-  const examDuration = "02:59:50";
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const [examResult, setExamResult] = useState<ExamResult | null>(null);
+  const [showResultDialog, setShowResultDialog] = useState(false);
   
   // Fetch exam data
   const { data: exam, isLoading } = useQuery<Exam>({
@@ -48,35 +67,130 @@ export default function StudentExamPage() {
     enabled: !!user?.studentId && !!id,
   });
   
-  // Submit exam handler
-  const handleSubmitExam = () => {
-    toast({
-      title: "Exam submitted",
-      description: "Your exam has been submitted successfully.",
-    });
-    navigate("/student/dashboard");
-  };
+  // Format time remaining as HH:MM:SS
+  const formatTimeRemaining = useCallback((seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      secs.toString().padStart(2, '0')
+    ].join(':');
+  }, []);
   
-  // Leave exam handler
-  const handleLeaveExam = () => {
-    if (window.confirm("Are you sure you want to leave this exam? Your progress will not be saved.")) {
-      navigate("/student/dashboard");
+  // Initialize timer when exam data is loaded
+  useEffect(() => {
+    if (exam && timeRemaining === null) {
+      // Convert duration from minutes to seconds
+      setTimeRemaining(exam.duration * 60);
     }
-  };
+  }, [exam, timeRemaining]);
+  
+  // Submit exam mutation
+  const submitExamMutation = useMutation({
+    mutationFn: async (data: {examId: number, answers: {[key: number]: string}}) => {
+      const response = await fetch(`/api/exams/${data.examId}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ answers: data.answers }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit exam');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setExamResult(data);
+      setShowResultDialog(true);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error submitting exam",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Submit exam handler
+  const handleSubmitExam = useCallback(() => {
+    if (!exam) return;
+    
+    submitExamMutation.mutate({
+      examId: exam.id,
+      answers
+    });
+  }, [exam, answers, submitExamMutation]);
+  
+  // Timer countdown effect
+  useEffect(() => {
+    if (timeRemaining === null) return;
+    
+    // Show warning when less than 5 minutes remain
+    if (timeRemaining <= 300 && timeRemaining > 0 && !showTimeWarning) {
+      setShowTimeWarning(true);
+      toast({
+        title: "Time is running out!",
+        description: "You have less than 5 minutes remaining.",
+        variant: "destructive"
+      });
+    }
+    
+    // Auto-submit when time runs out
+    if (timeRemaining <= 0) {
+      handleSubmitExam();
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      setTimeRemaining(prev => prev !== null ? prev - 1 : null);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [timeRemaining, showTimeWarning, toast, handleSubmitExam]);
+  
+  // States for leave exam dialog
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  
+  // Leave exam handlers
+  const handleOpenLeaveDialog = useCallback(() => {
+    setShowLeaveDialog(true);
+  }, []);
+  
+  const handleLeaveExam = useCallback(() => {
+    navigate("/student/dashboard");
+  }, [navigate]);
+  
+  // Handle exam completion (after viewing results)
+  const handleCompleteExam = useCallback(() => {
+    // Invalidate relevant queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ["/api/student/dashboard"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/student/results"] });
+    navigate("/student/dashboard");
+  }, [navigate]);
   
   // Answer change handler
-  const handleAnswerChange = (questionId: number, answer: string) => {
-    setAnswers({
+  const handleAnswerChange = useCallback((questionId: number, answer: string) => {
+    const newAnswers = {
       ...answers,
       [questionId]: answer
-    });
+    };
     
-    // Update progress
-    const answeredQuestions = Object.keys(answers).length;
+    setAnswers(newAnswers);
+    
+    // Update progress - count the number of questions that have answers
+    const answeredQuestions = Object.keys(newAnswers).length;
     const totalQuestions = exam?.questions.length || 1;
     const progress = Math.round((answeredQuestions / totalQuestions) * 100);
     setCurrentProgress(progress);
-  };
+  }, [answers, exam?.questions.length]);
   
   if (isLoading) {
     return (
@@ -99,25 +213,8 @@ export default function StudentExamPage() {
     );
   }
   
-  // Mock questions based on screenshots
-  const mockQuestions = [
-    {
-      id: 1,
-      question: "What is 2 + 2?",
-      type: "multiple-choice" as const,
-      options: ["3", "4", "5", "6"],
-      marks: 1
-    },
-    {
-      id: 2,
-      question: "Explain the Pythagorean theorem.",
-      type: "text" as const,
-      marks: 5
-    }
-  ];
-  
-  // Use mock questions or real questions from the exam
-  const questions = mockQuestions;
+  // Get exam questions from the API response
+  const questions = exam.questions || [];
   
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -133,9 +230,23 @@ export default function StudentExamPage() {
               <h1 className="text-xl font-semibold">{exam.name}</h1>
             </div>
             <div className="flex items-center gap-4">
-              <div className="bg-[#121438] text-blue-400 px-4 py-2 rounded-full flex items-center gap-2">
-                <Clock className="h-5 w-5 text-blue-500" />
-                <span className="font-medium text-blue-300">{examDuration}</span>
+              <div className={`px-4 py-2 rounded-full flex items-center gap-2 ${
+                timeRemaining !== null && timeRemaining < 300 
+                  ? "bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400" 
+                  : "bg-[#121438] text-blue-400"
+              }`}>
+                <Clock className={`h-5 w-5 ${
+                  timeRemaining !== null && timeRemaining < 300 
+                    ? "text-red-500" 
+                    : "text-blue-500"
+                }`} />
+                <span className={`font-medium ${
+                  timeRemaining !== null && timeRemaining < 300 
+                    ? "text-red-600 dark:text-red-400" 
+                    : "text-blue-300"
+                }`}>
+                  {timeRemaining !== null ? formatTimeRemaining(timeRemaining) : "--:--:--"}
+                </span>
               </div>
             </div>
           </div>
@@ -200,18 +311,106 @@ export default function StudentExamPage() {
       <footer className="border-t border-border py-4 px-4 sticky bottom-0 bg-background">
         <div className="container mx-auto flex justify-between items-center">
           <div className="text-sm text-muted-foreground">
-            Total marks: {exam.totalMarks} | Duration: {exam.duration} hours
+            Total marks: {exam.totalMarks} | Duration: {exam.duration} minutes
           </div>
           <div className="flex gap-4">
-            <Button variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600" onClick={handleLeaveExam}>
+            <Button variant="outline" className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20" onClick={handleOpenLeaveDialog}>
               Leave Exam
             </Button>
-            <Button onClick={handleSubmitExam}>
-              Submit Exam
+            <Button onClick={handleSubmitExam} disabled={submitExamMutation.isPending}>
+              {submitExamMutation.isPending ? "Submitting..." : "Submit Exam"}
             </Button>
           </div>
         </div>
       </footer>
+      
+      {/* Exam Results Dialog */}
+      <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exam Results</DialogTitle>
+          </DialogHeader>
+          
+          {examResult && (
+            <div className="py-4">
+              <div className="grid grid-cols-1 gap-6 mb-6">
+                <div className="text-center p-6 rounded-lg bg-primary/5 border border-primary/10">
+                  <h3 className="text-2xl font-bold text-primary mb-2">
+                    {examResult.score}/{exam.totalMarks}
+                  </h3>
+                  <Progress value={examResult.percentage} className="h-2 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Your score: {examResult.percentage}%
+                  </p>
+                </div>
+                
+                <div className="text-center p-6 rounded-lg bg-primary/5 border border-primary/10">
+                  <h3 className="text-2xl font-bold text-primary mb-2">
+                    {examResult.rank} <span className="text-base font-medium">of {examResult.totalParticipants}</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your rank in class
+                  </p>
+                </div>
+              </div>
+              
+              <p className="text-center text-sm text-muted-foreground mb-6">
+                Congratulations on completing the exam! Your results have been recorded.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              onClick={handleCompleteExam} 
+              className="w-full"
+            >
+              Return to Dashboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Leave Exam Dialog */}
+      <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold text-red-500">Leave Exam?</DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-6">
+            <div className="flex justify-center mb-6">
+              <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full">
+                <AlertTriangle className="h-10 w-10 text-red-500" />
+              </div>
+            </div>
+            
+            <p className="text-center mb-2 font-medium">
+              Are you sure you want to leave this exam?
+            </p>
+            <p className="text-center text-sm text-muted-foreground mb-6">
+              Your progress will not be saved and you will need to restart the exam from the beginning.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowLeaveDialog(false)}
+              className="sm:flex-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleLeaveExam}
+              className="sm:flex-1"
+            >
+              Leave Exam
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

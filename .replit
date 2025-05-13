@@ -34,12 +34,3 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Dev Server"
-author = 42604680
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"

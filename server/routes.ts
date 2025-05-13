@@ -288,8 +288,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For demonstration, we'll create mock questions to match the screenshots
       const examWithQuestions = {
         ...exam,
-        // Convert duration to hours for the exam (assuming it comes in as hours, but making it explicit)
-        duration: exam.duration || 2, // Default to 2 hours if not specified
         questions: [
           {
             id: 1,
@@ -310,6 +308,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(200).json(examWithQuestions);
     } catch (error) {
       console.error("Error fetching exam details:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Submit an exam and get result
+  app.post("/api/exams/:id/submit", requireStudentAuth, async (req, res) => {
+    try {
+      const examId = parseInt(req.params.id);
+      if (isNaN(examId)) {
+        return res.status(400).json({ message: "Invalid exam ID" });
+      }
+      
+      const user = req.session.user;
+      if (!user || !user.studentId) {
+        return res.status(400).json({ message: "Student ID not found" });
+      }
+      
+      const { answers } = req.body;
+      if (!answers) {
+        return res.status(400).json({ message: "No answers provided" });
+      }
+      
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      // In a real application, you would grade the exam based on the answers
+      // For this example, we'll create a mock result
+      
+      // Calculate a score (this would be based on real grading in a production app)
+      const score = Math.floor(Math.random() * 20) + 75; // Random score between 75-95
+      const percentage = Math.round((score / exam.totalMarks) * 100);
+      
+      // Create a result record
+      const result = await storage.createResult({
+        studentId: user.studentId,
+        examId: examId,
+        score: score,
+        percentage: percentage,
+        submittedAt: new Date()
+      });
+      
+      // Get total participants for rank calculation (mock data)
+      const totalParticipants = 50;
+      
+      // Determine rank (mock data - in a real app, this would be calculated)
+      let rank;
+      if (percentage >= 90) {
+        rank = 1;
+      } else if (percentage >= 85) {
+        rank = 3;
+      } else if (percentage >= 80) {
+        rank = 5;
+      } else if (percentage >= 75) {
+        rank = 10;
+      } else {
+        rank = 15;
+      }
+      
+      // Return result with added rank and total participants
+      return res.status(200).json({
+        ...result,
+        rank,
+        totalParticipants
+      });
+    } catch (error) {
+      console.error("Error submitting exam:", error);
       return res.status(500).json({ message: "Server error" });
     }
   });
