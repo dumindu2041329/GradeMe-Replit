@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, GraduationCap } from "lucide-react";
+import { LogOut, GraduationCap, Menu } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +16,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
-export function StudentHeader() {
+interface StudentHeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function StudentHeader({ onMenuClick }: StudentHeaderProps = {}) {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
@@ -54,7 +58,12 @@ export function StudentHeader() {
 
   return (
     <header className="h-16 border-b border-border px-4 flex items-center justify-between bg-background">
-      <div className="md:hidden flex items-center gap-2">
+      <div className="md:hidden flex items-center gap-3">
+        {onMenuClick && (
+          <Button variant="ghost" size="icon" onClick={onMenuClick} className="mr-1">
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         <Link href="/student/dashboard">
           <div className="flex items-center gap-2 cursor-pointer">
             <GraduationCap className="h-6 w-6 text-primary" />

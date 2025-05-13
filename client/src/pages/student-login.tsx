@@ -25,7 +25,7 @@ export default function StudentLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [loginSuccess, setLoginSuccess] = useState(false);
 
   const form = useForm<StudentLoginFormValues>({
@@ -137,7 +137,6 @@ export default function StudentLogin() {
                       });
                       
                       setLoginSuccess(false);
-                      setUser(null);
                       
                       // Refresh the page to ensure clean state
                       window.location.reload();

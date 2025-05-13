@@ -87,6 +87,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
       
+      // Check if user is an admin - this endpoint is for admins only
+      if (user.role !== "admin") {
+        return res.status(403).json({ 
+          message: "Access denied. Please use the student login page instead." 
+        });
+      }
+      
       // Set user in session
       req.session.user = user;
       
@@ -108,18 +115,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
       
-      // Find student by email
+      // First check if this is a valid user with student role
+      const user = await storage.getUserByEmail(email);
+      
+      // If user doesn't exist or is not a student, return an error
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      if (user.role !== "student") {
+        return res.status(403).json({ 
+          message: "Access denied. Please use the admin login page instead." 
+        });
+      }
+      
+      // Validate student credentials
       const student = await storage.authenticateStudent(email, password);
       
       if (!student) {
         return res.status(401).json({ message: "Invalid email or password" });
-      }
-      
-      // Find corresponding user account
-      const user = await storage.getUserByEmail(email);
-      
-      if (!user || user.role !== "student") {
-        return res.status(401).json({ message: "User account not found" });
       }
       
       // Set user in session
