@@ -7,9 +7,8 @@ interface LoginCredentials {
 }
 
 export async function login(credentials: LoginCredentials): Promise<User> {
-  const response = await apiRequest("POST", "/api/auth/login", credentials);
-  const data = await response.json();
-  return data;
+  const user = await apiRequest<User>("POST", "/api/auth/login", credentials);
+  return user;
 }
 
 export async function logout(): Promise<void> {
