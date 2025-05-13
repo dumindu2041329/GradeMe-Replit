@@ -270,6 +270,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Server error" });
     }
   });
+  
+  // Get exam by ID for students taking the exam
+  app.get("/api/exams/:id", requireStudentAuth, async (req, res) => {
+    try {
+      const examId = parseInt(req.params.id);
+      if (isNaN(examId)) {
+        return res.status(400).json({ message: "Invalid exam ID" });
+      }
+      
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      // Return the exam with questions (in a real app, you might add more security checks here)
+      // For demonstration, we'll create mock questions to match the screenshots
+      const examWithQuestions = {
+        ...exam,
+        // Convert duration to hours for the exam (assuming it comes in as hours, but making it explicit)
+        duration: exam.duration || 2, // Default to 2 hours if not specified
+        questions: [
+          {
+            id: 1,
+            question: "What is 2 + 2?",
+            type: "multiple-choice",
+            options: ["3", "4", "5", "6"],
+            marks: 1
+          },
+          {
+            id: 2,
+            question: "Explain the Pythagorean theorem.",
+            type: "text",
+            marks: 5
+          }
+        ]
+      };
+      
+      return res.status(200).json(examWithQuestions);
+    } catch (error) {
+      console.error("Error fetching exam details:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
 
   // API route for contact form submissions
   app.post("/api/contact", async (req, res) => {
