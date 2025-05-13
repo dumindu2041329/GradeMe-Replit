@@ -13,8 +13,7 @@ import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
 import StudentLogin from "@/pages/student-login";
-import StudentDashboard from "@/pages/student-dashboard";
-import StudentProfile from "@/pages/student-profile";
+
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -32,16 +31,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         navigate("/login");
       }
     } else if (!isLoading && user) {
-      // Check if student is trying to access admin pages or admin trying to access student pages
+      // Check if student is trying to access admin pages
       const isStudentPath = location.startsWith("/student");
       const isStudentUser = user.role === "student";
       
-      if (isStudentPath && !isStudentUser) {
-        // Admin trying to access student pages
+      if (isStudentPath && !isStudentUser && location !== "/student/login") {
+        // Admin trying to access student login page
         navigate("/");
-      } else if (!isStudentPath && isStudentUser) {
-        // Student trying to access admin pages
-        navigate("/student/dashboard");
+      } else if (!isStudentPath && isStudentUser && location !== "/login" && location !== "/student/login") {
+        // Student has logged in but student dashboard is removed, redirect to login
+        navigate("/student/login");
       } else {
         // User is allowed to access the requested page
         setIsContentVisible(true);
@@ -146,19 +145,6 @@ function Router() {
           <Route path="/profile">
             <ProtectedRoute>
               <Profile />
-            </ProtectedRoute>
-          </Route>
-          
-          {/* Student routes */}
-          <Route path="/student/dashboard">
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/student/profile">
-            <ProtectedRoute>
-              <StudentProfile />
             </ProtectedRoute>
           </Route>
           

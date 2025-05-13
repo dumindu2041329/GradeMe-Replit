@@ -493,65 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Student dashboard data
-  app.get("/api/student/dashboard", isAuthenticated, async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      // Check if user is a student
-      if (!user.studentId) {
-        return res.status(403).json({ message: "Access denied. Student only resource." });
-      }
-      
-      const dashboardData = await storage.getStudentDashboardData(user.studentId);
-      res.json(dashboardData);
-    } catch (error) {
-      console.error("Error fetching student dashboard data:", error);
-      res.status(500).json({ message: "Failed to fetch dashboard data" });
-    }
-  });
-  
-  // Available exams for a student
-  app.get("/api/student/exams/available", isAuthenticated, async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      // Check if user is a student
-      if (!user.studentId) {
-        return res.status(403).json({ message: "Access denied. Student only resource." });
-      }
-      
-      const upcomingExams = await storage.getExamsByStatus("upcoming");
-      const activeExams = await storage.getExamsByStatus("active");
-      
-      // Combine and sort by date
-      const availableExams = [...upcomingExams, ...activeExams]
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      
-      res.json(availableExams);
-    } catch (error) {
-      console.error("Error fetching available exams:", error);
-      res.status(500).json({ message: "Failed to fetch available exams" });
-    }
-  });
-  
-  // Exam history for a student
-  app.get("/api/student/exams/history", isAuthenticated, async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      // Check if user is a student
-      if (!user.studentId) {
-        return res.status(403).json({ message: "Access denied. Student only resource." });
-      }
-      
-      const examHistory = await storage.getResultsByStudentId(user.studentId);
-      res.json(examHistory);
-    } catch (error) {
-      console.error("Error fetching exam history:", error);
-      res.status(500).json({ message: "Failed to fetch exam history" });
-    }
-  });
+  // Student routes have been removed as per requirements
 
   const httpServer = createServer(app);
   return httpServer;

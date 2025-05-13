@@ -21,7 +21,13 @@ export function NavLink({
 }: NavLinkProps & React.HTMLAttributes<HTMLAnchorElement>) {
   const [location] = useLocation();
   const { navigateWithTransition } = useRouteTransition();
-  const isActive = location === href;
+  // Fix for exact matches and subpaths
+  const isActive = 
+    location === href || 
+    // Special case for dashboard
+    (href === '/' && location === '/') ||
+    // For subpaths (like /students/*)
+    (href !== '/' && location.startsWith(href));
   
   const handleClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>) => {

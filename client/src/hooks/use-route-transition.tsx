@@ -24,9 +24,11 @@ export function useRouteTransition() {
   
   // Preload adjacent routes
   const preloadAdjacentRoutes = useCallback(() => {
-    const routes = ["/", "/exams", "/students", "/results"];
+    // Only include admin routes (student dashboard has been removed)
+    const adminRoutes = ["/", "/exams", "/students", "/results", "/profile", "/student/login"];
+    const allRoutes = adminRoutes;
     
-    routes.forEach(route => {
+    allRoutes.forEach(route => {
       if (route !== location && !preloadedRoutes.has(route)) {
         // Mark as preloaded
         preloadedRoutes.add(route);

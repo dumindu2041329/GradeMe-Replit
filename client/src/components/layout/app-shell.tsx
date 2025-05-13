@@ -1,5 +1,4 @@
 import { Sidebar } from "./sidebar";
-import { StudentSidebar } from "./student-sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu, User, X, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -21,9 +20,10 @@ import { useLocation } from "wouter";
 interface AppShellProps {
   children: React.ReactNode;
   title: string;
+  sidebar?: "student" | "admin";
 }
 
-export function AppShell({ children, title }: AppShellProps) {
+export function AppShell({ children, title, sidebar }: AppShellProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
@@ -58,9 +58,11 @@ export function AppShell({ children, title }: AppShellProps) {
     setIsMobileSidebarOpen(false);
   };
 
-  // Determine which sidebar to use based on the user's role
-  const isStudent = user?.role === "student";
-  const SidebarComponent = isStudent ? StudentSidebar : Sidebar;
+  // Always use the admin sidebar since student dashboard is removed
+  const SidebarComponent = Sidebar;
+  
+  // No student dashboard, only use login link for student user
+  const isStudent = false;
 
   return (
     <div className="flex h-screen max-h-screen">

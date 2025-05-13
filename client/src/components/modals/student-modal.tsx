@@ -92,12 +92,12 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Add New Student" : "Edit Student"}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-slate-400 mt-1">
             {mode === "create" 
               ? "Register a new student by filling out the form below." 
               : "Update the student information using the form below."
@@ -114,7 +114,7 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="John Doe" {...field} className="bg-slate-800 border-slate-700" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -128,7 +128,7 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input placeholder="john@example.com" type="email" {...field} />
+                    <Input placeholder="john@example.com" type="email" {...field} className="bg-slate-800 border-slate-700" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -199,7 +199,11 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="bg-purple-500 hover:bg-purple-600 text-white"
+              >
                 {isSubmitting ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
