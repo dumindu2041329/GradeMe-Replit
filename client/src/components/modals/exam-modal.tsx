@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertExamSchema } from "@shared/schema";
+import { insertExamSchema, Exam } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,11 +58,19 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
       setIsSubmitting(true);
       console.log("Submitting exam form with data:", data);
       
+      // Convert date to ISO string for API request
+      const examData = {
+        ...data,
+        date: data.date.toISOString()
+      };
+      
       if (mode === "create") {
-        await apiRequest("POST", "/api/exams", data);
+        const newExam = await apiRequest<Exam>("POST", "/api/exams", examData);
+        console.log("Created exam:", newExam);
+        
         toast({
           title: "Success",
-          description: "Exam created successfully",
+          description: `Exam "${newExam.name}" created successfully`,
         });
         
         // Reset form fields on successful creation
@@ -75,15 +83,18 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           status: "upcoming"
         });
       } else if (mode === "edit" && exam) {
-        await apiRequest("PUT", `/api/exams/${exam.id}`, data);
+        const updatedExam = await apiRequest<Exam>("PUT", `/api/exams/${exam.id}`, examData);
+        console.log("Updated exam:", updatedExam);
+        
         toast({
           title: "Success",
-          description: "Exam updated successfully",
+          description: `Exam "${updatedExam.name}" updated successfully`,
         });
       }
       
-      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      // Force refresh the queries to get the latest data
+      await queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting exam form:", error);

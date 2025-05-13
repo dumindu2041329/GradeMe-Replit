@@ -106,13 +106,20 @@ export default function Students() {
     try {
       setIsSubmitting(true);
       
-      await apiRequest("POST", "/api/students", data);
+      const newStudent = await apiRequest<Student>("POST", "/api/students", data);
+      console.log("Created student:", newStudent);
+      
       toast({
         title: "Success",
-        description: "Student created successfully",
+        description: `Student "${newStudent.name}" created successfully`,
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      // Force refresh to get the latest data
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      
+      // Reset the form and close the modal
+      createForm.reset();
       setIsCreateModalOpen(false);
     } catch (error) {
       console.error("Error creating student:", error);
@@ -132,13 +139,18 @@ export default function Students() {
     try {
       setIsSubmitting(true);
       
-      await apiRequest("PUT", `/api/students/${selectedStudent.id}`, data);
+      const updatedStudent = await apiRequest<Student>("PUT", `/api/students/${selectedStudent.id}`, data);
+      console.log("Updated student:", updatedStudent);
+      
       toast({
         title: "Success",
-        description: "Student updated successfully",
+        description: `Student "${updatedStudent.name}" updated successfully`,
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      // Force refresh to get the latest data
+      await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      
       setIsEditModalOpen(false);
       setSelectedStudent(null);
     } catch (error) {
@@ -159,13 +171,20 @@ export default function Students() {
     try {
       setIsSubmitting(true);
       
-      await apiRequest("DELETE", `/api/students/${selectedStudent.id}`);
-      toast({
-        title: "Success",
-        description: "Student deleted successfully",
-      });
+      const result = await apiRequest<{success: boolean}>("DELETE", `/api/students/${selectedStudent.id}`);
+      console.log("Delete student result:", result);
       
-      queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Student "${selectedStudent.name}" deleted successfully`,
+        });
+        
+        // Force refresh to get the latest data
+        await queryClient.invalidateQueries({ queryKey: ["/api/students"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      }
+      
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
     } catch (error) {

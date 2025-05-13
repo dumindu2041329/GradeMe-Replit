@@ -79,13 +79,18 @@ export default function Exams() {
     if (!selectedExam) return;
     
     try {
-      await apiRequest("DELETE", `/api/exams/${selectedExam.id}`);
-      toast({
-        title: "Success",
-        description: "Exam deleted successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      const result = await apiRequest<{success: boolean}>("DELETE", `/api/exams/${selectedExam.id}`);
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: `Exam "${selectedExam.name}" deleted successfully`,
+        });
+        
+        // Force refresh the queries to get the latest data
+        await queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+      }
     } catch (error) {
       console.error("Error deleting exam:", error);
       toast({
