@@ -207,6 +207,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update student profile API
+  app.patch("/api/student/profile", requireStudentAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user || !user.studentId) {
+        return res.status(400).json({ message: "Student ID not found" });
+      }
+      
+      const { fullName, email, profileImage } = req.body;
+      
+      // Validate email format
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ message: "Invalid email format" });
+        }
+      }
+      
+      // Update the student profile
+      const updatedStudent = await storage.updateStudent(user.studentId, {
+        name: fullName,
+        email,
+        profileImage
+      });
+      
+      if (!updatedStudent) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      // Update the user in session
+      req.session.user = {
+        ...user,
+        name: fullName || user.name,
+        email: email || user.email,
+        profileImage: profileImage !== undefined ? profileImage : user.profileImage
+      };
+      
+      return res.status(200).json({ 
+        message: "Profile updated successfully",
+        user: req.session.user
+      });
+    } catch (error) {
+      console.error("Error updating student profile:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Student Dashboard API
   app.get("/api/student/dashboard", requireStudentAuth, async (req, res) => {
     try {

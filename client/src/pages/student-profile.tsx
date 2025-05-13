@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Eye, EyeOff, Bell } from "lucide-react";
 import { StudentHeader } from "@/components/layout/student-header";
 
 export default function StudentProfile() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("view");
@@ -20,6 +21,8 @@ export default function StudentProfile() {
   // Form state
   const [email, setEmail] = useState(user?.email || "");
   const [fullName, setFullName] = useState(user?.name || "");
+  const [profileImage, setProfileImage] = useState<string | null>(user?.profileImage || null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
   
   const [emailNotifications, setEmailNotifications] = useState({
     examResults: true,
@@ -41,8 +44,48 @@ export default function StudentProfile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // Handle profile image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a JPG, PNG, GIF, or WebP image.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Create a URL for preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // Remove profile image
+  const handleRemoveImage = () => {
+    setProfileImage(null);
+    setPreviewImage(null);
+  };
+  
   // Save changes handler
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -54,15 +97,57 @@ export default function StudentProfile() {
       return;
     }
     
-    // Here you would typically make an API call to update the user's profile
-    // For this example, we'll just show a success toast
-    
-    toast({
-      title: "Settings saved",
-      description: "Your profile settings have been updated successfully.",
-    });
-    
-    // In a real implementation, you would update the user context after a successful API call
+    try {
+      // Prepare the final image - use previewImage if available, otherwise use existing profileImage
+      const finalImage = previewImage || profileImage;
+      
+      // Make API call to update profile
+      const response = await fetch('/api/student/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName,
+          email,
+          profileImage: finalImage,
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+      
+      const result = await response.json();
+      
+      // Update local state with confirmed data from server
+      setProfileImage(result.user.profileImage);
+      setPreviewImage(null); // Clear preview image as it's now saved
+      
+      // Update auth context with new user data
+      if (user) {
+        const updatedUser: User = {
+          ...user,
+          name: result.user.name || user.name,
+          email: result.user.email || user.email,
+          profileImage: result.user.profileImage
+        };
+        setUser(updatedUser);
+      }
+      
+      toast({
+        title: "Settings saved",
+        description: "Your profile settings have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Could not update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   // Update state when user changes
@@ -70,6 +155,8 @@ export default function StudentProfile() {
     if (user) {
       setEmail(user.email || "");
       setFullName(user.name || "");
+      setProfileImage(user.profileImage || null);
+      setPreviewImage(null); // Reset preview when user changes
     }
   }, [user]);
   
@@ -125,15 +212,15 @@ export default function StudentProfile() {
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
-                    {user.profileImage ? (
+                    {profileImage ? (
                       <img 
-                        src={user.profileImage} 
-                        alt={user.name} 
+                        src={profileImage} 
+                        alt={fullName} 
                         className="w-full h-full object-cover" 
                       />
                     ) : (
                       <div className="text-4xl font-bold text-primary">
-                        {user.name?.charAt(0) || 'U'}
+                        {fullName?.charAt(0) || 'U'}
                       </div>
                     )}
                   </div>
@@ -152,16 +239,52 @@ export default function StudentProfile() {
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center mb-6">
                   <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 overflow-hidden">
-                    {user.profileImage ? (
+                    {previewImage ? (
                       <img 
-                        src={user.profileImage} 
-                        alt={user.name} 
+                        src={previewImage} 
+                        alt={fullName} 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : profileImage ? (
+                      <img 
+                        src={profileImage} 
+                        alt={fullName} 
                         className="w-full h-full object-cover" 
                       />
                     ) : (
                       <div className="text-4xl font-bold text-primary">
-                        {user.name?.charAt(0) || 'U'}
+                        {fullName?.charAt(0) || 'U'}
                       </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        className="text-xs"
+                      >
+                        Upload Photo
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/gif, image/webp"
+                          onChange={handleImageUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                      </Button>
+                    </div>
+                    {(profileImage || previewImage) && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        className="text-xs text-destructive hover:text-destructive"
+                        onClick={handleRemoveImage}
+                      >
+                        Remove
+                      </Button>
                     )}
                   </div>
                 </div>
