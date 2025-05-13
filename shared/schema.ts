@@ -3,6 +3,11 @@ import { z } from "zod";
 export const userRoleEnum = z.enum(['admin', 'student']);
 
 // Type definitions for our models
+export type NotificationPreferences = {
+  email: boolean;
+  sms: boolean;
+};
+
 export type User = {
   id: number;
   email: string;
@@ -12,6 +17,7 @@ export type User = {
   isAdmin: boolean;
   profileImage: string | null;
   studentId: number | null;
+  notificationPreferences?: NotificationPreferences;
 };
 
 export type Student = {
@@ -111,6 +117,7 @@ export type InsertUser = {
   isAdmin: boolean;
   profileImage: string | null;
   studentId: number | null;
+  notificationPreferences?: NotificationPreferences;
 };
 
 export type LoginUser = z.infer<typeof loginUserSchema>;

@@ -249,6 +249,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update admin user profile API
+  app.put("/api/users/profile", requireAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { name, email, profileImage } = req.body;
+      
+      // Validate email format
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ message: "Invalid email format" });
+        }
+      }
+      
+      // Check if another user already has this email
+      if (email && email !== user.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== user.id) {
+          return res.status(409).json({ message: "Email is already in use by another account" });
+        }
+      }
+      
+      // Update the user profile
+      const updatedUser = await storage.updateUser(user.id, {
+        name: name || user.name,
+        email: email || user.email,
+        profileImage: profileImage !== undefined ? profileImage : user.profileImage
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't include password in the response
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      
+      // Update the user in session
+      req.session.user = userWithoutPassword;
+      
+      return res.status(200).json({ 
+        message: "Profile updated successfully",
+        user: userWithoutPassword
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Update admin user password API
+  app.post("/api/users/change-password", requireAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      // Validate required fields
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ 
+          message: "Current password and new password are required" 
+        });
+      }
+      
+      // Validate password length
+      if (newPassword.length < 6) {
+        return res.status(400).json({ 
+          message: "New password must be at least 6 characters long" 
+        });
+      }
+      
+      // Get the current user to verify current password
+      const currentUser = await storage.getUser(user.id);
+      
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Check if current password is correct (implement password compare logic here)
+      // In a real app, you'd use bcrypt.compare or similar to check hashed passwords
+      if (currentPassword !== currentUser.password) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Update user with new password
+      const updatedUser = await storage.updateUser(user.id, {
+        password: newPassword
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update password" });
+      }
+      
+      return res.status(200).json({ 
+        message: "Password updated successfully" 
+      });
+    } catch (error) {
+      console.error("Error updating user password:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
+  // Update user notification settings API
+  app.put("/api/users/notifications", requireAuth, async (req, res) => {
+    try {
+      const user = req.session.user;
+      
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      const { emailNotifications, smsNotifications } = req.body;
+      
+      // Validate that all required fields are present and of correct type
+      if (typeof emailNotifications !== 'boolean' || typeof smsNotifications !== 'boolean') {
+        return res.status(400).json({ 
+          message: "Invalid notification settings format" 
+        });
+      }
+      
+      // Get the current user to update their settings
+      const currentUser = await storage.getUser(user.id);
+      
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // We'll add notification settings to the user object in the database
+      const updatedUser = await storage.updateUser(user.id, {
+        // Store notification preferences
+        notificationPreferences: {
+          email: emailNotifications,
+          sms: smsNotifications
+        }
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update notification settings" });
+      }
+      
+      // Update the user in session to include notification preferences
+      if (req.session.user) {
+        // Update the user session with notification preferences
+        req.session.user = {
+          ...req.session.user,
+          notificationPreferences: {
+            email: emailNotifications,
+            sms: smsNotifications
+          }
+        }
+      }
+      
+      return res.status(200).json({ 
+        message: "Notification settings updated successfully",
+        notificationPreferences: {
+          email: emailNotifications,
+          sms: smsNotifications
+        }
+      });
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+  
   // Student Dashboard API
   app.get("/api/student/dashboard", requireStudentAuth, async (req, res) => {
     try {

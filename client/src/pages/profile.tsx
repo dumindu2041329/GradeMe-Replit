@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import { PhotoGuidelines } from "@/components/photo-guidelines";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 // Form schemas
 const profileFormSchema = z.object({
@@ -64,6 +66,48 @@ export default function Profile() {
         .toUpperCase()
     : "U";
     
+  // Profile image update mutation
+  const profileImageMutation = useMutation({
+    mutationFn: async (base64Image: string) => {
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profileImage: base64Image }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update profile image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Update the auth context
+      setUser(data.user);
+      
+      toast({
+        title: "Profile Image Updated",
+        description: "Your profile image has been updated successfully.",
+      });
+      
+      // Invalidate user-related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "There was a problem updating your profile image.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setImageLoading(false);
+    }
+  });
+  
   // Handle profile image upload
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -93,42 +137,14 @@ export default function Profile() {
     setImageLoading(true);
     
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       const base64Image = e.target?.result as string;
       
-      try {
-        // Update the form
-        profileForm.setValue('profileImage', base64Image);
-        
-        // Update the profile immediately
-        const response = await fetch('/api/users/profile', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ profileImage: base64Image }),
-        });
-        
-        if (response.ok) {
-          const updatedUser = await response.json();
-          setUser(updatedUser);
-          
-          toast({
-            title: "Profile Image Updated",
-            description: "Your profile image has been updated successfully.",
-          });
-        } else {
-          throw new Error('Failed to update profile image');
-        }
-      } catch (error) {
-        toast({
-          title: "Update Failed",
-          description: "There was a problem updating your profile image.",
-          variant: "destructive",
-        });
-      } finally {
-        setImageLoading(false);
-      }
+      // Update the form
+      profileForm.setValue('profileImage', base64Image);
+      
+      // Call the mutation
+      profileImageMutation.mutate(base64Image);
     };
     
     reader.onerror = () => {
@@ -152,15 +168,36 @@ export default function Profile() {
       profileImage: user?.profileImage || "",
     },
   });
+  
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name || "",
+        email: user.email || "",
+        profileImage: user.profileImage || "",
+      });
+    }
+  }, [user, profileForm]);
 
   // Notification form setup
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
-      emailNotifications: true,
-      smsNotifications: false,
+      emailNotifications: user?.notificationPreferences?.email ?? true,
+      smsNotifications: user?.notificationPreferences?.sms ?? false,
     },
   });
+  
+  // Update notification form when user data changes
+  useEffect(() => {
+    if (user?.notificationPreferences) {
+      notificationForm.reset({
+        emailNotifications: user.notificationPreferences.email,
+        smsNotifications: user.notificationPreferences.sms
+      });
+    }
+  }, [user, notificationForm]);
 
   // Password form setup
   const passwordForm = useForm<PasswordFormValues>({
@@ -172,10 +209,9 @@ export default function Profile() {
     },
   });
 
-  // Form submission handlers
-  const onProfileSubmit = async (data: ProfileFormValues) => {
-    try {
-      // Call the API to update the profile
+  // Profile update mutation
+  const profileMutation = useMutation({
+    mutationFn: async (data: ProfileFormValues) => {
       const response = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: {
@@ -190,48 +226,109 @@ export default function Profile() {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to update profile');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update profile');
       }
       
-      const updatedUser = await response.json();
-      setUser(updatedUser);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Update the auth context
+      setUser(data.user);
       
+      // Show success message
       toast({
         title: "Profile Updated",
         description: "Your profile information has been updated successfully.",
       });
-    } catch (error) {
+      
+      // Invalidate user-related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+    },
+    onError: (error: Error) => {
       toast({
         title: "Update Failed",
-        description: "There was a problem updating your profile.",
+        description: error.message || "There was a problem updating your profile.",
         variant: "destructive",
       });
     }
+  });
+  
+  // Form submission handlers
+  const onProfileSubmit = (data: ProfileFormValues) => {
+    profileMutation.mutate(data);
   };
 
-  const onNotificationSubmit = async (data: NotificationFormValues) => {
-    try {
-      // Here you would normally call an API to update notification settings
-      console.log("Notification settings:", data);
+  // Notification settings mutation
+  const notificationMutation = useMutation({
+    mutationFn: async (data: NotificationFormValues) => {
+      const response = await fetch('/api/users/notifications', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          emailNotifications: data.emailNotifications,
+          smsNotifications: data.smsNotifications
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update notification settings');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // If user state needs to be updated with notification preferences
+      if (user && data.notificationPreferences) {
+        setUser({
+          ...user,
+          notificationPreferences: data.notificationPreferences
+        });
+      }
       
       toast({
         title: "Settings Updated",
         description: "Your notification settings have been updated successfully.",
       });
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Update Failed",
-        description: "There was a problem updating your notification settings.",
+        description: error.message || "There was a problem updating your notification settings.",
         variant: "destructive",
       });
     }
+  });
+  
+  const onNotificationSubmit = (data: NotificationFormValues) => {
+    notificationMutation.mutate(data);
   };
 
-  const onPasswordSubmit = async (data: PasswordFormValues) => {
-    try {
-      // Here you would normally call an API to update the password
-      console.log("Password data:", data);
+  // Password update mutation
+  const passwordMutation = useMutation({
+    mutationFn: async (data: PasswordFormValues) => {
+      const response = await fetch('/api/users/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          currentPassword: data.currentPassword,
+          newPassword: data.newPassword
+        }),
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update password');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
       toast({
         title: "Password Updated",
         description: "Your password has been updated successfully.",
@@ -243,13 +340,18 @@ export default function Profile() {
         newPassword: "",
         confirmPassword: "",
       });
-    } catch (error) {
+    },
+    onError: (error: Error) => {
       toast({
         title: "Update Failed",
-        description: "There was a problem updating your password.",
+        description: error.message || "There was a problem updating your password.",
         variant: "destructive",
       });
     }
+  });
+  
+  const onPasswordSubmit = (data: PasswordFormValues) => {
+    passwordMutation.mutate(data);
   };
 
   return (
@@ -335,9 +437,13 @@ export default function Profile() {
                         size="icon"
                         className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={imageLoading}
+                        disabled={imageLoading || profileImageMutation.isPending}
                       >
-                        <Upload className="h-4 w-4" />
+                        {imageLoading || profileImageMutation.isPending ? (
+                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
                       </Button>
                       
                       <input
@@ -390,7 +496,9 @@ export default function Profile() {
                     )}
                   />
                   
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit" disabled={profileMutation.isPending}>
+                    {profileMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
                 </form>
               </Form>
             </CardContent>
@@ -449,7 +557,9 @@ export default function Profile() {
                     )}
                   />
                   
-                  <Button type="submit">Save Changes</Button>
+                  <Button type="submit" disabled={notificationMutation.isPending}>
+                    {notificationMutation.isPending ? "Saving..." : "Save Changes"}
+                  </Button>
                 </form>
               </Form>
             </CardContent>
@@ -571,7 +681,9 @@ export default function Profile() {
                     )}
                   />
                   
-                  <Button type="submit">Update Password</Button>
+                  <Button type="submit" disabled={passwordMutation.isPending}>
+                    {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                  </Button>
                 </form>
               </Form>
             </CardContent>
