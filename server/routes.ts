@@ -63,12 +63,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Authentication routes
-  app.get("/api/auth/session", (req, res) => {
-    if (req.session.user) {
-      return res.status(200).json(req.session.user);
-    }
-    return res.status(200).json(null);
-  });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
@@ -152,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/session", (req, res) => {
     console.log("Session request, current session:", req.session.user ? "User exists" : "No user in session");
     if (!req.session.user) {
-      return res.status(401).json({ message: "Not authenticated" });
+      return res.status(200).json(null);
     }
     
     // Return user data without password

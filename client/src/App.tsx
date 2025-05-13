@@ -24,19 +24,31 @@ import { useEffect, useState, useRef, lazy, Suspense } from "react";
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location, navigate] = useLocation();
-  // Always start visible for faster transitions
-  const [isContentVisible, setIsContentVisible] = useState(true);
+  // Keep content mounted for smoother transitions
+  const [shouldRender, setShouldRender] = useState(true);
+  // Track if we've started a navigation
+  const isNavigatingRef = useRef(false);
   
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate("/login");
-    } else if (!isLoading && user) {
-      // User is allowed to access the requested page
-      setIsContentVisible(true);
+    // Only redirect if not already navigating to avoid double redirects
+    if (!isLoading && !isNavigatingRef.current) {
+      if (!user) {
+        // Set navigating flag to prevent multiple redirects
+        isNavigatingRef.current = true;
+        // Redirect without unmounting current content yet
+        requestAnimationFrame(() => {
+          navigate("/login", { replace: true });
+        });
+      } else {
+        // Reset navigation status when we have a valid user
+        isNavigatingRef.current = false;
+        // Ensure content is rendered for valid user
+        setShouldRender(true);
+      }
     }
   }, [user, isLoading, navigate, location]);
 
-  // Simplified loading indicator
+  // Use a minimal loader that matches the page background
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -45,39 +57,52 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Always use content-fade-visible for instant display
-  return user ? (
-    <div className="content-fade content-fade-visible bg-background">
-      {children}
+  // Return the children wrapped in a persistent container that won't flash
+  return (
+    <div className="content-fade content-fade-visible bg-background min-h-screen">
+      {(shouldRender && user) ? children : (
+        // Placeholder with same background - prevents white flash
+        <div className="min-h-screen bg-background"></div>
+      )}
     </div>
-  ) : null;
+  );
 }
 
 function ProtectedStudentRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location, navigate] = useLocation();
-  // Always start visible for faster transitions
-  const [isContentVisible, setIsContentVisible] = useState(true);
+  // Keep content mounted for smoother transitions
+  const [shouldRender, setShouldRender] = useState(true);
+  // Track if we've started a navigation
+  const isNavigatingRef = useRef(false);
   
   useEffect(() => {
-    console.log("ProtectedStudentRoute - Current user:", user, "Location:", location);
-    if (!isLoading) {
+    // Only log and redirect if not already navigating to avoid double redirects
+    if (!isLoading && !isNavigatingRef.current) {
       if (!user) {
-        console.log("ProtectedStudentRoute - No user, redirecting to student login");
-        navigate("/student/login");
+        // Set navigating flag to prevent multiple redirects
+        isNavigatingRef.current = true;
+        // Redirect to student login without unmounting current content yet
+        requestAnimationFrame(() => {
+          navigate("/student/login", { replace: true });
+        });
       } else if (user.role !== "student") {
-        // User is not a student, redirect to student login
-        console.log("ProtectedStudentRoute - User is not a student, redirecting to student login");
-        navigate("/student/login");
+        // Set navigating flag to prevent multiple redirects
+        isNavigatingRef.current = true;
+        // Redirect to student login without unmounting current content yet  
+        requestAnimationFrame(() => {
+          navigate("/student/login", { replace: true });
+        });
       } else {
-        // User is allowed to access the requested page
-        console.log("ProtectedStudentRoute - User is a student, showing content");
-        setIsContentVisible(true);
+        // Reset navigation status when we have a valid student user
+        isNavigatingRef.current = false;
+        // Ensure content is rendered for valid student
+        setShouldRender(true);
       }
     }
   }, [user, isLoading, navigate, location]);
 
-  // Simplified loading indicator
+  // Use a minimal loader that matches the page background
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -86,12 +111,15 @@ function ProtectedStudentRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Always use content-fade-visible for instant display
-  return user && user.role === "student" ? (
-    <div className="content-fade content-fade-visible bg-background">
-      {children}
+  // Return the children wrapped in a persistent container that won't flash
+  return (
+    <div className="content-fade content-fade-visible bg-background min-h-screen">
+      {(shouldRender && user && user.role === "student") ? children : (
+        // Placeholder with same background - prevents white flash
+        <div className="min-h-screen bg-background"></div>
+      )}
     </div>
-  ) : null;
+  );
 }
 
 // Optimized fade transition component for fast navigation
@@ -143,6 +171,112 @@ function Router() {
     }
   }, [user, location, navigate]);
 
+  // Get current route content
+  function getRouteContent() {
+    // Create a map of paths to components to avoid render flashing
+    const routeContent = (
+      <Switch>
+        {/* Admin routes */}
+        <Route path="/login" component={Login} />
+        <Route path="/reset-password" component={ResetPassword} />
+        
+        <Route path="/">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/exams">
+          <ProtectedRoute>
+            <Exams />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/students">
+          <ProtectedRoute>
+            <Students />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/results">
+          <ProtectedRoute>
+            <Results />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/profile">
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        </Route>
+        
+        {/* Student routes */}
+        <Route path="/student/login" component={StudentLogin} />
+        
+        <Route path="/student/dashboard">
+          <ProtectedStudentRoute>
+            <StudentDashboard />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        <Route path="/student/exams">
+          <ProtectedStudentRoute>
+            <StudentExams />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        <Route path="/student/results">
+          <ProtectedStudentRoute>
+            <StudentResults />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        <Route path="/student/exam/:id">
+          <ProtectedStudentRoute>
+            <StudentExamPage />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        <Route path="/student/profile">
+          <ProtectedStudentRoute>
+            <StudentProfile />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        {/* Root student dashboard route - should be last in the student routes */}
+        <Route path="/student">
+          <ProtectedStudentRoute>
+            <StudentDashboard />
+          </ProtectedStudentRoute>
+        </Route>
+        
+        <Route component={NotFound} />
+      </Switch>
+    );
+    
+    return routeContent;
+  }
+  
+  // Cache of preloaded routes to avoid flashing
+  const [cachedRoutes] = useState(new Map());
+  
+  // Keep track of previous route for transitions
+  const prevRouteRef = useRef(location);
+  
+  // Pre-rendered content
+  const [content, setContent] = useState(getRouteContent());
+  
+  // Update content when location changes, with smooth transition
+  useEffect(() => {
+    if (location !== prevRouteRef.current) {
+      // Use requestAnimationFrame for smoother transitions
+      requestAnimationFrame(() => {
+        setContent(getRouteContent());
+        prevRouteRef.current = location;
+      });
+    }
+  }, [location]);
+
   // Optimize the suspense fallback to match the background color
   return (
     <div className="page-container bg-background">
@@ -151,84 +285,17 @@ function Router() {
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       }>
-        {/* Skip PageFade for faster navigation */}
-        <Switch>
-          {/* Admin routes */}
-          <Route path="/login" component={Login} />
-          <Route path="/reset-password" component={ResetPassword} />
-          
-          <Route path="/">
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/exams">
-            <ProtectedRoute>
-              <Exams />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/students">
-            <ProtectedRoute>
-              <Students />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/results">
-            <ProtectedRoute>
-              <Results />
-            </ProtectedRoute>
-          </Route>
-          
-          <Route path="/profile">
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          </Route>
-          
-          {/* Student routes */}
-          <Route path="/student/login" component={StudentLogin} />
-          
-          <Route path="/student/dashboard">
-            <ProtectedStudentRoute>
-              <StudentDashboard />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          <Route path="/student/exams">
-            <ProtectedStudentRoute>
-              <StudentExams />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          <Route path="/student/results">
-            <ProtectedStudentRoute>
-              <StudentResults />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          <Route path="/student/exam/:id">
-            <ProtectedStudentRoute>
-              <StudentExamPage />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          <Route path="/student/profile">
-            <ProtectedStudentRoute>
-              <StudentProfile />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          {/* Root student dashboard route - should be last in the student routes */}
-          <Route path="/student">
-            <ProtectedStudentRoute>
-              <StudentDashboard />
-            </ProtectedStudentRoute>
-          </Route>
-          
-          <Route component={NotFound} />
-        </Switch>
+        {/* Apply transition effect */}
+        <div 
+          className="transition-opacity" 
+          style={{
+            minHeight: '100vh',
+            backgroundColor: 'var(--background)',
+            transition: 'opacity 80ms ease-out',
+          }}
+        >
+          {content}
+        </div>
       </Suspense>
     </div>
   );

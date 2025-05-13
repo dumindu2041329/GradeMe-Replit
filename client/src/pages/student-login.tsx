@@ -49,7 +49,12 @@ export default function StudentLogin() {
   const onSubmit = async (values: StudentLoginFormValues) => {
     setIsLoading(true);
     try {
-      // Use direct fetch to login
+      // Show the loading state first, before making the request
+      // This prevents the UI from flickering during the authentication process
+      
+      // Pre-set login success to true to maintain UI during transition
+      setLoginSuccess(true);
+      
       console.log("Attempting student login with values:", values);
       const response = await fetch("/api/auth/student/login", {
         method: "POST",
@@ -60,34 +65,32 @@ export default function StudentLogin() {
       });
       
       if (!response.ok) {
+        // Reset if login fails
+        setLoginSuccess(false);
         throw new Error("Login failed");
       }
       
       const userData = await response.json();
       console.log("Student login successful, got user:", userData);
       
-      // Manually update the auth context user state
+      // Update auth context with user data
       setUser(userData);
       
-      // Set login success to display the success message
-      setLoginSuccess(true);
+      // Invalidate the session query to force a refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
       
-      // Wait for a short duration to ensure the auth state is properly updated
-      // This helps with consistent redirection behavior
-      setTimeout(() => {
-        // Navigate to student dashboard
+      // Use requestAnimationFrame for smoother transitions
+      requestAnimationFrame(() => {
+        // Navigate to student dashboard with replacement to prevent back navigation issues
         console.log("Student login form submit - Redirecting to dashboard");
         navigate("/student/dashboard", { replace: true });
         
-        // Show success toast
+        // Show success toast after navigation is initiated
         toast({
           title: "Login successful",
           description: `Welcome back, ${userData.name}!`,
         });
-      }, 100);
-      
-      // Invalidate the session query to force a refresh
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+      });
       
     } catch (error) {
       console.error("Login error:", error);
@@ -102,9 +105,9 @@ export default function StudentLogin() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-slate-50 dark:bg-slate-900 p-4">
+    <div className="min-h-screen flex flex-col justify-center items-center bg-background p-4">
       <div className="w-full max-w-md">
-        <Card>
+        <Card className="border-border">
           <CardHeader className="space-y-1 text-center">
             <CardTitle className="text-2xl font-bold">Student Login</CardTitle>
             <CardDescription>
@@ -206,9 +209,19 @@ export default function StudentLogin() {
           <CardFooter className="flex flex-col items-center">
             <div className="text-sm text-center">
               <span className="text-muted-foreground">Are you an administrator? </span>
-              <a href="/login" className="text-primary hover:underline">
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  // Import the transition helper from our lib
+                  import("@/lib/transition").then(({ smoothNavigate }) => {
+                    // Use the smoothNavigate function for a flash-free transition
+                    smoothNavigate(navigate, "/login", { replace: true });
+                  });
+                }}
+                className="bg-transparent border-none text-primary hover:underline cursor-pointer p-0 font-normal"
+              >
                 Login here
-              </a>
+              </button>
             </div>
           </CardFooter>
         </Card>

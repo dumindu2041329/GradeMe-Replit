@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Eye, EyeOff, Bell } from "lucide-react";
 import { StudentHeader } from "@/components/layout/student-header";
+import { PhotoGuidelines } from "@/components/photo-guidelines";
 
 export default function StudentProfile() {
   const { user, setUser } = useAuth();
@@ -258,34 +259,41 @@ export default function StudentProfile() {
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
-                    <div className="relative">
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        type="button"
-                        className="text-xs"
-                      >
-                        Upload Photo
-                        <input
-                          type="file"
-                          accept="image/png, image/jpeg, image/gif, image/webp"
-                          onChange={handleImageUpload}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                      </Button>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <div className="relative">
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          className="text-xs"
+                        >
+                          Upload Photo
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/gif, image/webp"
+                            onChange={handleImageUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </Button>
+                      </div>
+                      {(profileImage || previewImage) && (
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          className="text-xs text-destructive hover:text-destructive"
+                          onClick={handleRemoveImage}
+                        >
+                          Remove
+                        </Button>
+                      )}
                     </div>
-                    {(profileImage || previewImage) && (
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        type="button"
-                        className="text-xs text-destructive hover:text-destructive"
-                        onClick={handleRemoveImage}
-                      >
-                        Remove
-                      </Button>
-                    )}
+                    
+                    {/* Photo guidelines link */}
+                    <div className="flex justify-center">
+                      <PhotoGuidelines />
+                    </div>
                   </div>
                 </div>
                 

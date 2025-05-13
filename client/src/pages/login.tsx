@@ -136,9 +136,19 @@ export default function Login() {
               
               <div className="text-center mt-4">
                 <span className="text-muted-foreground text-sm">Are you a student? </span>
-                <Link href="/student/login" className="text-primary hover:text-primary/80 text-sm">
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Import the transition helper from our lib
+                    import("@/lib/transition").then(({ smoothNavigate }) => {
+                      // Use the smoothNavigate function for a flash-free transition
+                      smoothNavigate(navigate, "/student/login", { replace: true });
+                    });
+                  }}
+                  className="bg-transparent border-none text-primary hover:text-primary/80 text-sm cursor-pointer p-0 font-normal"
+                >
                   Login to student portal
-                </Link>
+                </button>
               </div>
             </form>
           </Form>

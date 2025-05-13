@@ -15,6 +15,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Upload } from "lucide-react";
+import { PhotoGuidelines } from "@/components/photo-guidelines";
 
 // Form schemas
 const profileFormSchema = z.object({
@@ -68,21 +69,22 @@ export default function Profile() {
     const file = event.target.files?.[0];
     if (!file) return;
     
-    // Check if file is an image
-    if (!file.type.startsWith('image/')) {
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
       toast({
-        title: "Invalid File",
-        description: "Please upload an image file.",
+        title: "Invalid File Type",
+        description: "Please upload a JPG, PNG, GIF, or WebP image.",
         variant: "destructive",
       });
       return;
     }
     
-    // Check file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please upload an image smaller than 2MB.",
+        description: "Please upload an image smaller than 5MB.",
         variant: "destructive",
       });
       return;
@@ -342,7 +344,7 @@ export default function Profile() {
                         type="file"
                         ref={fileInputRef}
                         className="hidden"
-                        accept="image/*"
+                        accept="image/jpeg, image/png, image/gif, image/webp"
                         onChange={handleImageUpload}
                       />
                     </div>
@@ -351,9 +353,12 @@ export default function Profile() {
                       <p className="text-sm text-muted-foreground mb-1">
                         Upload a new profile picture
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, PNG or GIF. Max size 2MB.
-                      </p>
+                      <div className="flex items-center space-x-1">
+                        <p className="text-xs text-muted-foreground">
+                          JPG, PNG, GIF, or WebP. Max size 5MB.
+                        </p>
+                        <PhotoGuidelines />
+                      </div>
                     </div>
                   </div>
                   
