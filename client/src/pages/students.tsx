@@ -60,7 +60,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   class: z.string().min(1, { message: "Class is required" }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters" }).optional(),
+  password: z.string().optional(),
   enrollmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
     message: "Please enter a valid date",
   })
@@ -104,6 +104,25 @@ export default function Students() {
 
   const onCreateSubmit = async (data: StudentFormValues) => {
     try {
+      // Validate that password is provided for new students
+      if (!data.password || data.password.trim() === "") {
+        toast({
+          title: "Error",
+          description: "Password is required when creating a new student",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data.password.length < 6) {
+        toast({
+          title: "Error",
+          description: "Password must be at least 6 characters",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setIsSubmitting(true);
       
       const newStudent = await apiRequest<Student>("POST", "/api/students", data);
@@ -137,6 +156,16 @@ export default function Students() {
     if (!selectedStudent) return;
     
     try {
+      // For edit, if password is provided, check length
+      if (data.password && data.password.trim() !== "" && data.password.length < 6) {
+        toast({
+          title: "Error", 
+          description: "Password must be at least 6 characters",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setIsSubmitting(true);
       
       const updatedStudent = await apiRequest<Student>("PUT", `/api/students/${selectedStudent.id}`, data);
