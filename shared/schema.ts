@@ -1,109 +1,69 @@
 import { z } from "zod";
-import { pgTable, serial, varchar, text, date, integer, boolean, timestamp, doublePrecision, pgEnum } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
-import { createInsertSchema } from 'drizzle-zod';
 
 // Enums
 export const userRoleEnum = z.enum(['admin', 'student']);
-export const roleEnum = pgEnum('role', ['admin', 'student']);
-export const examStatusEnum = pgEnum('exam_status', ['upcoming', 'active', 'completed']);
+export type UserRole = z.infer<typeof userRoleEnum>;
+export type ExamStatus = 'upcoming' | 'active' | 'completed';
 
-// Users table schema
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  password: varchar('password', { length: 255 }).notNull(),
-  name: varchar('name', { length: 255 }).notNull(),
-  role: roleEnum('role').notNull().default('student'),
-  isAdmin: boolean('is_admin').notNull().default(false),
-  profileImage: text('profile_image'),
-  studentId: integer('student_id').references(() => students.id),
-  emailNotifications: boolean('email_notifications').default(false),
-  smsNotifications: boolean('sms_notifications').default(false),
-  emailExamResults: boolean('email_exam_results').default(false),
-  emailUpcomingExams: boolean('email_upcoming_exams').default(false),
-  smsExamResults: boolean('sms_exam_results').default(false),
-  smsUpcomingExams: boolean('sms_upcoming_exams').default(false),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+// Type definitions
+export type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  isAdmin: boolean;
+  profileImage: string | null;
+  studentId: number | null;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  emailExamResults: boolean;
+  emailUpcomingExams: boolean;
+  smsExamResults: boolean;
+  smsUpcomingExams: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Students table schema
-export const students = pgTable('students', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  class: varchar('class', { length: 100 }).notNull(),
-  enrollmentDate: date('enrollment_date').notNull().defaultNow(),
-  phone: varchar('phone', { length: 20 }),
-  address: text('address'),
-  dateOfBirth: date('date_of_birth'),
-  guardianName: varchar('guardian_name', { length: 255 }),
-  guardianPhone: varchar('guardian_phone', { length: 20 }),
-  profileImage: text('profile_image'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+export type Student = {
+  id: number;
+  name: string;
+  email: string;
+  class: string;
+  enrollmentDate: Date;
+  phone: string | null;
+  address: string | null;
+  dateOfBirth: Date | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  profileImage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Exams table schema
-export const exams = pgTable('exams', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  subject: varchar('subject', { length: 100 }).notNull(),
-  date: timestamp('date').notNull(),
-  duration: integer('duration').notNull(), // in minutes
-  totalMarks: integer('total_marks').notNull(),
-  status: examStatusEnum('status').notNull().default('upcoming'),
-  description: text('description'),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
+export type Exam = {
+  id: number;
+  name: string;
+  subject: string;
+  date: Date;
+  duration: number; // in minutes
+  totalMarks: number;
+  status: ExamStatus;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Results table schema
-export const results = pgTable('results', {
-  id: serial('id').primaryKey(),
-  studentId: integer('student_id').notNull().references(() => students.id),
-  examId: integer('exam_id').notNull().references(() => exams.id),
-  score: doublePrecision('score').notNull(),
-  percentage: doublePrecision('percentage').notNull(),
-  submittedAt: timestamp('submitted_at').notNull().defaultNow(),
-  createdAt: timestamp('created_at').defaultNow(),
-  updatedAt: timestamp('updated_at').defaultNow(),
-});
-
-// Define relations
-export const usersRelations = relations(users, ({ one }) => ({
-  student: one(students, {
-    fields: [users.studentId],
-    references: [students.id],
-  }),
-}));
-
-export const studentsRelations = relations(students, ({ many }) => ({
-  results: many(results),
-}));
-
-export const examsRelations = relations(exams, ({ many }) => ({
-  results: many(results),
-}));
-
-export const resultsRelations = relations(results, ({ one }) => ({
-  student: one(students, {
-    fields: [results.studentId],
-    references: [students.id],
-  }),
-  exam: one(exams, {
-    fields: [results.examId],
-    references: [exams.id],
-  }),
-}));
-
-// Type definitions for our models based on the schema
-export type User = typeof users.$inferSelect;
-export type Student = typeof students.$inferSelect;
-export type Exam = typeof exams.$inferSelect;
-export type Result = typeof results.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Result = {
+  id: number;
+  studentId: number;
+  examId: number;
+  score: number;
+  percentage: number;
+  submittedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type ResultWithDetails = Result & {
   student: Student;
@@ -111,8 +71,6 @@ export type ResultWithDetails = Result & {
   rank?: number;
   totalParticipants?: number;
 };
-
-export type ExamStatus = 'upcoming' | 'active' | 'completed';
 
 export type StudentDashboardData = {
   totalExams: number;
@@ -131,13 +89,48 @@ export type NotificationPreferences = {
   smsUpcomingExams?: boolean;
 };
 
-// Create insert schemas using drizzle-zod
-export const insertUserSchema = createInsertSchema(users);
-export const insertStudentSchema = createInsertSchema(students);
-export const insertExamSchema = createInsertSchema(exams);
-export const insertResultSchema = createInsertSchema(results);
+// Validation schemas for operations
+export const insertUserSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  role: userRoleEnum.default("student"),
+  isAdmin: z.boolean().default(false),
+  profileImage: z.string().nullable().optional(),
+  studentId: z.number().nullable().optional()
+});
 
-// Custom schemas for various operations
+export const insertStudentSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email format"),
+  class: z.string(),
+  enrollmentDate: z.date().optional().default(() => new Date()),
+  phone: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  dateOfBirth: z.date().optional().nullable(),
+  guardianName: z.string().optional().nullable(),
+  guardianPhone: z.string().optional().nullable(),
+  profileImage: z.string().optional().nullable()
+});
+
+export const insertExamSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  subject: z.string(),
+  date: z.date(),
+  duration: z.number().min(1, "Duration must be at least 1 minute"),
+  totalMarks: z.number().min(1, "Total marks must be at least 1"),
+  status: z.enum(["upcoming", "active", "completed"]).default("upcoming"),
+  description: z.string().optional().nullable()
+});
+
+export const insertResultSchema = z.object({
+  studentId: z.number(),
+  examId: z.number(),
+  score: z.number().min(0, "Score cannot be negative"),
+  percentage: z.number().min(0, "Percentage cannot be negative").max(100, "Percentage cannot exceed 100"),
+  submittedAt: z.date().default(() => new Date())
+});
+
 export const updateUserSchema = z.object({
   name: z.string().optional(),
   email: z.string().email("Invalid email format").optional(),
@@ -147,7 +140,7 @@ export const updateUserSchema = z.object({
   emailExamResults: z.boolean().optional(),
   emailUpcomingExams: z.boolean().optional(),
   smsExamResults: z.boolean().optional(),
-  smsUpcomingExams: z.boolean().optional(),
+  smsUpcomingExams: z.boolean().optional()
 });
 
 export const updateStudentSchema = z.object({
@@ -159,17 +152,17 @@ export const updateStudentSchema = z.object({
   dateOfBirth: z.date().optional().nullable(),
   guardianName: z.string().optional(),
   guardianPhone: z.string().optional(),
-  profileImage: z.string().nullable().optional(),
+  profileImage: z.string().nullable().optional()
 });
 
 export const loginUserSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters")
 });
 
 export const studentLoginSchema = z.object({
   email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters")
 });
 
 export const passwordUpdateSchema = z.object({
@@ -183,12 +176,15 @@ export const notificationPreferencesSchema = z.object({
   emailExamResults: z.boolean().optional(),
   emailUpcomingExams: z.boolean().optional(),
   smsExamResults: z.boolean().optional(),
-  smsUpcomingExams: z.boolean().optional(),
+  smsUpcomingExams: z.boolean().optional()
 });
 
 // Type aliases for inferred types
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertStudent = z.infer<typeof insertStudentSchema>;
+export type InsertExam = z.infer<typeof insertExamSchema>;
+export type InsertResult = z.infer<typeof insertResultSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
-export type UserRole = "admin" | "student";
 export type StudentLogin = z.infer<typeof studentLoginSchema>;
 export type UpdateStudent = z.infer<typeof updateStudentSchema>;
 export type PasswordUpdate = z.infer<typeof passwordUpdateSchema>;

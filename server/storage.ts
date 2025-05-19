@@ -1,44 +1,48 @@
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
-import { db } from './db';
-import * as schema from '@shared/schema';
 import { 
-  users, 
-  students, 
-  exams, 
-  results 
-} from '@shared/schema';
+  type User, 
+  type Student,
+  type Exam,
+  type Result,
+  type ResultWithDetails,
+  type StudentDashboardData,
+  type ExamStatus,
+  type InsertUser,
+  type InsertStudent,
+  type InsertExam,
+  type InsertResult
+} from "@shared/schema";
 
 export interface IStorage {
   // User operations
-  getUser(id: number): Promise<schema.User | undefined>;
-  getUserByEmail(email: string): Promise<schema.User | undefined>;
-  createUser(user: schema.InsertUser): Promise<schema.User>;
-  updateUser(id: number, user: Partial<schema.User>): Promise<schema.User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
   
   // Student operations
-  getStudents(): Promise<schema.Student[]>;
-  getStudent(id: number): Promise<schema.Student | undefined>;
-  getStudentByEmail(email: string): Promise<schema.Student | undefined>;
-  createStudent(student: Partial<schema.Student>): Promise<schema.Student>;
-  updateStudent(id: number, student: Partial<schema.Student>): Promise<schema.Student | undefined>;
+  getStudents(): Promise<Student[]>;
+  getStudent(id: number): Promise<Student | undefined>;
+  getStudentByEmail(email: string): Promise<Student | undefined>;
+  createStudent(student: InsertStudent): Promise<Student>;
+  updateStudent(id: number, student: Partial<Student>): Promise<Student | undefined>;
   deleteStudent(id: number): Promise<boolean>;
-  authenticateStudent(email: string, password: string): Promise<schema.Student | null>;
+  authenticateStudent(email: string, password: string): Promise<Student | null>;
   
   // Exam operations
-  getExams(): Promise<schema.Exam[]>;
-  getExam(id: number): Promise<schema.Exam | undefined>;
-  getExamsByStatus(status: string): Promise<schema.Exam[]>;
-  createExam(exam: Partial<schema.Exam>): Promise<schema.Exam>;
-  updateExam(id: number, exam: Partial<schema.Exam>): Promise<schema.Exam | undefined>;
+  getExams(): Promise<Exam[]>;
+  getExam(id: number): Promise<Exam | undefined>;
+  getExamsByStatus(status: string): Promise<Exam[]>;
+  createExam(exam: InsertExam): Promise<Exam>;
+  updateExam(id: number, exam: Partial<Exam>): Promise<Exam | undefined>;
   deleteExam(id: number): Promise<boolean>;
   
   // Result operations
-  getResults(): Promise<schema.ResultWithDetails[]>;
-  getResult(id: number): Promise<schema.ResultWithDetails | undefined>;
-  getResultsByStudentId(studentId: number): Promise<schema.ResultWithDetails[]>;
-  getResultsByExamId(examId: number): Promise<schema.ResultWithDetails[]>;
-  createResult(result: Partial<schema.Result>): Promise<schema.Result>;
-  updateResult(id: number, result: Partial<schema.Result>): Promise<schema.Result | undefined>;
+  getResults(): Promise<ResultWithDetails[]>;
+  getResult(id: number): Promise<ResultWithDetails | undefined>;
+  getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]>;
+  getResultsByExamId(examId: number): Promise<ResultWithDetails[]>;
+  createResult(result: InsertResult): Promise<Result>;
+  updateResult(id: number, result: Partial<Result>): Promise<Result | undefined>;
   deleteResult(id: number): Promise<boolean>;
 
   // Dashboard statistics
@@ -50,186 +54,329 @@ export interface IStorage {
   }>;
   
   // Student dashboard data
-  getStudentDashboardData(studentId: number): Promise<schema.StudentDashboardData>;
+  getStudentDashboardData(studentId: number): Promise<StudentDashboardData>;
 }
 
-export class DatabaseStorage implements IStorage {
-  // USER OPERATIONS
-  async getUser(id: number): Promise<schema.User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private students: Map<number, Student>;
+  private exams: Map<number, Exam>;
+  private results: Map<number, Result>;
+  private userIdCounter: number;
+  private studentIdCounter: number;
+  private examIdCounter: number;
+  private resultIdCounter: number;
+
+  constructor() {
+    this.users = new Map();
+    this.students = new Map();
+    this.exams = new Map();
+    this.results = new Map();
+    this.userIdCounter = 1;
+    this.studentIdCounter = 1;
+    this.examIdCounter = 1;
+    this.resultIdCounter = 1;
+
+    // Add default admin user
+    this.createUser({
+      email: "admin@grademe.com",
+      password: "password123",
+      name: "Admin User",
+      role: "admin",
+      isAdmin: true,
+      profileImage: null,
+      studentId: null
+    });
+
+    // Add sample data
+    this.initSampleData();
   }
 
-  async getUserByEmail(email: string): Promise<schema.User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+  private async initSampleData() {
+    // Create sample students
+    const john = await this.createStudent({
+      name: "John Doe",
+      email: "john@student.com",
+      class: "10A",
+      phone: "123-456-7890",
+      address: "123 Student St",
+      dateOfBirth: new Date(2005, 5, 15)
+    });
+    
+    const sarah = await this.createStudent({
+      name: "Sarah Johnson",
+      email: "sarah@student.com",
+      class: "10B",
+      phone: "987-654-3210",
+      address: "456 Student Ave",
+      dateOfBirth: new Date(2005, 8, 22)
+    });
+    
+    const michael = await this.createStudent({
+      name: "Michael Smith",
+      email: "michael@student.com",
+      class: "11A",
+      phone: "555-123-4567",
+      address: "789 Student Blvd",
+      dateOfBirth: new Date(2004, 3, 10)
+    });
+
+    // Create student user accounts
+    await this.createUser({
+      email: "john@student.com",
+      password: "password123",
+      name: "John Doe",
+      role: "student",
+      isAdmin: false,
+      studentId: john.id,
+      profileImage: null
+    });
+    
+    await this.createUser({
+      email: "sarah@student.com",
+      password: "password123",
+      name: "Sarah Johnson",
+      role: "student",
+      isAdmin: false,
+      studentId: sarah.id,
+      profileImage: null
+    });
+    
+    await this.createUser({
+      email: "michael@student.com",
+      password: "password123",
+      name: "Michael Smith",
+      role: "student",
+      isAdmin: false,
+      studentId: michael.id,
+      profileImage: null
+    });
+
+    // Create sample exams
+    const mathExam = await this.createExam({
+      name: "Mid-Term Math Exam",
+      subject: "Mathematics",
+      date: new Date(2023, 6, 15),
+      duration: 90,
+      totalMarks: 100,
+      status: "upcoming",
+      description: "Algebra, Geometry, and Calculus"
+    });
+    
+    const scienceExam = await this.createExam({
+      name: "Science Quiz",
+      subject: "Science",
+      date: new Date(2023, 6, 5),
+      duration: 60,
+      totalMarks: 50,
+      status: "completed",
+      description: "Physics and Chemistry basics"
+    });
+    
+    const englishExam = await this.createExam({
+      name: "English Literature Test",
+      subject: "English",
+      date: new Date(2023, 6, 20),
+      duration: 120,
+      totalMarks: 80,
+      status: "active",
+      description: "Shakespearean Literature and Poetry Analysis"
+    });
+
+    // Create sample results
+    await this.createResult({
+      studentId: sarah.id,
+      examId: scienceExam.id,
+      score: 42,
+      percentage: 84,
+      submittedAt: new Date(2023, 6, 5, 10, 30)
+    });
+    
+    await this.createResult({
+      studentId: john.id,
+      examId: scienceExam.id,
+      score: 38,
+      percentage: 76,
+      submittedAt: new Date(2023, 6, 5, 10, 15)
+    });
+    
+    await this.createResult({
+      studentId: michael.id,
+      examId: scienceExam.id,
+      score: 45,
+      percentage: 90,
+      submittedAt: new Date(2023, 6, 5, 10, 45)
+    });
   }
 
-  async createUser(user: schema.InsertUser): Promise<schema.User> {
-    const [newUser] = await db.insert(users).values(user).returning();
+  private mapToArray<T>(map: Map<number, T>): T[] {
+    return Array.from(map.values());
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const now = new Date();
+    const newUser: User = { 
+      ...user, 
+      id, 
+      createdAt: now, 
+      updatedAt: now,
+      emailNotifications: false,
+      smsNotifications: false,
+      emailExamResults: false,
+      emailUpcomingExams: false,
+      smsExamResults: false,
+      smsUpcomingExams: false
+    };
+    this.users.set(id, newUser);
     return newUser;
   }
 
-  async updateUser(id: number, userData: Partial<schema.User>): Promise<schema.User | undefined> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        ...userData,
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, id))
-      .returning();
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser: User = { 
+      ...user, 
+      ...userData, 
+      updatedAt: new Date() 
+    };
+    this.users.set(id, updatedUser);
     return updatedUser;
   }
 
-  // STUDENT OPERATIONS
-  async getStudents(): Promise<schema.Student[]> {
-    return await db.select().from(students);
+  async getStudents(): Promise<Student[]> {
+    return this.mapToArray(this.students);
   }
 
-  async getStudent(id: number): Promise<schema.Student | undefined> {
-    const [student] = await db.select().from(students).where(eq(students.id, id));
-    return student;
+  async getStudent(id: number): Promise<Student | undefined> {
+    return this.students.get(id);
   }
 
-  async getStudentByEmail(email: string): Promise<schema.Student | undefined> {
-    const [student] = await db.select().from(students).where(eq(students.email, email));
-    return student;
-  }
-
-  async createStudent(student: Partial<schema.Student>): Promise<schema.Student> {
-    // Ensure we have the required fields for insert
-    if (!student.name || !student.email || !student.class) {
-      throw new Error("Missing required fields for student creation");
+  async getStudentByEmail(email: string): Promise<Student | undefined> {
+    for (const student of this.students.values()) {
+      if (student.email === email) {
+        return student;
+      }
     }
-    
-    const [newStudent] = await db.insert(students).values({
-      name: student.name,
-      email: student.email,
-      class: student.class,
-      // Add optional fields if they exist
-      enrollmentDate: student.enrollmentDate,
-      phone: student.phone,
-      address: student.address,
-      dateOfBirth: student.dateOfBirth,
-      guardianName: student.guardianName,
-      guardianPhone: student.guardianPhone,
-      profileImage: student.profileImage
-    }).returning();
-    
+    return undefined;
+  }
+
+  async createStudent(student: InsertStudent): Promise<Student> {
+    const id = this.studentIdCounter++;
+    const now = new Date();
+    const newStudent: Student = { 
+      ...student, 
+      id, 
+      enrollmentDate: student.enrollmentDate || now,
+      phone: student.phone || null,
+      address: student.address || null,
+      dateOfBirth: student.dateOfBirth || null,
+      guardianName: student.guardianName || null,
+      guardianPhone: student.guardianPhone || null,
+      profileImage: student.profileImage || null,
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.students.set(id, newStudent);
     return newStudent;
   }
 
-  async updateStudent(id: number, studentData: Partial<schema.Student>): Promise<schema.Student | undefined> {
-    // Create an object with only the fields that exist in studentData
-    const updateObj: Record<string, any> = { updatedAt: new Date() };
+  async updateStudent(id: number, student: Partial<Student>): Promise<Student | undefined> {
+    const existingStudent = this.students.get(id);
+    if (!existingStudent) return undefined;
     
-    if (studentData.name !== undefined) updateObj.name = studentData.name;
-    if (studentData.email !== undefined) updateObj.email = studentData.email;
-    if (studentData.class !== undefined) updateObj.class = studentData.class;
-    if (studentData.phone !== undefined) updateObj.phone = studentData.phone;
-    if (studentData.address !== undefined) updateObj.address = studentData.address;
-    if (studentData.dateOfBirth !== undefined) updateObj.dateOfBirth = studentData.dateOfBirth;
-    if (studentData.guardianName !== undefined) updateObj.guardianName = studentData.guardianName;
-    if (studentData.guardianPhone !== undefined) updateObj.guardianPhone = studentData.guardianPhone;
-    if (studentData.profileImage !== undefined) updateObj.profileImage = studentData.profileImage;
-    if (studentData.enrollmentDate !== undefined) updateObj.enrollmentDate = studentData.enrollmentDate;
-    
-    const [updatedStudent] = await db
-      .update(students)
-      .set(updateObj)
-      .where(eq(students.id, id))
-      .returning();
-      
+    const updatedStudent: Student = { 
+      ...existingStudent, 
+      ...student, 
+      updatedAt: new Date() 
+    };
+    this.students.set(id, updatedStudent);
     return updatedStudent;
   }
 
   async deleteStudent(id: number): Promise<boolean> {
-    const result = await db.delete(students).where(eq(students.id, id));
-    return true; // In PostgreSQL with Drizzle, no rows affected would throw an error
+    return this.students.delete(id);
   }
 
-  async authenticateStudent(email: string, password: string): Promise<schema.Student | null> {
-    // First find the user with this email
-    const [user] = await db.select().from(users).where(
-      and(eq(users.email, email), eq(users.password, password), eq(users.role, 'student'))
-    );
-
-    if (!user || !user.studentId) return null;
-
-    // If found, get the student record
-    const [student] = await db.select().from(students).where(eq(students.id, user.studentId));
+  async authenticateStudent(email: string, password: string): Promise<Student | null> {
+    // Find user with student role
+    let studentUser: User | undefined;
+    for (const user of this.users.values()) {
+      if (user.email === email && user.password === password && user.role === "student") {
+        studentUser = user;
+        break;
+      }
+    }
+    
+    if (!studentUser || !studentUser.studentId) return null;
+    
+    const student = this.students.get(studentUser.studentId);
     return student || null;
   }
 
-  // EXAM OPERATIONS
-  async getExams(): Promise<schema.Exam[]> {
-    return await db.select().from(exams);
+  async getExams(): Promise<Exam[]> {
+    return this.mapToArray(this.exams);
   }
 
-  async getExam(id: number): Promise<schema.Exam | undefined> {
-    const [exam] = await db.select().from(exams).where(eq(exams.id, id));
-    return exam;
+  async getExam(id: number): Promise<Exam | undefined> {
+    return this.exams.get(id);
   }
 
-  async getExamsByStatus(status: string): Promise<schema.Exam[]> {
-    return await db.select().from(exams).where(eq(exams.status, status as any));
+  async getExamsByStatus(status: string): Promise<Exam[]> {
+    return this.mapToArray(this.exams).filter(exam => exam.status === status);
   }
 
-  async createExam(exam: Partial<schema.Exam>): Promise<schema.Exam> {
-    // Ensure we have the required fields for exam creation
-    if (!exam.name || !exam.subject || !exam.date || 
-        exam.duration === undefined || exam.totalMarks === undefined) {
-      throw new Error("Missing required fields for exam creation");
-    }
-    
-    const [newExam] = await db.insert(exams).values({
-      name: exam.name,
-      subject: exam.subject,
-      date: exam.date,
-      duration: exam.duration,
-      totalMarks: exam.totalMarks,
-      status: exam.status || 'upcoming',
-      description: exam.description
-    }).returning();
-    
+  async createExam(exam: InsertExam): Promise<Exam> {
+    const id = this.examIdCounter++;
+    const now = new Date();
+    const newExam: Exam = { 
+      ...exam, 
+      id, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.exams.set(id, newExam);
     return newExam;
   }
 
-  async updateExam(id: number, examData: Partial<schema.Exam>): Promise<schema.Exam | undefined> {
-    // Create an object with only the fields that exist in examData
-    const updateObj: Record<string, any> = { updatedAt: new Date() };
+  async updateExam(id: number, examData: Partial<Exam>): Promise<Exam | undefined> {
+    const exam = this.exams.get(id);
+    if (!exam) return undefined;
     
-    if (examData.name !== undefined) updateObj.name = examData.name;
-    if (examData.subject !== undefined) updateObj.subject = examData.subject;
-    if (examData.date !== undefined) updateObj.date = examData.date;
-    if (examData.duration !== undefined) updateObj.duration = examData.duration;
-    if (examData.totalMarks !== undefined) updateObj.totalMarks = examData.totalMarks;
-    if (examData.status !== undefined) updateObj.status = examData.status;
-    if (examData.description !== undefined) updateObj.description = examData.description;
-    
-    const [updatedExam] = await db
-      .update(exams)
-      .set(updateObj)
-      .where(eq(exams.id, id))
-      .returning();
-      
+    const updatedExam: Exam = { 
+      ...exam, 
+      ...examData, 
+      updatedAt: new Date() 
+    };
+    this.exams.set(id, updatedExam);
     return updatedExam;
   }
 
   async deleteExam(id: number): Promise<boolean> {
-    await db.delete(exams).where(eq(exams.id, id));
-    return true;
+    return this.exams.delete(id);
   }
 
-  // RESULT OPERATIONS
-  async getResults(): Promise<schema.ResultWithDetails[]> {
-    const resultsList = await db.select().from(results);
-    const resultsWithDetails: schema.ResultWithDetails[] = [];
-
-    for (const result of resultsList) {
-      const [student] = await db.select().from(students).where(eq(students.id, result.studentId));
-      const [exam] = await db.select().from(exams).where(eq(exams.id, result.examId));
+  async getResults(): Promise<ResultWithDetails[]> {
+    const results = this.mapToArray(this.results);
+    const resultsWithDetails: ResultWithDetails[] = [];
+    
+    for (const result of results) {
+      const student = this.students.get(result.studentId);
+      const exam = this.exams.get(result.examId);
       
       if (student && exam) {
         resultsWithDetails.push({
@@ -239,16 +386,16 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
-
+    
     return resultsWithDetails;
   }
 
-  async getResult(id: number): Promise<schema.ResultWithDetails | undefined> {
-    const [result] = await db.select().from(results).where(eq(results.id, id));
+  async getResult(id: number): Promise<ResultWithDetails | undefined> {
+    const result = this.results.get(id);
     if (!result) return undefined;
-
-    const [student] = await db.select().from(students).where(eq(students.id, result.studentId));
-    const [exam] = await db.select().from(exams).where(eq(exams.id, result.examId));
+    
+    const student = this.students.get(result.studentId);
+    const exam = this.exams.get(result.examId);
     
     if (student && exam) {
       return {
@@ -261,13 +408,13 @@ export class DatabaseStorage implements IStorage {
     return undefined;
   }
 
-  async getResultsByStudentId(studentId: number): Promise<schema.ResultWithDetails[]> {
-    const resultsList = await db.select().from(results).where(eq(results.studentId, studentId));
-    const resultsWithDetails: schema.ResultWithDetails[] = [];
-
-    for (const result of resultsList) {
-      const [student] = await db.select().from(students).where(eq(students.id, result.studentId));
-      const [exam] = await db.select().from(exams).where(eq(exams.id, result.examId));
+  async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
+    const results = this.mapToArray(this.results).filter(r => r.studentId === studentId);
+    const resultsWithDetails: ResultWithDetails[] = [];
+    
+    for (const result of results) {
+      const student = this.students.get(result.studentId);
+      const exam = this.exams.get(result.examId);
       
       if (student && exam) {
         resultsWithDetails.push({
@@ -277,17 +424,17 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
-
+    
     return resultsWithDetails;
   }
 
-  async getResultsByExamId(examId: number): Promise<schema.ResultWithDetails[]> {
-    const resultsList = await db.select().from(results).where(eq(results.examId, examId));
-    const resultsWithDetails: schema.ResultWithDetails[] = [];
-
-    for (const result of resultsList) {
-      const [student] = await db.select().from(students).where(eq(students.id, result.studentId));
-      const [exam] = await db.select().from(exams).where(eq(exams.id, result.examId));
+  async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
+    const results = this.mapToArray(this.results).filter(r => r.examId === examId);
+    const resultsWithDetails: ResultWithDetails[] = [];
+    
+    for (const result of results) {
+      const student = this.students.get(result.studentId);
+      const exam = this.exams.get(result.examId);
       
       if (student && exam) {
         resultsWithDetails.push({
@@ -297,95 +444,90 @@ export class DatabaseStorage implements IStorage {
         });
       }
     }
-
+    
     return resultsWithDetails;
   }
 
-  async createResult(result: Partial<schema.Result>): Promise<schema.Result> {
-    // Ensure we have the required fields for result creation
-    if (result.studentId === undefined || result.examId === undefined || 
-        result.score === undefined || result.percentage === undefined) {
-      throw new Error("Missing required fields for result creation");
-    }
-    
-    const [newResult] = await db.insert(results).values({
-      studentId: result.studentId,
-      examId: result.examId,
-      score: result.score,
-      percentage: result.percentage,
-      submittedAt: result.submittedAt || new Date()
-    }).returning();
-    
+  async createResult(result: InsertResult): Promise<Result> {
+    const id = this.resultIdCounter++;
+    const now = new Date();
+    const newResult: Result = { 
+      ...result, 
+      id, 
+      submittedAt: result.submittedAt || now,
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.results.set(id, newResult);
     return newResult;
   }
 
-  async updateResult(id: number, resultData: Partial<schema.Result>): Promise<schema.Result | undefined> {
-    // Create an object with only the fields that exist in resultData
-    const updateObj: Record<string, any> = { updatedAt: new Date() };
+  async updateResult(id: number, resultData: Partial<Result>): Promise<Result | undefined> {
+    const result = this.results.get(id);
+    if (!result) return undefined;
     
-    if (resultData.studentId !== undefined) updateObj.studentId = resultData.studentId;
-    if (resultData.examId !== undefined) updateObj.examId = resultData.examId;
-    if (resultData.score !== undefined) updateObj.score = resultData.score;
-    if (resultData.percentage !== undefined) updateObj.percentage = resultData.percentage;
-    if (resultData.submittedAt !== undefined) updateObj.submittedAt = resultData.submittedAt;
-    
-    const [updatedResult] = await db
-      .update(results)
-      .set(updateObj)
-      .where(eq(results.id, id))
-      .returning();
-      
+    const updatedResult: Result = { 
+      ...result, 
+      ...resultData, 
+      updatedAt: new Date() 
+    };
+    this.results.set(id, updatedResult);
     return updatedResult;
   }
 
   async deleteResult(id: number): Promise<boolean> {
-    await db.delete(results).where(eq(results.id, id));
-    return true;
+    return this.results.delete(id);
   }
 
-  // DASHBOARD STATISTICS
   async getStatistics(): Promise<{ 
     totalStudents: number; 
     activeExams: number; 
     completedExams: number; 
     upcomingExams: number; 
   }> {
-    const studentCount = await db.select({ count: sql<number>`count(*)` }).from(students);
-    const activeExams = await db.select().from(exams).where(eq(exams.status, 'active'));
-    const completedExams = await db.select().from(exams).where(eq(exams.status, 'completed'));
-    const upcomingExams = await db.select().from(exams).where(eq(exams.status, 'upcoming'));
-
+    const activeExams = this.mapToArray(this.exams).filter(e => e.status === 'active');
+    const completedExams = this.mapToArray(this.exams).filter(e => e.status === 'completed');
+    const upcomingExams = this.mapToArray(this.exams).filter(e => e.status === 'upcoming');
+    
     return {
-      totalStudents: studentCount[0]?.count || 0,
+      totalStudents: this.students.size,
       activeExams: activeExams.length,
       completedExams: completedExams.length,
       upcomingExams: upcomingExams.length
     };
   }
 
-  // STUDENT DASHBOARD DATA
-  async getStudentDashboardData(studentId: number): Promise<schema.StudentDashboardData> {
-    // Get all results for this student
-    const studentResults = await this.getResultsByStudentId(studentId);
+  async getStudentDashboardData(studentId: number): Promise<StudentDashboardData> {
+    const results = await this.getResultsByStudentId(studentId);
     
     // Calculate average score
-    const totalScore = studentResults.reduce((acc, result) => acc + result.percentage, 0);
-    const averageScore = studentResults.length > 0 ? totalScore / studentResults.length : 0;
+    const totalScore = results.reduce((acc, result) => acc + result.percentage, 0);
+    const averageScore = results.length > 0 ? totalScore / results.length : 0;
     
-    // Get all active exams
-    const activeExams = await db.select().from(exams).where(eq(exams.status, 'active'));
+    // Get active and upcoming exams
+    const allExams = this.mapToArray(this.exams);
+    const availableExamStatuses = allExams.filter(e => e.status === 'active' || e.status === 'upcoming');
     
-    // Mock best rank data since we need more complex logic for real ranking
-    const bestRank = studentResults.length > 0 ? 1 : 0;
+    // Get exams the student has already completed (by extracting exam IDs from results)
+    const completedExamIds = results.map(result => result.examId);
+    
+    // Filter out exams the student has already taken
+    const availableExams = availableExamStatuses.filter(exam => !completedExamIds.includes(exam.id))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    // Mock best rank data (in a real app, this would need more complex calculation)
+    const bestRank = results.length > 0 ? 1 : 0;
     
     return {
-      totalExams: studentResults.length,
+      totalExams: results.length,
       averageScore,
       bestRank,
-      availableExams: activeExams,
-      examHistory: studentResults.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+      availableExams: availableExams,
+      examHistory: results.sort((a, b) => 
+        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      )
     };
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new MemStorage();

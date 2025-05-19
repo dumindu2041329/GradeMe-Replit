@@ -947,16 +947,7 @@ export function StudentProfileSettings({
                     )}
                   />
                   
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => {
-                      passwordForm.reset({
-                        currentPassword: "",
-                        newPassword: "",
-                        confirmPassword: "",
-                      });
-                    }}>
-                      Reset
-                    </Button>
+                  <div className="pt-2">
                     <Button type="submit" disabled={passwordMutation.isPending}>
                       {passwordMutation.isPending ? "Updating..." : "Update Password"}
                     </Button>

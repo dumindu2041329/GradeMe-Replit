@@ -623,18 +623,17 @@ export function StudentProfileSettings({
                 
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => {
-                    if (studentProfile) {
-                      personalInfoForm.reset({
-                        name: studentProfile.name,
-                        email: studentProfile.email,
-                        phone: studentProfile.phone || '',
-                        address: studentProfile.address || '',
-                        dateOfBirth: studentProfile.dateOfBirth ? new Date(studentProfile.dateOfBirth) : null,
-                        class: studentProfile.class,
-                        guardianName: studentProfile.guardianName || '',
-                        guardianPhone: studentProfile.guardianPhone || '',
-                      });
-                    }
+                    personalInfoForm.reset({
+                      name: '',
+                      email: '',
+                      phone: '',
+                      address: '',
+                      dateOfBirth: null,
+                      class: '',
+                      guardianName: '',
+                      guardianPhone: '',
+                    });
+                    setImagePreview(null);
                   }}>
                     Reset
                   </Button>
@@ -803,16 +802,14 @@ export function StudentProfileSettings({
                 
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => {
-                    if (user) {
-                      notificationForm.reset({
-                        emailNotifications: user.emailNotifications || false,
-                        smsNotifications: user.smsNotifications || false,
-                        emailExamResults: user.emailExamResults || false,
-                        emailUpcomingExams: user.emailUpcomingExams || false,
-                        smsExamResults: user.smsExamResults || false,
-                        smsUpcomingExams: user.smsUpcomingExams || false,
-                      });
-                    }
+                    notificationForm.reset({
+                      emailNotifications: false,
+                      smsNotifications: false,
+                      emailExamResults: false,
+                      emailUpcomingExams: false,
+                      smsExamResults: false,
+                      smsUpcomingExams: false,
+                    });
                   }}>
                     Reset
                   </Button>
@@ -950,9 +947,9 @@ export function StudentProfileSettings({
                   <div className="flex justify-end space-x-2 pt-4">
                     <Button type="button" variant="outline" onClick={() => {
                       passwordForm.reset({
-                        currentPassword: "",
-                        newPassword: "",
-                        confirmPassword: "",
+                        currentPassword: '',
+                        newPassword: '',
+                        confirmPassword: '',
                       });
                     }}>
                       Reset

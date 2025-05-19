@@ -19,6 +19,7 @@ import StudentExams from "@/pages/student-exams";
 import StudentResults from "@/pages/student-results";
 import StudentExamPage from "@/pages/student-exam-page";
 import StudentProfile from "@/pages/student-profile";
+import StudentProfileClear from "@/pages/student-profile-clear";
 import StudentAcademicInfo from "@/pages/student-academic-info";
 
 import { useEffect, useState, useRef, lazy, Suspense } from "react";
