@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,95 +27,103 @@ const profileFormSchema = z.object({
 });
 
 const notificationFormSchema = z.object({
-  emailNotifications: z.boolean().default(true),
+  emailNotifications: z.boolean().default(false),
   smsNotifications: z.boolean().default(false),
+  emailExamResults: z.boolean().default(false),
+  emailUpcomingExams: z.boolean().default(false),
+  smsExamResults: z.boolean().default(false),
+  smsUpcomingExams: z.boolean().default(false),
 });
 
 const passwordFormSchema = z.object({
-  currentPassword: z.string().min(1, { message: "Current password is required" }),
-  newPassword: z.string().min(6, { message: "Password must be at least 6 characters" }),
-  confirmPassword: z.string().min(6, { message: "Confirm password is required" }),
+  currentPassword: z.string().min(1, { message: "Current password is required." }),
+  newPassword: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  confirmPassword: z.string().min(1, { message: "Please confirm your new password." }),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords do not match.",
   path: ["confirmPassword"],
 });
 
-// Form types
+// Type definitions
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-export default function Profile() {
+export default function ProfilePage() {
+  // Authentication state
   const { user, setUser } = useAuth();
   const { toast } = useToast();
   
-  // Password visibility states
+  // File upload reference and state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  
+  // Password visibility state
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [imageLoading, setImageLoading] = useState(false);
   
-  // File input reference
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : "U";
-    
-  // Profile image update mutation
-  const profileImageMutation = useMutation({
-    mutationFn: async (base64Image: string) => {
-      const response = await fetch('/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ profileImage: base64Image }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update profile image');
-      }
-      
-      return response.json();
+  // Profile form
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: user?.name || "",
+      email: user?.email || "",
+      profileImage: user?.profileImage || "",
     },
-    onSuccess: (data) => {
-      // Update the auth context
-      setUser(data.user);
-      
-      toast({
-        title: "Profile Image Updated",
-        description: "Your profile image has been updated successfully.",
-      });
-      
-      // Invalidate user-related queries
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Update Failed",
-        description: error.message || "There was a problem updating your profile image.",
-        variant: "destructive",
-      });
-    },
-    onSettled: () => {
-      setImageLoading(false);
-    }
   });
   
-  // Handle profile image upload
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Notification form
+  const notificationForm = useForm<NotificationFormValues>({
+    resolver: zodResolver(notificationFormSchema),
+    defaultValues: {
+      emailNotifications: user?.emailNotifications || false,
+      smsNotifications: user?.smsNotifications || false,
+      emailExamResults: user?.emailExamResults || false,
+      emailUpcomingExams: user?.emailUpcomingExams || false,
+      smsExamResults: user?.smsExamResults || false,
+      smsUpcomingExams: user?.smsUpcomingExams || false,
+    },
+  });
+  
+  // Password form
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+  
+  // Update form when user changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name || "",
+        email: user.email || "",
+        profileImage: user.profileImage || "",
+      });
+      
+      notificationForm.reset({
+        emailNotifications: user.emailNotifications || false,
+        smsNotifications: user.smsNotifications || false,
+        emailExamResults: user.emailExamResults || false,
+        emailUpcomingExams: user.emailUpcomingExams || false,
+        smsExamResults: user.smsExamResults || false,
+        smsUpcomingExams: user.smsUpcomingExams || false,
+      });
+    }
+  }, [user, profileForm, notificationForm]);
+  
+  // Handle file selection for profile photo
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
     // Check file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid File Type",
         description: "Please upload a JPG, PNG, GIF, or WebP image.",
@@ -148,67 +156,61 @@ export default function Profile() {
     };
     
     reader.onerror = () => {
+      setImageLoading(false);
       toast({
-        title: "Error",
-        description: "There was a problem reading the image file.",
+        title: "Upload Failed",
+        description: "There was a problem uploading your image.",
         variant: "destructive",
       });
-      setImageLoading(false);
     };
     
     reader.readAsDataURL(file);
   };
-
-  // Profile form setup
-  const profileForm = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
-      profileImage: user?.profileImage || "",
-    },
-  });
   
-  // Update form when user data changes
-  useEffect(() => {
-    if (user) {
-      profileForm.reset({
-        name: user.name || "",
-        email: user.email || "",
-        profileImage: user.profileImage || "",
+  // Profile image update mutation
+  const profileImageMutation = useMutation({
+    mutationFn: async (profileImage: string) => {
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profileImage }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to update profile image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      setImageLoading(false);
+      
+      // Update the user in the auth context with the new profile image
+      if (user) {
+        setUser({
+          ...user,
+          profileImage: profileForm.getValues().profileImage,
+        });
+      }
+      
+      toast({
+        title: "Profile Image Updated",
+        description: "Your profile image has been updated successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      setImageLoading(false);
+      toast({
+        title: "Update Failed",
+        description: error.message || "There was a problem updating your profile image.",
+        variant: "destructive",
       });
     }
-  }, [user, profileForm]);
-
-  // Notification form setup
-  const notificationForm = useForm<NotificationFormValues>({
-    resolver: zodResolver(notificationFormSchema),
-    defaultValues: {
-      emailNotifications: user?.notificationPreferences?.email ?? true,
-      smsNotifications: user?.notificationPreferences?.sms ?? false,
-    },
   });
   
-  // Update notification form when user data changes
-  useEffect(() => {
-    if (user?.notificationPreferences) {
-      notificationForm.reset({
-        emailNotifications: user.notificationPreferences.email,
-        smsNotifications: user.notificationPreferences.sms
-      });
-    }
-  }, [user, notificationForm]);
-
-  // Password form setup
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordFormSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
-
   // Profile update mutation
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
@@ -220,8 +222,6 @@ export default function Profile() {
         body: JSON.stringify({
           name: data.name,
           email: data.email,
-          // Only include profileImage if it was changed
-          ...(data.profileImage !== user?.profileImage ? { profileImage: data.profileImage } : {})
         }),
       });
       
@@ -233,17 +233,19 @@ export default function Profile() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Update the auth context
-      setUser(data.user);
+      // If user auth state needs to be updated
+      if (user) {
+        setUser({
+          ...user,
+          name: data.name,
+          email: data.email,
+        });
+      }
       
-      // Show success message
       toast({
         title: "Profile Updated",
-        description: "Your profile information has been updated successfully.",
+        description: "Your profile has been updated successfully.",
       });
-      
-      // Invalidate user-related queries
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
     },
     onError: (error: Error) => {
       toast({
@@ -267,10 +269,7 @@ export default function Profile() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          emailNotifications: data.emailNotifications,
-          smsNotifications: data.smsNotifications
-        }),
+        body: JSON.stringify(data),
       });
       
       if (!response.ok) {
@@ -281,13 +280,21 @@ export default function Profile() {
       return response.json();
     },
     onSuccess: (data) => {
-      // If user state needs to be updated with notification preferences
-      if (user && data.notificationPreferences) {
+      // Update user with the returned notification settings
+      if (user) {
         setUser({
           ...user,
-          notificationPreferences: data.notificationPreferences
+          emailNotifications: data.emailNotifications,
+          smsNotifications: data.smsNotifications,
+          emailExamResults: data.emailExamResults,
+          emailUpcomingExams: data.emailUpcomingExams,
+          smsExamResults: data.smsExamResults,
+          smsUpcomingExams: data.smsUpcomingExams
         });
       }
+      
+      // Make sure UI stays in sync
+      queryClient.invalidateQueries({ queryKey: ['/api/users/profile'] });
       
       toast({
         title: "Settings Updated",
@@ -304,6 +311,8 @@ export default function Profile() {
   });
   
   const onNotificationSubmit = (data: NotificationFormValues) => {
+    // Log the data to ensure it's correct
+    console.log("Submitting notification settings:", data);
     notificationMutation.mutate(data);
   };
 
@@ -335,11 +344,7 @@ export default function Profile() {
       });
       
       // Reset the form
-      passwordForm.reset({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
+      passwordForm.reset();
     },
     onError: (error: Error) => {
       toast({
@@ -355,338 +360,323 @@ export default function Profile() {
   };
 
   return (
-    <AppShell title="Profile Settings">
-      <Tabs defaultValue="view" className="w-full max-w-4xl mx-auto">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="view">View Profile</TabsTrigger>
-          <TabsTrigger value="edit">Edit Profile</TabsTrigger>
-        </TabsList>
+    <AppShell title="My Profile" sidebar={user?.role === "admin" ? "admin" : "student"}>
+      <div className="mx-auto max-w-4xl space-y-8">
+        <h1 className="text-3xl font-bold">My Profile</h1>
         
-        <TabsContent value="view">
-          <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6">
-                <Avatar className="h-24 w-24 bg-primary text-2xl">
-                  {user?.profileImage ? (
-                    <AvatarImage src={user.profileImage} alt={user.name} />
-                  ) : (
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  )}
-                </Avatar>
-                
-                <div className="space-y-2 text-center md:text-left">
-                  <div className="space-y-0.5">
-                    <h2 className="text-2xl font-bold">{user?.name}</h2>
-                    <p className="text-muted-foreground">{user?.email}</p>
-                  </div>
-                  
-                  <div className="flex justify-center md:justify-start">
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-none">
-                      {user?.isAdmin ? "Administrator" : "User"}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications & Security</TabsTrigger>
+          </TabsList>
           
-          <div className="mt-6 space-y-6">
+          <TabsContent value="general" className="space-y-6">
+            {/* Profile Photo */}
             <Card className="border shadow-sm">
               <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4">Account Information</h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Full Name</h4>
-                      <p>{user?.name}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Email Address</h4>
-                      <p>{user?.email}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-muted-foreground mb-1">Account Type</h4>
-                      <p>{user?.isAdmin ? "Administrator" : "User"}</p>
+                <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Avatar className="h-24 w-24">
+                      {user?.profileImage ? (
+                        <AvatarImage src={user.profileImage} alt={user?.name} />
+                      ) : (
+                        <AvatarFallback className="text-xl">
+                          {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      accept="image/png, image/jpeg, image/gif, image/webp"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={imageLoading}
+                    >
+                      {imageLoading ? (
+                        <>
+                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          Upload Photo
+                        </>
+                      )}
+                    </Button>
+                    <PhotoGuidelines />
+                  </div>
+                  
+                  <div className="flex-1 flex justify-center items-center">
+                    <div className="flex flex-col items-center text-center gap-2 mt-4">
+                      <h3 className="text-xl font-semibold">{user?.name}</h3>
+                      <Badge variant="outline" className="mb-1">
+                        {user?.role === 'admin' ? 'Administrator' : 'Student'}
+                      </Badge>
+                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      {user?.role === 'student' && (
+                        <p className="text-sm text-muted-foreground">
+                          Class: {user?.class || 'Not specified'}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="edit">
-          {/* Profile Information Form */}
-          <Card className="border shadow-sm mb-6">
-            <CardContent className="p-6">
-              <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                  <div className="flex flex-col items-center space-y-4 md:flex-row md:space-y-0 md:space-x-6 mb-6">
-                    <div className="relative">
-                      <Avatar className="h-24 w-24 bg-primary text-2xl">
-                        {user?.profileImage ? (
-                          <AvatarImage src={user.profileImage} alt={user.name} />
-                        ) : (
-                          <AvatarFallback>{initials}</AvatarFallback>
-                        )}
-                      </Avatar>
-                      
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        className="absolute -bottom-2 -right-2 rounded-full h-8 w-8"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={imageLoading || profileImageMutation.isPending}
-                      >
-                        {imageLoading || profileImageMutation.isPending ? (
-                          <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
-                      </Button>
-                      
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/jpeg, image/png, image/gif, image/webp"
-                        onChange={handleImageUpload}
-                      />
-                    </div>
+            
+            {/* Profile Form */}
+            <Card className="border shadow-sm">
+              <CardContent className="p-6" aria-describedby="profile-description">
+                <h3 className="text-lg font-medium mb-2">
+                  <span className="inline-flex items-center">
+                    <span className="mr-2">Profile Information</span>
+                  </span>
+                </h3>
+                <p id="profile-description" className="text-sm text-muted-foreground mb-4">
+                  Update your basic profile information.
+                </p>
+                
+                <Form {...profileForm}>
+                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                    <FormField
+                      control={profileForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Your name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     
-                    <div className="text-center md:text-left">
-                      <p className="text-sm text-muted-foreground mb-1">
-                        Upload a new profile picture
-                      </p>
-                      <div className="flex items-center space-x-1">
-                        <PhotoGuidelines />
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <FormField
-                    control={profileForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={profileForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={profileMutation.isPending}>
-                    {profileMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                    <FormField
+                      control={profileForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input placeholder="your.email@example.com" type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" disabled={profileMutation.isPending}>
+                      {profileMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
           
-          {/* Notification Settings Form */}
-          <Card className="border shadow-sm mb-6">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">
-                <span className="inline-flex items-center">
-                  <span className="mr-2">Notification Settings</span>
-                </span>
-              </h3>
-              
-              <Form {...notificationForm}>
-                <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                  <FormField
-                    control={notificationForm.control}
-                    name="emailNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel>Email Notifications</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Receive exam submission notifications via email
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={notificationForm.control}
-                    name="smsNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel>SMS Notifications</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Receive exam submission notifications via SMS
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={notificationMutation.isPending}>
-                    {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-          
-          {/* Password Form */}
-          <Card className="border shadow-sm">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">
-                <span className="inline-flex items-center">
-                  <span className="mr-2">Change Password</span>
-                </span>
-              </h3>
-              
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                  <FormField
-                    control={passwordForm.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              {...field}
-                              type={showCurrentPassword ? "text" : "password"}
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            >
-                              {showCurrentPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className="sr-only">
-                                {showCurrentPassword ? "Hide" : "Show"} password
-                              </span>
-                            </Button>
+          <TabsContent value="notifications" className="space-y-6">
+            {/* Notification Settings Form */}
+            <Card className="border shadow-sm mb-6">
+              <CardContent className="p-6" aria-describedby="notification-settings-desc">
+                <h3 className="text-lg font-medium mb-2">
+                  <span className="inline-flex items-center">
+                    <span className="mr-2">Notification Settings</span>
+                  </span>
+                </h3>
+                <p id="notification-settings-desc" className="text-sm text-muted-foreground mb-4">
+                  Configure how you receive notifications about exams and results.
+                </p>
+                
+                <Form {...notificationForm}>
+                  <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
+                    <FormField
+                      control={notificationForm.control}
+                      name="emailNotifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between">
+                          <div className="space-y-0.5">
+                            <FormLabel>Email Notifications</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Receive exam submission notifications via email
+                            </p>
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              {...field}
-                              type={showNewPassword ? "text" : "password"}
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                            >
-                              {showNewPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className="sr-only">
-                                {showNewPassword ? "Hide" : "Show"} password
-                              </span>
-                            </Button>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={notificationForm.control}
+                      name="smsNotifications"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between">
+                          <div className="space-y-0.5">
+                            <FormLabel>SMS Notifications</FormLabel>
+                            <p className="text-sm text-muted-foreground">
+                              Receive exam submission notifications via SMS
+                            </p>
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm New Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input
-                              {...field}
-                              type={showConfirmPassword ? "text" : "password"}
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
                             />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full px-3"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            >
-                              {showConfirmPassword ? (
-                                <EyeOff className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className="sr-only">
-                                {showConfirmPassword ? "Hide" : "Show"} password
-                              </span>
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" disabled={passwordMutation.isPending}>
-                    {passwordMutation.isPending ? "Updating..." : "Update Password"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" disabled={notificationMutation.isPending}>
+                      {notificationMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+            
+            {/* Password Form */}
+            <Card className="border shadow-sm">
+              <CardContent className="p-6" aria-describedby="password-settings-desc">
+                <h3 className="text-lg font-medium mb-2">
+                  <span className="inline-flex items-center">
+                    <span className="mr-2">Change Password</span>
+                  </span>
+                </h3>
+                <p id="password-settings-desc" className="text-sm text-muted-foreground mb-4">
+                  Update your password to keep your account secure.
+                </p>
+                
+                <Form {...passwordForm}>
+                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                    <FormField
+                      control={passwordForm.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showCurrentPassword ? "text" : "password"}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              >
+                                {showCurrentPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="sr-only">
+                                  {showCurrentPassword ? "Hide" : "Show"} password
+                                </span>
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showNewPassword ? "text" : "password"}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                              >
+                                {showNewPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="sr-only">
+                                  {showNewPassword ? "Hide" : "Show"} password
+                                </span>
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={passwordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm New Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showConfirmPassword ? "text" : "password"}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              >
+                                {showConfirmPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="sr-only">
+                                  {showConfirmPassword ? "Hide" : "Show"} password
+                                </span>
+                              </Button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button type="submit" disabled={passwordMutation.isPending}>
+                      {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </AppShell>
   );
 }
