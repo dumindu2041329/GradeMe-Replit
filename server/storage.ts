@@ -16,15 +16,15 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  createUser(user: any): Promise<User>;
+  updateUser(id: number, user: Partial<any>): Promise<User | undefined>;
   
   // Student operations
   getStudents(): Promise<Student[]>;
   getStudent(id: number): Promise<Student | undefined>;
   getStudentByEmail(email: string): Promise<Student | undefined>;
-  createStudent(student: InsertStudent): Promise<Student>;
-  updateStudent(id: number, student: Partial<Student>): Promise<Student | undefined>;
+  createStudent(student: any): Promise<Student>;
+  updateStudent(id: number, student: Partial<any>): Promise<Student | undefined>;
   deleteStudent(id: number): Promise<boolean>;
   authenticateStudent(email: string, password: string): Promise<Student | null>;
   
@@ -32,8 +32,8 @@ export interface IStorage {
   getExams(): Promise<Exam[]>;
   getExam(id: number): Promise<Exam | undefined>;
   getExamsByStatus(status: string): Promise<Exam[]>;
-  createExam(exam: InsertExam): Promise<Exam>;
-  updateExam(id: number, exam: Partial<Exam>): Promise<Exam | undefined>;
+  createExam(exam: any): Promise<Exam>;
+  updateExam(id: number, exam: Partial<any>): Promise<Exam | undefined>;
   deleteExam(id: number): Promise<boolean>;
   
   // Result operations
@@ -41,8 +41,8 @@ export interface IStorage {
   getResult(id: number): Promise<ResultWithDetails | undefined>;
   getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]>;
   getResultsByExamId(examId: number): Promise<ResultWithDetails[]>;
-  createResult(result: InsertResult): Promise<Result>;
-  updateResult(id: number, result: Partial<Result>): Promise<Result | undefined>;
+  createResult(result: any): Promise<Result>;
+  updateResult(id: number, result: Partial<any>): Promise<Result | undefined>;
   deleteResult(id: number): Promise<boolean>;
 
   // Dashboard statistics
@@ -96,168 +96,147 @@ export class MemStorage implements IStorage {
     // Create sample students
     const john = await this.createStudent({
       name: "John Doe",
-      email: "john@student.com",
-      class: "10A",
-      phone: "123-456-7890",
-      address: "123 Student St",
-      dateOfBirth: new Date(2005, 5, 15)
-    });
-    
-    const sarah = await this.createStudent({
-      name: "Sarah Johnson",
-      email: "sarah@student.com",
-      class: "10B",
-      phone: "987-654-3210",
-      address: "456 Student Ave",
-      dateOfBirth: new Date(2005, 8, 22)
-    });
-    
-    const michael = await this.createStudent({
-      name: "Michael Smith",
-      email: "michael@student.com",
-      class: "11A",
-      phone: "555-123-4567",
-      address: "789 Student Blvd",
-      dateOfBirth: new Date(2004, 3, 10)
+      email: "john@example.com",
+      class: "Class 10A",
+      password: "student123",
+      enrollmentDate: new Date("2024-01-15")
     });
 
+    const jane = await this.createStudent({
+      name: "Jane Smith",
+      email: "jane@example.com",
+      class: "Class 10B",
+      password: "student123",
+      enrollmentDate: new Date("2024-01-20")
+    });
+    
     // Create student user accounts
     await this.createUser({
-      email: "john@student.com",
-      password: "password123",
-      name: "John Doe",
+      email: john.email,
+      password: "student123",
+      name: john.name,
       role: "student",
       isAdmin: false,
-      studentId: john.id,
-      profileImage: null
+      profileImage: null,
+      studentId: john.id
     });
     
     await this.createUser({
-      email: "sarah@student.com",
-      password: "password123",
-      name: "Sarah Johnson",
+      email: jane.email,
+      password: "student123",
+      name: jane.name,
       role: "student",
       isAdmin: false,
-      studentId: sarah.id,
-      profileImage: null
-    });
-    
-    await this.createUser({
-      email: "michael@student.com",
-      password: "password123",
-      name: "Michael Smith",
-      role: "student",
-      isAdmin: false,
-      studentId: michael.id,
-      profileImage: null
+      profileImage: null,
+      studentId: jane.id
     });
 
     // Create sample exams
     const mathExam = await this.createExam({
-      name: "Mid-Term Math Exam",
+      name: "Mathematics Final",
       subject: "Mathematics",
-      date: new Date(2023, 6, 15),
-      duration: 90,
+      date: new Date("2024-06-25"),
+      duration: 180, // 3 hours
       totalMarks: 100,
-      status: "upcoming",
-      description: "Algebra, Geometry, and Calculus"
+      status: "upcoming"
     });
-    
-    const scienceExam = await this.createExam({
-      name: "Science Quiz",
-      subject: "Science",
-      date: new Date(2023, 6, 5),
-      duration: 60,
+
+    const physicsExam = await this.createExam({
+      name: "Physics Mid-term",
+      subject: "Physics",
+      date: new Date("2024-05-15"),
+      duration: 120, // 2 hours
+      totalMarks: 75,
+      status: "active"
+    });
+
+    const chemistryExam = await this.createExam({
+      name: "Chemistry Quiz",
+      subject: "Chemistry",
+      date: new Date("2024-04-10"),
+      duration: 60, // 1 hour
       totalMarks: 50,
-      status: "completed",
-      description: "Physics and Chemistry basics"
+      status: "completed"
     });
     
-    const englishExam = await this.createExam({
-      name: "English Literature Test",
-      subject: "English",
-      date: new Date(2023, 6, 20),
-      duration: 120,
-      totalMarks: 80,
-      status: "active",
-      description: "Shakespearean Literature and Poetry Analysis"
+    const biologyExam = await this.createExam({
+      name: "Biology Semester Test",
+      subject: "Biology",
+      date: new Date("2024-03-20"),
+      duration: 90,
+      totalMarks: 60,
+      status: "completed"
     });
 
     // Create sample results
     await this.createResult({
-      studentId: sarah.id,
-      examId: scienceExam.id,
-      score: 42,
-      percentage: 84,
-      submittedAt: new Date(2023, 6, 5, 10, 30)
+      studentId: john.id,
+      examId: biologyExam.id,
+      score: 52,
+      percentage: 87,
+      submittedAt: new Date("2024-03-20")
     });
     
     await this.createResult({
       studentId: john.id,
-      examId: scienceExam.id,
-      score: 38,
-      percentage: 76,
-      submittedAt: new Date(2023, 6, 5, 10, 15)
+      examId: chemistryExam.id,
+      score: 43,
+      percentage: 86,
+      submittedAt: new Date("2024-04-10")
+    });
+
+    await this.createResult({
+      studentId: jane.id,
+      examId: chemistryExam.id,
+      score: 44,
+      percentage: 88,
+      submittedAt: new Date("2024-04-10")
     });
     
     await this.createResult({
-      studentId: michael.id,
-      examId: scienceExam.id,
-      score: 45,
+      studentId: jane.id,
+      examId: biologyExam.id,
+      score: 54,
       percentage: 90,
-      submittedAt: new Date(2023, 6, 5, 10, 45)
+      submittedAt: new Date("2024-03-20")
     });
   }
 
+  // Convert map values to array safely
   private mapToArray<T>(map: Map<number, T>): T[] {
-    return Array.from(map.values());
+    const result: T[] = [];
+    map.forEach(item => result.push(item));
+    return result;
   }
 
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
-      if (user.email === email) {
-        return user;
-      }
-    }
-    return undefined;
+    const userArray = this.mapToArray(this.users);
+    return userArray.find(user => user.email === email);
   }
 
-  async createUser(user: InsertUser): Promise<User> {
+  async createUser(user: any): Promise<User> {
     const id = this.userIdCounter++;
-    const now = new Date();
-    const newUser: User = { 
-      ...user, 
-      id, 
-      createdAt: now, 
-      updatedAt: now,
-      emailNotifications: false,
-      smsNotifications: false,
-      emailExamResults: false,
-      emailUpcomingExams: false,
-      smsExamResults: false,
-      smsUpcomingExams: false
-    };
+    const newUser: User = { ...user, id };
     this.users.set(id, newUser);
     return newUser;
   }
 
-  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser: User = { 
-      ...user, 
-      ...userData, 
-      updatedAt: new Date() 
-    };
+  async updateUser(id: number, userData: Partial<any>): Promise<User | undefined> {
+    const existingUser = this.users.get(id);
+    if (!existingUser) {
+      return undefined;
+    }
+    const updatedUser = { ...existingUser, ...userData };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
 
+  // Student operations
   async getStudents(): Promise<Student[]> {
     return this.mapToArray(this.students);
   }
@@ -267,43 +246,23 @@ export class MemStorage implements IStorage {
   }
 
   async getStudentByEmail(email: string): Promise<Student | undefined> {
-    for (const student of this.students.values()) {
-      if (student.email === email) {
-        return student;
-      }
-    }
-    return undefined;
+    const studentArray = this.mapToArray(this.students);
+    return studentArray.find(student => student.email === email);
   }
 
-  async createStudent(student: InsertStudent): Promise<Student> {
+  async createStudent(student: any): Promise<Student> {
     const id = this.studentIdCounter++;
-    const now = new Date();
-    const newStudent: Student = { 
-      ...student, 
-      id, 
-      enrollmentDate: student.enrollmentDate || now,
-      phone: student.phone || null,
-      address: student.address || null,
-      dateOfBirth: student.dateOfBirth || null,
-      guardianName: student.guardianName || null,
-      guardianPhone: student.guardianPhone || null,
-      profileImage: student.profileImage || null,
-      createdAt: now, 
-      updatedAt: now 
-    };
+    const newStudent: Student = { ...student, id };
     this.students.set(id, newStudent);
     return newStudent;
   }
 
-  async updateStudent(id: number, student: Partial<Student>): Promise<Student | undefined> {
+  async updateStudent(id: number, student: Partial<any>): Promise<Student | undefined> {
     const existingStudent = this.students.get(id);
-    if (!existingStudent) return undefined;
-    
-    const updatedStudent: Student = { 
-      ...existingStudent, 
-      ...student, 
-      updatedAt: new Date() 
-    };
+    if (!existingStudent) {
+      return undefined;
+    }
+    const updatedStudent = { ...existingStudent, ...student };
     this.students.set(id, updatedStudent);
     return updatedStudent;
   }
@@ -313,21 +272,20 @@ export class MemStorage implements IStorage {
   }
 
   async authenticateStudent(email: string, password: string): Promise<Student | null> {
-    // Find user with student role
-    let studentUser: User | undefined;
-    for (const user of this.users.values()) {
-      if (user.email === email && user.password === password && user.role === "student") {
-        studentUser = user;
-        break;
-      }
+    const student = await this.getStudentByEmail(email);
+    if (!student) {
+      return null;
     }
     
-    if (!studentUser || !studentUser.studentId) return null;
+    // Simple password comparison for mock data
+    if (student.password !== password) {
+      return null;
+    }
     
-    const student = this.students.get(studentUser.studentId);
-    return student || null;
+    return student;
   }
 
+  // Exam operations
   async getExams(): Promise<Exam[]> {
     return this.mapToArray(this.exams);
   }
@@ -337,31 +295,23 @@ export class MemStorage implements IStorage {
   }
 
   async getExamsByStatus(status: string): Promise<Exam[]> {
-    return this.mapToArray(this.exams).filter(exam => exam.status === status);
+    const allExams = this.mapToArray(this.exams);
+    return allExams.filter(exam => exam.status === status);
   }
 
-  async createExam(exam: InsertExam): Promise<Exam> {
+  async createExam(exam: any): Promise<Exam> {
     const id = this.examIdCounter++;
-    const now = new Date();
-    const newExam: Exam = { 
-      ...exam, 
-      id, 
-      createdAt: now, 
-      updatedAt: now 
-    };
+    const newExam: Exam = { ...exam, id };
     this.exams.set(id, newExam);
     return newExam;
   }
 
-  async updateExam(id: number, examData: Partial<Exam>): Promise<Exam | undefined> {
-    const exam = this.exams.get(id);
-    if (!exam) return undefined;
-    
-    const updatedExam: Exam = { 
-      ...exam, 
-      ...examData, 
-      updatedAt: new Date() 
-    };
+  async updateExam(id: number, exam: Partial<any>): Promise<Exam | undefined> {
+    const existingExam = this.exams.get(id);
+    if (!existingExam) {
+      return undefined;
+    }
+    const updatedExam = { ...existingExam, ...exam };
     this.exams.set(id, updatedExam);
     return updatedExam;
   }
@@ -370,107 +320,98 @@ export class MemStorage implements IStorage {
     return this.exams.delete(id);
   }
 
+  // Result operations
   async getResults(): Promise<ResultWithDetails[]> {
-    const results = this.mapToArray(this.results);
-    const resultsWithDetails: ResultWithDetails[] = [];
-    
-    for (const result of results) {
+    const allResults = this.mapToArray(this.results);
+    return allResults.map(result => {
       const student = this.students.get(result.studentId);
       const exam = this.exams.get(result.examId);
       
-      if (student && exam) {
-        resultsWithDetails.push({
-          ...result,
-          student,
-          exam
-        });
+      if (!student || !exam) {
+        throw new Error(`Missing related entities for result ${result.id}`);
       }
-    }
-    
-    return resultsWithDetails;
-  }
-
-  async getResult(id: number): Promise<ResultWithDetails | undefined> {
-    const result = this.results.get(id);
-    if (!result) return undefined;
-    
-    const student = this.students.get(result.studentId);
-    const exam = this.exams.get(result.examId);
-    
-    if (student && exam) {
+      
       return {
         ...result,
         student,
         exam
       };
+    });
+  }
+
+  async getResult(id: number): Promise<ResultWithDetails | undefined> {
+    const result = this.results.get(id);
+    if (!result) {
+      return undefined;
     }
     
-    return undefined;
+    const student = this.students.get(result.studentId);
+    const exam = this.exams.get(result.examId);
+    
+    if (!student || !exam) {
+      return undefined;
+    }
+    
+    return {
+      ...result,
+      student,
+      exam
+    };
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    const results = this.mapToArray(this.results).filter(r => r.studentId === studentId);
-    const resultsWithDetails: ResultWithDetails[] = [];
-    
-    for (const result of results) {
-      const student = this.students.get(result.studentId);
-      const exam = this.exams.get(result.examId);
-      
-      if (student && exam) {
-        resultsWithDetails.push({
+    const allResults = this.mapToArray(this.results);
+    return allResults
+      .filter(result => result.studentId === studentId)
+      .map(result => {
+        const student = this.students.get(result.studentId);
+        const exam = this.exams.get(result.examId);
+        
+        if (!student || !exam) {
+          throw new Error(`Missing related entities for result ${result.id}`);
+        }
+        
+        return {
           ...result,
           student,
           exam
-        });
-      }
-    }
-    
-    return resultsWithDetails;
+        };
+      });
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    const results = this.mapToArray(this.results).filter(r => r.examId === examId);
-    const resultsWithDetails: ResultWithDetails[] = [];
-    
-    for (const result of results) {
-      const student = this.students.get(result.studentId);
-      const exam = this.exams.get(result.examId);
-      
-      if (student && exam) {
-        resultsWithDetails.push({
+    const allResults = this.mapToArray(this.results);
+    return allResults
+      .filter(result => result.examId === examId)
+      .map(result => {
+        const student = this.students.get(result.studentId);
+        const exam = this.exams.get(result.examId);
+        
+        if (!student || !exam) {
+          throw new Error(`Missing related entities for result ${result.id}`);
+        }
+        
+        return {
           ...result,
           student,
           exam
-        });
-      }
-    }
-    
-    return resultsWithDetails;
+        };
+      });
   }
 
-  async createResult(result: InsertResult): Promise<Result> {
+  async createResult(result: any): Promise<Result> {
     const id = this.resultIdCounter++;
-    const now = new Date();
-    const newResult: Result = { 
-      ...result, 
-      id, 
-      submittedAt: result.submittedAt || now,
-      createdAt: now, 
-      updatedAt: now 
-    };
+    const newResult: Result = { ...result, id };
     this.results.set(id, newResult);
     return newResult;
   }
 
-  async updateResult(id: number, resultData: Partial<Result>): Promise<Result | undefined> {
-    const result = this.results.get(id);
-    if (!result) return undefined;
-    
-    const updatedResult: Result = { 
-      ...result, 
-      ...resultData, 
-      updatedAt: new Date() 
-    };
+  async updateResult(id: number, result: Partial<any>): Promise<Result | undefined> {
+    const existingResult = this.results.get(id);
+    if (!existingResult) {
+      return undefined;
+    }
+    const updatedResult = { ...existingResult, ...result };
     this.results.set(id, updatedResult);
     return updatedResult;
   }
@@ -479,51 +420,56 @@ export class MemStorage implements IStorage {
     return this.results.delete(id);
   }
 
+  // Dashboard statistics
   async getStatistics(): Promise<{ 
     totalStudents: number; 
     activeExams: number; 
     completedExams: number; 
-    upcomingExams: number; 
+    upcomingExams: number;
   }> {
-    const activeExams = this.mapToArray(this.exams).filter(e => e.status === 'active');
-    const completedExams = this.mapToArray(this.exams).filter(e => e.status === 'completed');
-    const upcomingExams = this.mapToArray(this.exams).filter(e => e.status === 'upcoming');
+    const allExams = await this.getExams();
     
     return {
       totalStudents: this.students.size,
-      activeExams: activeExams.length,
-      completedExams: completedExams.length,
-      upcomingExams: upcomingExams.length
+      activeExams: allExams.filter(exam => exam.status === 'active').length,
+      completedExams: allExams.filter(exam => exam.status === 'completed').length,
+      upcomingExams: allExams.filter(exam => exam.status === 'upcoming').length
     };
   }
-
+  
+  // Student dashboard data
   async getStudentDashboardData(studentId: number): Promise<StudentDashboardData> {
-    const results = await this.getResultsByStudentId(studentId);
+    const student = await this.getStudent(studentId);
+    if (!student) {
+      throw new Error(`Student with ID ${studentId} not found`);
+    }
     
-    // Calculate average score
-    const totalScore = results.reduce((acc, result) => acc + result.percentage, 0);
-    const averageScore = results.length > 0 ? totalScore / results.length : 0;
+    // Get all exams
+    const allExams = await this.getExams();
     
-    // Get active and upcoming exams
-    const allExams = this.mapToArray(this.exams);
-    const availableExamStatuses = allExams.filter(e => e.status === 'active' || e.status === 'upcoming');
+    // Get results for this student
+    const studentResults = await this.getResultsByStudentId(studentId);
     
-    // Get exams the student has already completed (by extracting exam IDs from results)
-    const completedExamIds = results.map(result => result.examId);
-    
-    // Filter out exams the student has already taken
-    const availableExams = availableExamStatuses.filter(exam => !completedExamIds.includes(exam.id))
+    // Get available exams (upcoming and active)
+    const availableExams = allExams
+      .filter(exam => exam.status === 'upcoming' || exam.status === 'active')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
-    // Mock best rank data (in a real app, this would need more complex calculation)
-    const bestRank = results.length > 0 ? 1 : 0;
+    // Calculate average score
+    const averageScore = studentResults.length > 0
+      ? studentResults.reduce((sum, result) => sum + result.percentage, 0) / studentResults.length
+      : 0;
+    
+    // For best rank, we would need to compare against other students
+    // This is a simplified implementation
+    const bestRank = 1; // Placeholder
     
     return {
-      totalExams: results.length,
+      totalExams: studentResults.length,
       averageScore,
       bestRank,
-      availableExams: availableExams,
-      examHistory: results.sort((a, b) => 
+      availableExams,
+      examHistory: studentResults.sort((a, b) => 
         new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
       )
     };
