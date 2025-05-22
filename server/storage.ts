@@ -277,8 +277,16 @@ export class MemStorage implements IStorage {
       return null;
     }
     
-    // Simple password comparison for mock data
-    if (student.password !== password) {
+    // Get the corresponding user to check password
+    const users = this.mapToArray(this.users);
+    const userAccount = users.find(user => 
+      user.email === email && 
+      user.role === "student" && 
+      user.studentId === student.id
+    );
+    
+    // Check if user exists and password matches
+    if (!userAccount || userAccount.password !== password) {
       return null;
     }
     

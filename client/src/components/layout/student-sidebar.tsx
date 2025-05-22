@@ -108,7 +108,7 @@ export function StudentSidebar({ className, onItemClick }: StudentSidebarProps =
                 // Use setTimeout to ensure state updates before navigation
                 setTimeout(() => {
                   // Use replace: true to ensure back button doesn't return to dashboard
-                  navigate("/student/login", { replace: true });
+                  navigate("/", { replace: true });
                   toast({
                     title: "Logged out successfully",
                     description: "You have been logged out of your account",

@@ -151,7 +151,7 @@ export default function Login() {
                     // Import the transition helper from our lib
                     import("@/lib/transition").then(({ smoothNavigate }) => {
                       // Use the smoothNavigate function for a flash-free transition
-                      smoothNavigate(navigate, "/student/login", { replace: true });
+                      smoothNavigate(navigate, "/", { replace: true });
                     });
                   }}
                   className="bg-transparent border-none text-primary hover:text-primary/80 text-sm cursor-pointer p-0 font-normal"

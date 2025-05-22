@@ -1,11 +1,11 @@
 import { Switch, Route, useLocation, useRouter } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import "./components/glassmorphism.css";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
+import Login from "@/pages/login";
 import ResetPassword from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
@@ -13,6 +13,7 @@ import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
 import AdminProfile from "@/pages/admin-profile";
+import StudentLogin from "@/pages/student-login";
 import StudentDashboard from "@/pages/student-dashboard";
 import StudentExams from "@/pages/student-exams";
 import StudentResults from "@/pages/student-results";
@@ -40,7 +41,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
         isNavigatingRef.current = true;
         // Redirect without unmounting current content yet
         requestAnimationFrame(() => {
-          navigate("/", { replace: true });
+          navigate("/login", { replace: true });
         });
       } else {
         // Reset navigation status when we have a valid user
@@ -85,16 +86,16 @@ function ProtectedStudentRoute({ children }: { children: React.ReactNode }) {
       if (!user) {
         // Set navigating flag to prevent multiple redirects
         isNavigatingRef.current = true;
-        // Redirect to landing page without unmounting current content yet
+        // Redirect to student login without unmounting current content yet
         requestAnimationFrame(() => {
-          navigate("/", { replace: true });
+          navigate("/student/login", { replace: true });
         });
       } else if (user.role !== "student") {
         // Set navigating flag to prevent multiple redirects
         isNavigatingRef.current = true;
-        // Redirect to landing page without unmounting current content yet  
+        // Redirect to student login without unmounting current content yet  
         requestAnimationFrame(() => {
-          navigate("/", { replace: true });
+          navigate("/student/login", { replace: true });
         });
       } else {
         // Reset navigation status when we have a valid student user
@@ -159,13 +160,17 @@ function Router() {
   // Redirect based on user role when already authenticated
   useEffect(() => {
     if (user) {
-      // If user is already authenticated and on the landing page, redirect to their dashboard
-      if (location === "/") {
-        if (user.role === "student") {
-          navigate("/student/dashboard", { replace: true });
-        } else {
-          navigate("/admin", { replace: true });
-        }
+      // If on login page, redirect to appropriate dashboard
+      if (location === "/login") {
+        navigate("/admin", { replace: true });
+      } 
+      // If on student login page and user is a student, redirect to student dashboard
+      else if (location === "/student/login" && user.role === "student") {
+        navigate("/student/dashboard", { replace: true });
+      }
+      // If on student login page and user is an admin, redirect to admin dashboard
+      else if (location === "/student/login" && user.role !== "student") {
+        navigate("/admin", { replace: true });
       }
     }
   }, [user, location, navigate]);
@@ -179,7 +184,7 @@ function Router() {
         <Route path="/" component={LandingPage} />
         
         {/* Auth routes */}
-        {/* Login handled by popups on landing page */}
+        <Route path="/login" component={Login} />
         <Route path="/reset-password" component={ResetPassword} />
         
         {/* Admin routes */}
@@ -220,7 +225,7 @@ function Router() {
         </Route>
         
         {/* Student routes */}
-        {/* Student login handled by popups on landing page */}
+        <Route path="/student/login" component={StudentLogin} />
         
         <Route path="/student/dashboard">
           <ProtectedStudentRoute>

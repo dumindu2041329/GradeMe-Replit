@@ -76,7 +76,7 @@ export function AppShell({ children }: AppShellProps) {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar for larger screens */}
-      <aside className="hidden lg:flex flex-col w-64 border-r bg-card px-3 py-4">
+      <aside className="hidden lg:flex flex-col w-64 border-r bg-card glass-sidebar px-3 py-4">
         <div className="px-3 py-2 mb-6">
           <h1 className="text-xl font-bold tracking-tight">Exam Management</h1>
         </div>
@@ -147,7 +147,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Main content */}
       <div className="flex flex-col flex-1">
         {/* Header */}
-        <header className="h-16 border-b bg-card flex items-center px-4 lg:px-6">
+        <header className="h-16 border-b glass-navbar flex items-center px-4 lg:px-6">
           <div className="flex items-center gap-2 lg:hidden">
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
@@ -171,7 +171,7 @@ export function AppShell({ children }: AppShellProps) {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56 glass-dropdown" align="end" forceMount>
                   <div className="p-2">
                     <p className="text-sm font-medium">{user.name}</p>
                     <p className="text-xs text-muted-foreground">{user.email}</p>
