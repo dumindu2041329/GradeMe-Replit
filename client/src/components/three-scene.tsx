@@ -69,26 +69,58 @@ export function ThreeScene({ className = '' }: ThreeSceneProps) {
       new THREE.BoxGeometry(1.5, 0.2, 2),
       // Thicker book
       new THREE.BoxGeometry(1.3, 0.4, 1.8),
+      // Stack of books
+      new THREE.BoxGeometry(1.8, 0.8, 1.4),
       // Pen
       new THREE.CylinderGeometry(0.08, 0.08, 1.8, 16),
       // Pencil (tapered cylinder)
       new THREE.CylinderGeometry(0.1, 0.02, 1.6, 16),
+      // Marker
+      new THREE.CylinderGeometry(0.12, 0.12, 1.4, 16),
       // Ruler
       new THREE.BoxGeometry(3, 0.1, 0.4),
+      // Triangle ruler
+      new THREE.CylinderGeometry(1.0, 1.0, 0.1, 3),
       // Notebook
       new THREE.BoxGeometry(1.5, 0.15, 2.2),
+      // Spiral notebook
+      new THREE.BoxGeometry(1.6, 0.25, 2.0),
       // Eraser
       new THREE.BoxGeometry(0.6, 0.3, 0.4),
       // Globe (sphere)
       new THREE.SphereGeometry(0.8, 32, 32),
+      // World map (flat)
+      new THREE.PlaneGeometry(2.5, 1.6),
       // Calculator
       new THREE.BoxGeometry(1, 0.2, 1.5),
+      // Scientific calculator
+      new THREE.BoxGeometry(1.2, 0.25, 1.8),
       // Paint brush
       new THREE.CylinderGeometry(0.1, 0.05, 1.5, 16),
+      // Paint tube
+      new THREE.CylinderGeometry(0.2, 0.15, 1.0, 16),
       // Coffee mug
       new THREE.CylinderGeometry(0.4, 0.4, 0.8, 16, 1, false),
+      // Laptop
+      new THREE.BoxGeometry(2.0, 0.1, 1.5),
       // Paint palette
       new THREE.CircleGeometry(0.8, 8),
+      // Compass geometry
+      new THREE.TorusGeometry(0.5, 0.05, 16, 32),
+      // Chemistry flask
+      new THREE.CylinderGeometry(0.4, 0.2, 1.2, 16),
+      // DNA helix
+      new THREE.TorusKnotGeometry(0.5, 0.1, 100, 16, 2, 3),
+      // Atom model
+      new THREE.SphereGeometry(0.5, 32, 32),
+      // Periodic table (rectangle)
+      new THREE.BoxGeometry(2.0, 0.05, 1.5),
+      // Mathematical pi symbol (thin torus)
+      new THREE.TorusGeometry(0.6, 0.08, 8, 24),
+      // Telescope tube
+      new THREE.CylinderGeometry(0.3, 0.5, 1.8, 32),
+      // Moon
+      new THREE.SphereGeometry(0.4, 24, 24),
     ];
 
     // Educational objects materials with glass-like effect
