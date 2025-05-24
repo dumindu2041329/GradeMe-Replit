@@ -269,7 +269,7 @@ export default function Students() {
         email: selectedStudent.email,
         class: selectedStudent.class,
         password: "",
-        enrollmentDate: new Date(selectedStudent.enrollmentDate).toISOString().split('T')[0],
+        enrollmentDate: selectedStudent.enrollmentDate ? new Date(selectedStudent.enrollmentDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       });
     }
   }, [selectedStudent, editForm]);
@@ -324,7 +324,7 @@ export default function Students() {
                     <TableCell className="font-medium">{student.name}</TableCell>
                     <TableCell>{student.email}</TableCell>
                     <TableCell>{student.class}</TableCell>
-                    <TableCell>{format(new Date(student.enrollmentDate), "MM/dd/yyyy")}</TableCell>
+                    <TableCell>{student.enrollmentDate ? format(new Date(student.enrollmentDate), "MM/dd/yyyy") : "N/A"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="ghost" size="icon" onClick={() => handleEditStudent(student)} className="text-blue-500 hover:text-blue-400">

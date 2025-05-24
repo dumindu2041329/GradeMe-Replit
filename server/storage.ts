@@ -12,6 +12,9 @@ import {
   type InsertResult
 } from "@shared/schema";
 
+// Import Supabase storage
+import { supabaseStorage } from './supabase-storage';
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -484,4 +487,5 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Use Supabase storage implementation instead of in-memory storage
+export const storage = supabaseStorage;

@@ -2,8 +2,6 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import session from "express-session";
-import { verifyPassword } from "./utils/password-utils";
-import { adminLogin } from "./auth-utils";
 import { User } from "@shared/schema";
 import MemoryStore from 'memorystore';
 
@@ -126,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", adminLogin);
+  app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password }: LoginCredentials = req.body;
       
