@@ -169,6 +169,8 @@ export class SupabaseStorage implements IStorage {
     
     // Compare password using our verification utility
     try {
+      console.log("Debug - Stored password:", user.password);
+      console.log("Debug - Input password:", password);
       const passwordMatch = await verifyPassword(password, user.password);
       console.log("Password check:", passwordMatch ? "Pass" : "Fail");
       

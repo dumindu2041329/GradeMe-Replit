@@ -127,40 +127,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/login", adminLogin);
-    try {
-      const { email, password }: LoginCredentials = req.body;
-      
-      // Validate credentials
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-      
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      
-      // Check if user exists and password matches
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-      
-      // Check if user is an admin - this endpoint is for admins only
-      if (user.role !== "admin") {
-        return res.status(403).json({ 
-          message: "Access denied. Please use the student login page instead." 
-        });
-      }
-      
-      // First create a sanitized user object without the password
-      const { password: _, ...userWithoutPassword } = user;
-      
-      // Store only the sanitized user object in the session
-      req.session.user = userWithoutPassword;
-      return res.status(200).json(userWithoutPassword);
-    } catch (error) {
-      console.error("Login error:", error);
-      return res.status(500).json({ message: "Server error" });
-    }
-  });
 
   app.post("/api/auth/student/login", async (req, res) => {
     try {
