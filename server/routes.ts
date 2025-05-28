@@ -6,6 +6,7 @@ import { verifyPassword } from "./utils/password-utils";
 import { adminLogin } from "./auth-utils";
 import { User } from "@shared/schema";
 import MemoryStore from 'memorystore';
+import { setupApiRoutes } from "./routes/apiRoutes";
 
 // Session types for TypeScript
 declare module "express-session" {
@@ -1105,6 +1106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Server error" });
     }
   });
+
+  // Setup additional CRUD API routes for all models
+  setupApiRoutes(app);
 
   const httpServer = createServer(app);
 
