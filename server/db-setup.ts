@@ -1,92 +1,52 @@
 import supabase from './db';
 import { hashPassword } from './utils/password-utils';
+import { Migration } from './models/Migration';
 
 /**
- * Creates the necessary database tables in Supabase if they don't exist.
+ * Setup database using MVC migration system
  */
 export async function setupDatabase() {
-  console.log('Setting up database tables...');
+  console.log('🚀 Setting up database using MVC migration system...');
   
   try {
-    // Create users table
-    const { error: usersTableError } = await supabase.rpc('create_users_table');
-    if (usersTableError && !usersTableError.message.includes('already exists')) {
-      console.log('Creating users table manually...');
-      // Try to create with SQL if RPC doesn't work
-      const { error } = await supabase.from('users').select('id').limit(1);
-      if (error && error.code === '42P01') {
-        console.log('Users table does not exist. Please create it in Supabase dashboard with these columns:');
-        console.log('- id: int8 (primary key, auto-increment)');
-        console.log('- email: text (unique)');
-        console.log('- password: text');
-        console.log('- name: text');
-        console.log('- role: text');
-        console.log('- is_admin: bool (default: false)');
-        console.log('- profile_image: text (nullable)');
-        console.log('- student_id: int8 (nullable)');
-        console.log('- email_notifications: bool (default: true)');
-        console.log('- sms_notifications: bool (default: false)');
-        console.log('- email_exam_results: bool (default: true)');
-        console.log('- email_upcoming_exams: bool (default: true)');
-        console.log('- sms_exam_results: bool (default: false)');
-        console.log('- sms_upcoming_exams: bool (default: false)');
-        console.log('- created_at: timestamptz (default: now())');
-        console.log('- updated_at: timestamptz (default: now())');
-      }
+    // Run all pending migrations
+    await Migration.runMigrations();
+    
+    // Show migration status
+    const status = await Migration.getMigrationStatus();
+    console.log(`📊 Migration Status - Total: ${status.total}, Executed: ${status.executed}, Pending: ${status.pending.length}`);
+    
+    if (status.pending.length > 0) {
+      console.log('⚠️ Pending migrations:', status.pending.join(', '));
     }
-
-    // Create students table
-    const { error: studentsError } = await supabase.from('students').select('id').limit(1);
-    if (studentsError && studentsError.code === '42P01') {
-      console.log('Students table does not exist. Please create it in Supabase dashboard with these columns:');
-      console.log('- id: int8 (primary key, auto-increment)');
-      console.log('- name: text');
-      console.log('- email: text (unique)');
-      console.log('- class: text');
-      console.log('- enrollment_date: date');
-      console.log('- phone: text (nullable)');
-      console.log('- address: text (nullable)');
-      console.log('- date_of_birth: date (nullable)');
-      console.log('- guardian_name: text (nullable)');
-      console.log('- guardian_phone: text (nullable)');
-      console.log('- profile_image: text (nullable)');
-      console.log('- created_at: timestamptz (default: now())');
-      console.log('- updated_at: timestamptz (default: now())');
-    }
-
-    // Create exams table
-    const { error: examsError } = await supabase.from('exams').select('id').limit(1);
-    if (examsError && examsError.code === '42P01') {
-      console.log('Exams table does not exist. Please create it in Supabase dashboard with these columns:');
-      console.log('- id: int8 (primary key, auto-increment)');
-      console.log('- name: text');
-      console.log('- subject: text');
-      console.log('- date: timestamptz');
-      console.log('- duration: int4 (minutes)');
-      console.log('- total_marks: int4');
-      console.log('- status: text');
-      console.log('- description: text (nullable)');
-      console.log('- created_at: timestamptz (default: now())');
-      console.log('- updated_at: timestamptz (default: now())');
-    }
-
-    // Create results table
-    const { error: resultsError } = await supabase.from('results').select('id').limit(1);
-    if (resultsError && resultsError.code === '42P01') {
-      console.log('Results table does not exist. Please create it in Supabase dashboard with these columns:');
-      console.log('- id: int8 (primary key, auto-increment)');
-      console.log('- student_id: int8 (foreign key to students.id)');
-      console.log('- exam_id: int8 (foreign key to exams.id)');
-      console.log('- score: int4');
-      console.log('- percentage: float8');
-      console.log('- submitted_at: timestamptz');
-      console.log('- created_at: timestamptz (default: now())');
-      console.log('- updated_at: timestamptz (default: now())');
-    }
-
-    console.log('Database setup completed successfully.');
+    
+    console.log('✅ Database setup completed using migration system!');
   } catch (error) {
-    console.error('Error setting up database:', error);
+    console.error('❌ Database migration failed:', error);
+    console.log('🔄 Falling back to manual table verification...');
+    
+    // Fallback: Check if tables exist
+    await checkTablesExist();
+  }
+}
+
+/**
+ * Fallback method to check if tables exist
+ */
+async function checkTablesExist() {
+  const tables = ['users', 'students', 'exams', 'results'];
+  
+  for (const table of tables) {
+    try {
+      const { error } = await supabase.from(table).select('id').limit(1);
+      if (error && error.code === '42P01') {
+        console.log(`⚠️ Table '${table}' does not exist`);
+      } else {
+        console.log(`✅ Table '${table}' exists`);
+      }
+    } catch (error) {
+      console.log(`⚠️ Could not verify table '${table}'`);
+    }
   }
 }
 
