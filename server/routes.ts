@@ -173,9 +173,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current session user
   app.get("/api/auth/session", (req, res) => {
+    // Check if session cookie exists before accessing session to avoid creating empty sessions
+    const hasCookie = req.headers.cookie && req.headers.cookie.includes('connect.sid');
+    
+    if (!hasCookie) {
+      console.log("Session request, current session: No session cookie");
+      return res.status(200).json({ user: null });
+    }
+    
     console.log("Session request, current session:", req.session.user ? "User exists" : "No user in session");
     if (!req.session.user) {
-      return res.status(200).json(null);
+      return res.status(200).json({ user: null });
     }
     
     // Return user data without password
