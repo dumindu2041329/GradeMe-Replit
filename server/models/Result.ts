@@ -1,214 +1,161 @@
-import { 
-  Result as ResultType, 
-  InsertResult,
-  ResultWithDetails,
-  resultSchema,
-  insertResultSchema
-} from '@shared/db-schema';
-import { storage } from '../storage';
-import { ExamModel } from './Exam';
-import { StudentModel } from './Student';
+import { Result as ResultType, ResultWithDetails } from '@shared/schema';
+import { BaseModel } from './BaseModel';
+import supabase from '../db';
 
-export class ResultModel {
-  // Validate result data
-  static validateResult(data: any): { success: boolean; data?: ResultType; errors?: any } {
-    const result = resultSchema.safeParse(data);
-    return {
-      success: result.success,
-      data: result.success ? result.data : undefined,
-      errors: result.success ? undefined : result.error.errors
-    };
-  }
+export class Result extends BaseModel {
+  protected static tableName = 'results';
 
-  static validateInsertResult(data: any): { success: boolean; data?: InsertResult; errors?: any } {
-    const result = insertResultSchema.safeParse(data);
-    return {
-      success: result.success,
-      data: result.success ? result.data : undefined,
-      errors: result.success ? undefined : result.error.errors
-    };
-  }
-
-  // Business logic methods
-  static async findAll(): Promise<ResultWithDetails[]> {
-    try {
-      return await storage.getResults();
-    } catch (error) {
-      console.error('Error finding all results:', error);
-      return [];
-    }
-  }
-
-  static async findById(id: number): Promise<ResultWithDetails | null> {
-    try {
-      const result = await storage.getResult(id);
-      return result || null;
-    } catch (error) {
-      console.error('Error finding result by ID:', error);
-      return null;
-    }
-  }
-
+  /**
+   * Find results by student ID
+   */
   static async findByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    try {
-      return await storage.getResultsByStudentId(studentId);
-    } catch (error) {
-      console.error('Error finding results by student ID:', error);
-      return [];
+    const { data, error } = await supabase
+      .from('results')
+      .select(`
+        *,
+        student:students(*),
+        exam:exams(*)
+      `)
+      .eq('student_id', studentId);
+
+    if (error) {
+      throw new Error(`Error fetching results by student ID: ${error.message}`);
     }
+
+    return data || [];
   }
 
+  /**
+   * Find results by exam ID
+   */
   static async findByExamId(examId: number): Promise<ResultWithDetails[]> {
-    try {
-      return await storage.getResultsByExamId(examId);
-    } catch (error) {
-      console.error('Error finding results by exam ID:', error);
-      return [];
+    const { data, error } = await supabase
+      .from('results')
+      .select(`
+        *,
+        student:students(*),
+        exam:exams(*)
+      `)
+      .eq('exam_id', examId);
+
+    if (error) {
+      throw new Error(`Error fetching results by exam ID: ${error.message}`);
     }
+
+    return data || [];
   }
 
-  static async create(resultData: InsertResult): Promise<ResultType | null> {
-    try {
-      // Verify student exists
-      const student = await StudentModel.findById(resultData.studentId);
-      if (!student) {
-        throw new Error('Student not found');
-      }
+  /**
+   * Get all results with student and exam details
+   */
+  static async findAllWithDetails(): Promise<ResultWithDetails[]> {
+    const { data, error } = await supabase
+      .from('results')
+      .select(`
+        *,
+        student:students(*),
+        exam:exams(*)
+      `);
 
-      // Verify exam exists
-      const exam = await ExamModel.findById(resultData.examId);
-      if (!exam) {
-        throw new Error('Exam not found');
-      }
-
-      // Calculate percentage
-      const percentage = (resultData.score / exam.totalMarks) * 100;
-
-      // Convert submittedAt string to Date object if needed
-      let submittedAt = resultData.submittedAt;
-      if (typeof submittedAt === 'string') {
-        submittedAt = new Date(submittedAt);
-      }
-
-      const newResult = await storage.createResult({
-        ...resultData,
-        percentage,
-        submittedAt,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      return newResult;
-    } catch (error) {
-      console.error('Error creating result:', error);
-      return null;
+    if (error) {
+      throw new Error(`Error fetching results with details: ${error.message}`);
     }
+
+    return data || [];
   }
 
-  static async update(id: number, updateData: Partial<InsertResult>): Promise<ResultType | null> {
-    try {
-      // If score is being updated, recalculate percentage
-      if (updateData.score !== undefined) {
-        const currentResult = await this.findById(id);
-        if (!currentResult) {
-          throw new Error('Result not found');
-        }
+  /**
+   * Create new result
+   */
+  static async create(resultData: Omit<ResultType, 'id' | 'createdAt' | 'updatedAt'>): Promise<ResultType> {
+    const resultDataWithTimestamps = {
+      ...resultData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-        const exam = await ExamModel.findById(currentResult.exam.id);
-        if (exam) {
-          updateData.percentage = (updateData.score / exam.totalMarks) * 100;
-        }
-      }
-
-      // Convert submittedAt string to Date object if needed
-      if (updateData.submittedAt && typeof updateData.submittedAt === 'string') {
-        updateData.submittedAt = new Date(updateData.submittedAt);
-      }
-
-      const updatedResult = await storage.updateResult(id, {
-        ...updateData,
-        updatedAt: new Date()
-      });
-
-      return updatedResult || null;
-    } catch (error) {
-      console.error('Error updating result:', error);
-      return null;
-    }
+    return super.create<ResultType>(resultDataWithTimestamps);
   }
 
-  static async delete(id: number): Promise<boolean> {
-    try {
-      return await storage.deleteResult(id);
-    } catch (error) {
-      console.error('Error deleting result:', error);
-      return false;
-    }
+  /**
+   * Update result
+   */
+  static async updateById(id: number, resultData: Partial<ResultType>): Promise<ResultType | null> {
+    const updateData = {
+      ...resultData,
+      updatedAt: new Date()
+    };
+
+    return super.updateById<ResultType>(id, updateData);
   }
 
-  // Business logic for result analytics
-  static async getStudentAverageScore(studentId: number): Promise<number> {
-    try {
-      const results = await this.findByStudentId(studentId);
-      if (results.length === 0) return 0;
-
-      const totalPercentage = results.reduce((sum, result) => sum + result.percentage, 0);
-      return totalPercentage / results.length;
-    } catch (error) {
-      console.error('Error calculating student average score:', error);
-      return 0;
-    }
-  }
-
-  static async getExamAverageScore(examId: number): Promise<number> {
-    try {
-      const results = await this.findByExamId(examId);
-      if (results.length === 0) return 0;
-
-      const totalPercentage = results.reduce((sum, result) => sum + result.percentage, 0);
-      return totalPercentage / results.length;
-    } catch (error) {
-      console.error('Error calculating exam average score:', error);
-      return 0;
-    }
-  }
-
-  static async getStudentRankInExam(studentId: number, examId: number): Promise<number | null> {
-    try {
-      const examResults = await this.findByExamId(examId);
+  /**
+   * Get student exam history with rankings
+   */
+  static async getStudentExamHistory(studentId: number): Promise<ResultWithDetails[]> {
+    const results = await this.findByStudentId(studentId);
+    
+    // Add ranking information for each result
+    for (const result of results) {
+      const examResults = await this.findByExamId(result.examId);
+      const sortedResults = examResults.sort((a, b) => b.score - a.score);
+      const rank = sortedResults.findIndex(r => r.id === result.id) + 1;
       
-      // Sort by score descending
-      examResults.sort((a, b) => b.score - a.score);
-      
-      const studentRank = examResults.findIndex(result => result.student.id === studentId);
-      return studentRank !== -1 ? studentRank + 1 : null;
-    } catch (error) {
-      console.error('Error calculating student rank:', error);
-      return null;
+      result.rank = rank;
+      result.totalParticipants = examResults.length;
     }
+
+    return results;
   }
 
+  /**
+   * Get top performers for an exam
+   */
   static async getTopPerformers(examId: number, limit: number = 10): Promise<ResultWithDetails[]> {
-    try {
-      const results = await this.findByExamId(examId);
-      return results
-        .sort((a, b) => b.score - a.score)
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Error getting top performers:', error);
-      return [];
-    }
+    const results = await this.findByExamId(examId);
+    return results
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit);
   }
 
-  static async getResultsByScoreRange(examId: number, minScore: number, maxScore: number): Promise<ResultWithDetails[]> {
-    try {
-      const results = await this.findByExamId(examId);
-      return results.filter(result => 
-        result.score >= minScore && result.score <= maxScore
-      );
-    } catch (error) {
-      console.error('Error getting results by score range:', error);
-      return [];
+  /**
+   * Calculate statistics for an exam
+   */
+  static async getExamStatistics(examId: number): Promise<{
+    totalParticipants: number;
+    averageScore: number;
+    highestScore: number;
+    lowestScore: number;
+    passRate: number;
+  }> {
+    const results = await this.findByExamId(examId);
+    
+    if (results.length === 0) {
+      return {
+        totalParticipants: 0,
+        averageScore: 0,
+        highestScore: 0,
+        lowestScore: 0,
+        passRate: 0
+      };
     }
+
+    const scores = results.map(r => r.score);
+    const totalParticipants = results.length;
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / totalParticipants;
+    const highestScore = Math.max(...scores);
+    const lowestScore = Math.min(...scores);
+    
+    // Assuming 50% is pass mark
+    const passedCount = results.filter(r => r.percentage >= 50).length;
+    const passRate = (passedCount / totalParticipants) * 100;
+
+    return {
+      totalParticipants,
+      averageScore: Math.round(averageScore * 100) / 100,
+      highestScore,
+      lowestScore,
+      passRate: Math.round(passRate * 100) / 100
+    };
   }
 }

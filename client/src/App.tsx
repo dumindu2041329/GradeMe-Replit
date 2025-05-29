@@ -158,7 +158,7 @@ function Router() {
   
   // Redirect based on user role when already authenticated
   useEffect(() => {
-    if (user) {
+    if (user && user.id && user.email) {
       // If user is already authenticated and on the landing page, redirect to their dashboard
       if (location === "/") {
         if (user.role === "student") {
