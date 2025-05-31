@@ -2,9 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import MemoryStore from "memorystore";
 import { createServer } from "http";
-import apiRoutes from "./routes/index";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupDatabase, insertSampleData } from "./db-setup";
+import { registerRoutes } from "./routes";
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -41,33 +40,24 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Setup database tables and sample data
-  try {
-    await setupDatabase();
-    await insertSampleData();
-  } catch (error) {
-    console.error('Error setting up database:', error);
-  }
-
   // Setup session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key-here',
-  resave: false,
-  saveUninitialized: false,
-  store: new (MemoryStore(session))({
-    checkPeriod: 86400000 // prune expired entries every 24h
-  }),
-  cookie: {
-    secure: false, // set to true in production with HTTPS
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-here',
+    resave: false,
+    saveUninitialized: false,
+    store: new (MemoryStore(session))({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: {
+      secure: false, // set to true in production with HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }));
 
-// Use MVC routes
-app.use('/api', apiRoutes);
-
-const server = createServer(app);
+  // Setup routes
+  const server = createServer(app);
+  await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

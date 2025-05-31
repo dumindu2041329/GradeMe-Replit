@@ -65,14 +65,70 @@ export const results = pgTable('results', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-// Type definitions from tables
-export type User = typeof users.$inferSelect;
-export type Student = typeof students.$inferSelect;
-export type Exam = typeof exams.$inferSelect;
-export type Result = typeof results.$inferSelect;
-
-export type UserRole = 'admin' | 'student';
+// Enums
+export const userRoleEnum = z.enum(['admin', 'student']);
+export type UserRole = z.infer<typeof userRoleEnum>;
 export type ExamStatus = 'upcoming' | 'active' | 'completed';
+
+// Type definitions
+export type User = {
+  id: number;
+  email: string;
+  password: string;
+  name: string;
+  role: UserRole;
+  isAdmin: boolean;
+  profileImage: string | null;
+  studentId: number | null;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  emailExamResults: boolean;
+  emailUpcomingExams: boolean;
+  smsExamResults: boolean;
+  smsUpcomingExams: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Student = {
+  id: number;
+  name: string;
+  email: string;
+  class: string;
+  enrollmentDate: Date;
+  phone: string | null;
+  address: string | null;
+  dateOfBirth: Date | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  profileImage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Exam = {
+  id: number;
+  name: string;
+  subject: string;
+  date: Date;
+  duration: number; // in minutes
+  totalMarks: number;
+  status: ExamStatus;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type Result = {
+  id: number;
+  studentId: number;
+  examId: number;
+  score: number;
+  percentage: number;
+  submittedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export type ResultWithDetails = Result & {
   student: Student;
@@ -103,16 +159,10 @@ export const insertUserSchema = z.object({
   email: z.string().email("Invalid email format"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  role: z.enum(["admin", "student"]).default("student"),
+  role: userRoleEnum.default("student"),
   isAdmin: z.boolean().default(false),
   profileImage: z.string().nullable().optional(),
-  studentId: z.number().nullable().optional(),
-  emailNotifications: z.boolean().default(true),
-  smsNotifications: z.boolean().default(false),
-  emailExamResults: z.boolean().default(true),
-  emailUpcomingExams: z.boolean().default(true),
-  smsExamResults: z.boolean().default(false),
-  smsUpcomingExams: z.boolean().default(false),
+  studentId: z.number().nullable().optional()
 });
 
 export const insertStudentSchema = z.object({

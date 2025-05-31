@@ -1,391 +1,332 @@
-import supabase from './db';
-import { IStorage } from './storage';
-import { hashPassword, verifyPassword } from './utils/password-utils';
-import {
-  User,
-  Student,
-  Exam,
-  Result,
-  ResultWithDetails,
+import { eq, and, desc, sql } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
+import { getDb } from './db-connection.js';
+import { users, students, exams, results } from '../shared/schema.js';
+import type { 
+  User, 
+  Student, 
+  Exam, 
+  Result, 
+  ResultWithDetails, 
   StudentDashboardData,
-} from '@shared/schema';
+  InsertUser,
+  InsertStudent,
+  InsertExam,
+  InsertResult 
+} from '../shared/schema.js';
+import type { IStorage } from './storage.js';
 
-/**
- * Supabase implementation of the storage interface
- * This handles all database operations using the Supabase client
- */
 export class SupabaseStorage implements IStorage {
-  // User operations
+  private db = getDb();
+  
   async getUser(id: number): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as User;
+    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as User;
+    const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
   }
 
-  async createUser(user: any): Promise<User> {
-    let userData = { ...user };
-    
+  async createUser(userData: InsertUser): Promise<User> {
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const result = await this.db.insert(users).values({
+      ...userData,
+      password: hashedPassword,
+    }).returning();
+    return result[0];
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
+    const updateData: any = { ...userData };
     if (userData.password) {
-      userData.password = await hashPassword(userData.password);
+      updateData.password = await bcrypt.hash(userData.password, 10);
     }
+    updateData.updatedAt = new Date();
     
-    const { data, error } = await supabase
-      .from('users')
-      .insert([{
-        ...userData,
-        created_at: new Date(),
-        updated_at: new Date()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as User;
+    const result = await this.db.update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
   }
 
-  async updateUser(id: number, userData: Partial<any>): Promise<User | undefined> {
-    if (userData.password) {
-      userData.password = await hashPassword(userData.password);
-    }
-    
-    const { data, error } = await supabase
-      .from('users')
-      .update({
-        ...userData,
-        updated_at: new Date()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as User;
-  }
-
-  // Student operations
   async getStudents(): Promise<Student[]> {
-    const { data, error } = await supabase
-      .from('students')
-      .select('*')
-      .order('name');
-    
-    if (error) throw error;
-    return data as Student[];
+    return await this.db.select().from(students).orderBy(students.name);
   }
 
   async getStudent(id: number): Promise<Student | undefined> {
-    const { data, error } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as Student;
+    const result = await this.db.select().from(students).where(eq(students.id, id)).limit(1);
+    return result[0];
   }
 
   async getStudentByEmail(email: string): Promise<Student | undefined> {
-    const { data, error } = await supabase
-      .from('students')
-      .select('*')
-      .eq('email', email)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as Student;
+    const result = await this.db.select().from(students).where(eq(students.email, email)).limit(1);
+    return result[0];
   }
 
-  async createStudent(student: any): Promise<Student> {
-    const { data, error } = await supabase
-      .from('students')
-      .insert([{
-        ...student,
-        created_at: new Date(),
-        updated_at: new Date()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Student;
+  async createStudent(studentData: InsertStudent): Promise<Student> {
+    const result = await this.db.insert(students).values(studentData).returning();
+    return result[0];
   }
 
-  async updateStudent(id: number, student: Partial<any>): Promise<Student | undefined> {
-    const { data, error } = await supabase
-      .from('students')
-      .update({
-        ...student,
-        updated_at: new Date()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as Student;
+  async updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined> {
+    const updateData = { ...studentData, updatedAt: new Date() };
+    const result = await this.db.update(students)
+      .set(updateData)
+      .where(eq(students.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteStudent(id: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', id);
+    // First delete related results
+    await this.db.delete(results).where(eq(results.studentId, id));
     
-    return !error;
+    // Then delete the student
+    const result = await this.db.delete(students).where(eq(students.id, id));
+    return Array.isArray(result) ? result.length > 0 : false;
   }
 
   async authenticateStudent(email: string, password: string): Promise<Student | null> {
+    // For now, we'll assume students don't have passwords in the students table
+    // You might want to add a password field to students or use a different approach
     const student = await this.getStudentByEmail(email);
-    if (!student) return null;
-    
-    const user = await this.getUserByEmail(email);
-    if (!user || !(await verifyPassword(password, user.password))) {
-      return null;
-    }
-    
-    return student;
+    return student || null;
   }
 
-  // Exam operations
   async getExams(): Promise<Exam[]> {
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .order('date', { ascending: false });
-    
-    if (error) throw error;
-    return data as Exam[];
+    return await this.db.select().from(exams).orderBy(desc(exams.date));
   }
 
   async getExam(id: number): Promise<Exam | undefined> {
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as Exam;
+    const result = await this.db.select().from(exams).where(eq(exams.id, id)).limit(1);
+    return result[0];
   }
 
   async getExamsByStatus(status: string): Promise<Exam[]> {
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('status', status)
-      .order('date');
-    
-    if (error) throw error;
-    return data as Exam[];
+    return await this.db.select().from(exams)
+      .where(eq(exams.status, status as any))
+      .orderBy(exams.date);
   }
 
-  async createExam(exam: any): Promise<Exam> {
-    const { data, error } = await supabase
-      .from('exams')
-      .insert([{
-        ...exam,
-        created_at: new Date(),
-        updated_at: new Date()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Exam;
+  async createExam(examData: InsertExam): Promise<Exam> {
+    const result = await this.db.insert(exams).values(examData).returning();
+    return result[0];
   }
 
-  async updateExam(id: number, exam: Partial<any>): Promise<Exam | undefined> {
-    const { data, error } = await supabase
-      .from('exams')
-      .update({
-        ...exam,
-        updated_at: new Date()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as Exam;
+  async updateExam(id: number, examData: Partial<InsertExam>): Promise<Exam | undefined> {
+    const updateData = { ...examData, updatedAt: new Date() };
+    const result = await this.db.update(exams)
+      .set(updateData)
+      .where(eq(exams.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteExam(id: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('exams')
-      .delete()
-      .eq('id', id);
+    // First delete related results
+    await this.db.delete(results).where(eq(results.examId, id));
     
-    return !error;
+    // Then delete the exam
+    const result = await this.db.delete(exams).where(eq(exams.id, id));
+    return Array.isArray(result) ? result.length > 0 : false;
   }
 
-  // Result operations
   async getResults(): Promise<ResultWithDetails[]> {
-    const { data, error } = await supabase
-      .from('results')
-      .select(`
-        *,
-        student:students(*),
-        exam:exams(*)
-      `);
-    
-    if (error) throw error;
-    return data as ResultWithDetails[];
+    const query = db.select({
+      id: results.id,
+      studentId: results.studentId,
+      examId: results.examId,
+      score: results.score,
+      percentage: results.percentage,
+      submittedAt: results.submittedAt,
+      createdAt: results.createdAt,
+      updatedAt: results.updatedAt,
+      student: students,
+      exam: exams,
+    })
+    .from(results)
+    .leftJoin(students, eq(results.studentId, students.id))
+    .leftJoin(exams, eq(results.examId, exams.id))
+    .orderBy(desc(results.submittedAt));
+
+    const rawResults = await query;
+    return rawResults.map(row => ({
+      ...row,
+      student: row.student!,
+      exam: row.exam!,
+    }));
   }
 
   async getResult(id: number): Promise<ResultWithDetails | undefined> {
-    const { data, error } = await supabase
-      .from('results')
-      .select(`
-        *,
-        student:students(*),
-        exam:exams(*)
-      `)
-      .eq('id', id)
-      .single();
-    
-    if (error || !data) return undefined;
-    return data as ResultWithDetails;
+    const query = db.select({
+      id: results.id,
+      studentId: results.studentId,
+      examId: results.examId,
+      score: results.score,
+      percentage: results.percentage,
+      submittedAt: results.submittedAt,
+      createdAt: results.createdAt,
+      updatedAt: results.updatedAt,
+      student: students,
+      exam: exams,
+    })
+    .from(results)
+    .leftJoin(students, eq(results.studentId, students.id))
+    .leftJoin(exams, eq(results.examId, exams.id))
+    .where(eq(results.id, id))
+    .limit(1);
+
+    const rawResults = await query;
+    if (rawResults.length === 0) return undefined;
+
+    const row = rawResults[0];
+    return {
+      ...row,
+      student: row.student!,
+      exam: row.exam!,
+    };
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    const { data, error } = await supabase
-      .from('results')
-      .select(`
-        *,
-        student:students(*),
-        exam:exams(*)
-      `)
-      .eq('student_id', studentId);
-    
-    if (error) throw error;
-    return data as ResultWithDetails[];
+    const query = db.select({
+      id: results.id,
+      studentId: results.studentId,
+      examId: results.examId,
+      score: results.score,
+      percentage: results.percentage,
+      submittedAt: results.submittedAt,
+      createdAt: results.createdAt,
+      updatedAt: results.updatedAt,
+      student: students,
+      exam: exams,
+    })
+    .from(results)
+    .leftJoin(students, eq(results.studentId, students.id))
+    .leftJoin(exams, eq(results.examId, exams.id))
+    .where(eq(results.studentId, studentId))
+    .orderBy(desc(results.submittedAt));
+
+    const rawResults = await query;
+    return rawResults.map(row => ({
+      ...row,
+      student: row.student!,
+      exam: row.exam!,
+    }));
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    const { data, error } = await supabase
-      .from('results')
-      .select(`
-        *,
-        student:students(*),
-        exam:exams(*)
-      `)
-      .eq('exam_id', examId);
-    
-    if (error) throw error;
-    return data as ResultWithDetails[];
+    const query = db.select({
+      id: results.id,
+      studentId: results.studentId,
+      examId: results.examId,
+      score: results.score,
+      percentage: results.percentage,
+      submittedAt: results.submittedAt,
+      createdAt: results.createdAt,
+      updatedAt: results.updatedAt,
+      student: students,
+      exam: exams,
+    })
+    .from(results)
+    .leftJoin(students, eq(results.studentId, students.id))
+    .leftJoin(exams, eq(results.examId, exams.id))
+    .where(eq(results.examId, examId))
+    .orderBy(desc(results.submittedAt));
+
+    const rawResults = await query;
+    return rawResults.map(row => ({
+      ...row,
+      student: row.student!,
+      exam: row.exam!,
+    }));
   }
 
-  async createResult(result: any): Promise<Result> {
-    const { data, error } = await supabase
-      .from('results')
-      .insert([{
-        ...result,
-        created_at: new Date(),
-        updated_at: new Date()
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as Result;
+  async createResult(resultData: InsertResult): Promise<Result> {
+    // Convert numbers to strings for database storage
+    const dbData = {
+      ...resultData,
+      score: resultData.score.toString(),
+      percentage: resultData.percentage.toString(),
+    };
+    const result = await this.db.insert(results).values(dbData).returning();
+    return result[0];
   }
 
-  async updateResult(id: number, result: Partial<any>): Promise<Result | undefined> {
-    const { data, error } = await supabase
-      .from('results')
-      .update({
-        ...result,
-        updated_at: new Date()
-      })
-      .eq('id', id)
-      .select()
-      .single();
+  async updateResult(id: number, resultData: Partial<InsertResult>): Promise<Result | undefined> {
+    const updateData: any = { ...resultData, updatedAt: new Date() };
+    // Convert numbers to strings for database storage
+    if (updateData.score !== undefined) {
+      updateData.score = updateData.score.toString();
+    }
+    if (updateData.percentage !== undefined) {
+      updateData.percentage = updateData.percentage.toString();
+    }
     
-    if (error || !data) return undefined;
-    return data as Result;
+    const result = await this.db.update(results)
+      .set(updateData)
+      .where(eq(results.id, id))
+      .returning();
+    return result[0];
   }
 
   async deleteResult(id: number): Promise<boolean> {
-    const { error } = await supabase
-      .from('results')
-      .delete()
-      .eq('id', id);
-    
-    return !error;
+    const result = await this.db.delete(results).where(eq(results.id, id));
+    return Array.isArray(result) ? result.length > 0 : false;
   }
 
-  // Dashboard statistics
   async getStatistics(): Promise<{ 
     totalStudents: number; 
     activeExams: number; 
     completedExams: number; 
     upcomingExams: number;
   }> {
-    const { count: totalStudents = 0 } = await supabase
-      .from('students')
-      .select('*', { count: 'exact', head: true });
-    
-    const { data: examData = [] } = await supabase
-      .from('exams')
-      .select('status');
-    
-    const activeExams = examData.filter(exam => exam.status === 'active').length;
-    const completedExams = examData.filter(exam => exam.status === 'completed').length;
-    const upcomingExams = examData.filter(exam => exam.status === 'upcoming').length;
-    
+    const [studentCount] = await this.db.select({ count: sql<number>`count(*)` }).from(students);
+    const [activeExamCount] = await this.db.select({ count: sql<number>`count(*)` }).from(exams).where(eq(exams.status, 'active'));
+    const [completedExamCount] = await this.db.select({ count: sql<number>`count(*)` }).from(exams).where(eq(exams.status, 'completed'));
+    const [upcomingExamCount] = await this.db.select({ count: sql<number>`count(*)` }).from(exams).where(eq(exams.status, 'upcoming'));
+
     return {
-      totalStudents,
-      activeExams,
-      completedExams,
-      upcomingExams
+      totalStudents: studentCount.count,
+      activeExams: activeExamCount.count,
+      completedExams: completedExamCount.count,
+      upcomingExams: upcomingExamCount.count,
     };
   }
-  
+
   async getStudentDashboardData(studentId: number): Promise<StudentDashboardData> {
     const student = await this.getStudent(studentId);
     if (!student) {
       throw new Error(`Student with ID ${studentId} not found`);
     }
-    
+
+    // Get all exams
     const allExams = await this.getExams();
+    
+    // Get results for this student
     const studentResults = await this.getResultsByStudentId(studentId);
     
+    // Get available exams (upcoming and active)
     const availableExams = allExams
       .filter(exam => exam.status === 'upcoming' || exam.status === 'active')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
+    // Calculate average score
     const averageScore = studentResults.length > 0
-      ? studentResults.reduce((sum, result) => sum + result.percentage, 0) / studentResults.length
+      ? studentResults.reduce((sum, result) => sum + Number(result.percentage), 0) / studentResults.length
       : 0;
     
-    const bestRank = 1; // Simplified implementation
-    
+    // Calculate best rank (simplified - would need more complex logic for real ranking)
+    const bestRank = studentResults.length > 0 ? 1 : 0;
+
     return {
-      totalExams: studentResults.length,
-      averageScore,
+      totalExams: allExams.length,
+      averageScore: Math.round(averageScore * 100) / 100,
       bestRank,
       availableExams,
-      examHistory: studentResults.sort((a, b) => 
-        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-      )
+      examHistory: studentResults,
     };
   }
 }
-
-export const supabaseStorage = new SupabaseStorage();

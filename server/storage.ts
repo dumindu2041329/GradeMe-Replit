@@ -1,19 +1,4 @@
-import { 
-  type User, 
-  type Student,
-  type Exam,
-  type Result,
-  type ResultWithDetails,
-  type StudentDashboardData,
-  type ExamStatus,
-  type InsertUser,
-  type InsertStudent,
-  type InsertExam,
-  type InsertResult
-} from "@shared/schema";
-
-
-
+import type { User, Student, Exam, Result, ResultWithDetails, StudentDashboardData } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -79,137 +64,36 @@ export class MemStorage implements IStorage {
     this.studentIdCounter = 1;
     this.examIdCounter = 1;
     this.resultIdCounter = 1;
-
-    // Add default admin user
-    this.createUser({
-      email: "admin@grademe.com",
-      password: "password123",
-      name: "Admin User",
-      role: "admin",
-      isAdmin: true,
-      profileImage: null,
-      studentId: null
-    });
-
-    // Add sample data
+    
+    // Initialize with sample data
     this.initSampleData();
   }
 
   private async initSampleData() {
-    // Create sample students
-    const john = await this.createStudent({
-      name: "John Doe",
-      email: "john@example.com",
-      class: "Class 10A",
-      password: "student123",
-      enrollmentDate: new Date("2024-01-15")
-    });
-
-    const jane = await this.createStudent({
-      name: "Jane Smith",
-      email: "jane@example.com",
-      class: "Class 10B",
-      password: "student123",
-      enrollmentDate: new Date("2024-01-20")
-    });
-    
-    // Create student user accounts
-    await this.createUser({
-      email: john.email,
-      password: "student123",
-      name: john.name,
-      role: "student",
-      isAdmin: false,
+    // Sample admin user
+    this.users.set(1, {
+      id: 1,
+      email: "admin@example.com",
+      password: "admin", // In production, this should be hashed
+      name: "Admin User",
+      role: "admin",
+      isAdmin: true,
       profileImage: null,
-      studentId: john.id
+      studentId: null,
+      emailNotifications: true,
+      smsNotifications: false,
+      emailExamResults: true,
+      emailUpcomingExams: true,
+      smsExamResults: false,
+      smsUpcomingExams: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
-    
-    await this.createUser({
-      email: jane.email,
-      password: "student123",
-      name: jane.name,
-      role: "student",
-      isAdmin: false,
-      profileImage: null,
-      studentId: jane.id
-    });
-
-    // Create sample exams
-    const mathExam = await this.createExam({
-      name: "Mathematics Final",
-      subject: "Mathematics",
-      date: new Date("2024-06-25"),
-      duration: 180, // 3 hours
-      totalMarks: 100,
-      status: "upcoming"
-    });
-
-    const physicsExam = await this.createExam({
-      name: "Physics Mid-term",
-      subject: "Physics",
-      date: new Date("2024-05-15"),
-      duration: 120, // 2 hours
-      totalMarks: 75,
-      status: "active"
-    });
-
-    const chemistryExam = await this.createExam({
-      name: "Chemistry Quiz",
-      subject: "Chemistry",
-      date: new Date("2024-04-10"),
-      duration: 60, // 1 hour
-      totalMarks: 50,
-      status: "completed"
-    });
-    
-    const biologyExam = await this.createExam({
-      name: "Biology Semester Test",
-      subject: "Biology",
-      date: new Date("2024-03-20"),
-      duration: 90,
-      totalMarks: 60,
-      status: "completed"
-    });
-
-    // Create sample results
-    await this.createResult({
-      studentId: john.id,
-      examId: biologyExam.id,
-      score: 52,
-      percentage: 87,
-      submittedAt: new Date("2024-03-20")
-    });
-    
-    await this.createResult({
-      studentId: john.id,
-      examId: chemistryExam.id,
-      score: 43,
-      percentage: 86,
-      submittedAt: new Date("2024-04-10")
-    });
-
-    await this.createResult({
-      studentId: jane.id,
-      examId: chemistryExam.id,
-      score: 44,
-      percentage: 88,
-      submittedAt: new Date("2024-04-10")
-    });
-    
-    await this.createResult({
-      studentId: jane.id,
-      examId: biologyExam.id,
-      score: 54,
-      percentage: 90,
-      submittedAt: new Date("2024-03-20")
-    });
+    this.userIdCounter = 2;
   }
 
-  // Convert map values to array safely
   private mapToArray<T>(map: Map<number, T>): T[] {
-    const result: T[] = [];
-    map.forEach(item => result.push(item));
-    return result;
+    return Array.from(map.values());
   }
 
   // User operations
@@ -306,7 +190,7 @@ export class MemStorage implements IStorage {
   }
 
   async getExamsByStatus(status: string): Promise<Exam[]> {
-    const allExams = this.mapToArray(this.exams);
+    const allExams = await this.getExams();
     return allExams.filter(exam => exam.status === status);
   }
 
@@ -333,21 +217,25 @@ export class MemStorage implements IStorage {
 
   // Result operations
   async getResults(): Promise<ResultWithDetails[]> {
-    const allResults = this.mapToArray(this.results);
-    return allResults.map(result => {
-      const student = this.students.get(result.studentId);
-      const exam = this.exams.get(result.examId);
-      
-      if (!student || !exam) {
-        throw new Error(`Missing related entities for result ${result.id}`);
-      }
-      
-      return {
-        ...result,
-        student,
-        exam
-      };
-    });
+    const results = this.mapToArray(this.results);
+    const students = this.mapToArray(this.students);
+    const exams = this.mapToArray(this.exams);
+    
+    return results
+      .map(result => {
+        const student = students.find(s => s.id === result.studentId);
+        const exam = exams.find(e => e.id === result.examId);
+        
+        if (!student || !exam) {
+          throw new Error(`Missing related entities for result ${result.id}`);
+        }
+        
+        return {
+          ...result,
+          student,
+          exam
+        };
+      });
   }
 
   async getResult(id: number): Promise<ResultWithDetails | undefined> {
@@ -356,8 +244,8 @@ export class MemStorage implements IStorage {
       return undefined;
     }
     
-    const student = this.students.get(result.studentId);
-    const exam = this.exams.get(result.examId);
+    const student = await this.getStudent(result.studentId);
+    const exam = await this.getExam(result.examId);
     
     if (!student || !exam) {
       return undefined;
@@ -371,43 +259,13 @@ export class MemStorage implements IStorage {
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    const allResults = this.mapToArray(this.results);
-    return allResults
-      .filter(result => result.studentId === studentId)
-      .map(result => {
-        const student = this.students.get(result.studentId);
-        const exam = this.exams.get(result.examId);
-        
-        if (!student || !exam) {
-          throw new Error(`Missing related entities for result ${result.id}`);
-        }
-        
-        return {
-          ...result,
-          student,
-          exam
-        };
-      });
+    const allResults = await this.getResults();
+    return allResults.filter(result => result.studentId === studentId);
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    const allResults = this.mapToArray(this.results);
-    return allResults
-      .filter(result => result.examId === examId)
-      .map(result => {
-        const student = this.students.get(result.studentId);
-        const exam = this.exams.get(result.examId);
-        
-        if (!student || !exam) {
-          throw new Error(`Missing related entities for result ${result.id}`);
-        }
-        
-        return {
-          ...result,
-          student,
-          exam
-        };
-      });
+    const allResults = await this.getResults();
+    return allResults.filter(result => result.examId === examId);
   }
 
   async createResult(result: any): Promise<Result> {
@@ -487,9 +345,10 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use Supabase storage implementation instead of in-memory storage
-// Import Supabase storage
-import { supabaseStorage } from './supabase-storage';
+// Use in-memory storage implementation
+import { SupabaseStorage } from './supabase-storage.js';
+import { isDbConnected } from './db-connection.js';
 
-// Use Supabase storage implementation
-export const storage = supabaseStorage;
+// For now, continue using memory storage while we fix the type issues
+// TODO: Switch to Supabase storage once type compatibility is resolved
+export const storage = new MemStorage();
