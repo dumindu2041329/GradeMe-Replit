@@ -154,19 +154,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Simple demo statistics
-  app.get("/api/statistics", (req: Request, res: Response) => {
-    res.json({
-      totalStudents: 0,
-      activeExams: 0,
-      completedExams: 0,
-      upcomingExams: 0
-    });
+  // Statistics endpoint
+  app.get("/api/statistics", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const stats = await storage.getStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
   });
 
-  // Simple demo exams list
-  app.get("/api/exams", (req: Request, res: Response) => {
-    res.json([]);
+  // Students CRUD operations
+  app.get("/api/students", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const students = await storage.getStudents();
+      res.json(students);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      res.status(500).json({ message: "Failed to fetch students" });
+    }
+  });
+
+  app.post("/api/students", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Hash password if provided
+      let hashedPassword;
+      if (req.body.password) {
+        const bcrypt = await import('bcrypt');
+        hashedPassword = await bcrypt.hash(req.body.password, 10);
+      }
+      
+      // Convert enrollmentDate and dateOfBirth strings to Date objects if provided
+      const studentData = {
+        ...req.body,
+        ...(hashedPassword && { password: hashedPassword }),
+        ...(req.body.enrollmentDate && { enrollmentDate: new Date(req.body.enrollmentDate) }),
+        ...(req.body.dateOfBirth && { dateOfBirth: new Date(req.body.dateOfBirth) })
+      };
+      
+      const student = await storage.createStudent(studentData);
+      res.status(201).json(student);
+    } catch (error) {
+      console.error("Error creating student:", error);
+      res.status(500).json({ message: "Failed to create student" });
+    }
+  });
+
+  app.put("/api/students/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      // Convert date strings to Date objects if provided
+      const studentData = {
+        ...req.body,
+        ...(req.body.enrollmentDate && { enrollmentDate: new Date(req.body.enrollmentDate) }),
+        ...(req.body.dateOfBirth && { dateOfBirth: new Date(req.body.dateOfBirth) })
+      };
+      
+      const student = await storage.updateStudent(id, studentData);
+      if (!student) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json(student);
+    } catch (error) {
+      console.error("Error updating student:", error);
+      res.status(500).json({ message: "Failed to update student" });
+    }
+  });
+
+  app.delete("/api/students/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteStudent(id);
+      if (!success) {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      res.json({ message: "Student deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: "Failed to delete student" });
+    }
+  });
+
+  // Exams CRUD operations
+  app.get("/api/exams", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const exams = await storage.getExams();
+      res.json(exams);
+    } catch (error) {
+      console.error("Error fetching exams:", error);
+      res.status(500).json({ message: "Failed to fetch exams" });
+    }
+  });
+
+  app.post("/api/exams", requireAuth, async (req: Request, res: Response) => {
+    try {
+      // Convert date string to Date object
+      const examData = {
+        ...req.body,
+        date: new Date(req.body.date),
+        duration: parseInt(req.body.duration),
+        totalMarks: parseInt(req.body.totalMarks)
+      };
+      
+      const exam = await storage.createExam(examData);
+      res.status(201).json(exam);
+    } catch (error) {
+      console.error("Error creating exam:", error);
+      res.status(500).json({ message: "Failed to create exam" });
+    }
+  });
+
+  app.put("/api/exams/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      // Convert date string to Date object and ensure numbers are integers
+      const examData = {
+        ...req.body,
+        ...(req.body.date && { date: new Date(req.body.date) }),
+        ...(req.body.duration && { duration: parseInt(req.body.duration) }),
+        ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
+      };
+      
+      const exam = await storage.updateExam(id, examData);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      res.json(exam);
+    } catch (error) {
+      console.error("Error updating exam:", error);
+      res.status(500).json({ message: "Failed to update exam" });
+    }
+  });
+
+  app.delete("/api/exams/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteExam(id);
+      if (!success) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      res.json({ message: "Exam deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      res.status(500).json({ message: "Failed to delete exam" });
+    }
+  });
+
+  // Results CRUD operations
+  app.get("/api/results", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const results = await storage.getResults();
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching results:", error);
+      res.status(500).json({ message: "Failed to fetch results" });
+    }
+  });
+
+  app.post("/api/results", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const result = await storage.createResult(req.body);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error creating result:", error);
+      res.status(500).json({ message: "Failed to create result" });
+    }
+  });
+
+  app.put("/api/results/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await storage.updateResult(id, req.body);
+      if (!result) {
+        return res.status(404).json({ message: "Result not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating result:", error);
+      res.status(500).json({ message: "Failed to update result" });
+    }
+  });
+
+  app.delete("/api/results/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteResult(id);
+      if (!success) {
+        return res.status(404).json({ message: "Result not found" });
+      }
+      res.json({ message: "Result deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting result:", error);
+      res.status(500).json({ message: "Failed to delete result" });
+    }
+  });
+
+  // Student dashboard data
+  app.get("/api/student/dashboard", requireStudentAuth, async (req: Request, res: Response) => {
+    try {
+      const user = req.session.user;
+      if (!user || !user.studentId) {
+        return res.status(400).json({ message: "Invalid student session" });
+      }
+      
+      const dashboardData = await storage.getStudentDashboardData(user.studentId);
+      res.json(dashboardData);
+    } catch (error) {
+      console.error("Error fetching student dashboard data:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
   });
 
   return createServer(app);

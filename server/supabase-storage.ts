@@ -81,12 +81,17 @@ export class SupabaseStorage implements IStorage {
   }
 
   async deleteStudent(id: number): Promise<boolean> {
-    // First delete related results
-    await this.db.delete(results).where(eq(results.studentId, id));
-    
-    // Then delete the student
-    const result = await this.db.delete(students).where(eq(students.id, id));
-    return Array.isArray(result) ? result.length > 0 : false;
+    try {
+      // First delete related results
+      await this.db.delete(results).where(eq(results.studentId, id));
+      
+      // Then delete the student
+      const result = await this.db.delete(students).where(eq(students.id, id));
+      return true; // If no error thrown, deletion was successful
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      return false;
+    }
   }
 
   async authenticateStudent(email: string, password: string): Promise<Student | null> {
@@ -126,16 +131,21 @@ export class SupabaseStorage implements IStorage {
   }
 
   async deleteExam(id: number): Promise<boolean> {
-    // First delete related results
-    await this.db.delete(results).where(eq(results.examId, id));
-    
-    // Then delete the exam
-    const result = await this.db.delete(exams).where(eq(exams.id, id));
-    return Array.isArray(result) ? result.length > 0 : false;
+    try {
+      // First delete related results
+      await this.db.delete(results).where(eq(results.examId, id));
+      
+      // Then delete the exam
+      const result = await this.db.delete(exams).where(eq(exams.id, id));
+      return true; // If no error thrown, deletion was successful
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      return false;
+    }
   }
 
   async getResults(): Promise<ResultWithDetails[]> {
-    const query = db.select({
+    const query = this.db.select({
       id: results.id,
       studentId: results.studentId,
       examId: results.examId,
@@ -161,7 +171,7 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getResult(id: number): Promise<ResultWithDetails | undefined> {
-    const query = db.select({
+    const query = this.db.select({
       id: results.id,
       studentId: results.studentId,
       examId: results.examId,
@@ -191,7 +201,7 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getResultsByStudentId(studentId: number): Promise<ResultWithDetails[]> {
-    const query = db.select({
+    const query = this.db.select({
       id: results.id,
       studentId: results.studentId,
       examId: results.examId,
@@ -218,7 +228,7 @@ export class SupabaseStorage implements IStorage {
   }
 
   async getResultsByExamId(examId: number): Promise<ResultWithDetails[]> {
-    const query = db.select({
+    const query = this.db.select({
       id: results.id,
       studentId: results.studentId,
       examId: results.examId,
