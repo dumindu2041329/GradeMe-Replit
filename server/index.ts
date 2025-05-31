@@ -4,6 +4,11 @@ import MemoryStore from "memorystore";
 import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerRoutes } from "./routes";
+import { setupInitialData } from "./setup-database";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -40,6 +45,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Setup initial database data
+  await setupInitialData();
+
   // Setup session middleware
   app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key-here',

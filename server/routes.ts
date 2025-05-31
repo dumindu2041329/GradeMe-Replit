@@ -59,7 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Basic auth endpoints
+  // Admin login endpoint
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { email, password }: LoginCredentials = req.body;
@@ -68,33 +68,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      // For demo purposes, accept admin@example.com with password "admin"
-      if (email === "admin@example.com" && password === "admin") {
-        const user = {
-          id: 1,
-          email: "admin@example.com",
-          name: "Admin User",
-          role: "admin" as const,
-          isAdmin: true,
-          profileImage: null,
-          studentId: null,
-          emailNotifications: true,
-          smsNotifications: false,
-          emailExamResults: true,
-          emailUpcomingExams: true,
-          smsExamResults: false,
-          smsUpcomingExams: false,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-
-        req.session.user = user;
-        res.json(user);
-      } else {
-        res.status(401).json({ message: "Invalid credentials" });
+      // Find user in database
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || user.role !== 'admin') {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      // Verify password (assuming bcrypt is used)
+      const bcrypt = await import('bcrypt');
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Create session without password
+      const { password: _, ...userWithoutPassword } = user;
+      req.session.user = userWithoutPassword;
+      
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Student login endpoint
+  app.post("/api/auth/student/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password }: LoginCredentials = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
+      // Authenticate student using the storage method
+      const student = await storage.authenticateStudent(email, password);
+      
+      if (!student) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Create a user object for session (students are also users with role 'student')
+      const user = {
+        id: student.id,
+        email: student.email,
+        name: student.name,
+        role: 'student' as const,
+        isAdmin: false,
+        profileImage: student.profileImage,
+        studentId: student.id,
+        emailNotifications: true,
+        smsNotifications: false,
+        emailExamResults: true,
+        emailUpcomingExams: true,
+        smsExamResults: false,
+        smsUpcomingExams: false,
+        createdAt: student.createdAt,
+        updatedAt: student.updatedAt
+      };
+
+      req.session.user = user;
+      res.json(user);
+    } catch (error) {
+      console.error("Student login error:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });

@@ -326,7 +326,7 @@ export class MemStorage implements IStorage {
     
     // Calculate average score
     const averageScore = studentResults.length > 0
-      ? studentResults.reduce((sum, result) => sum + result.percentage, 0) / studentResults.length
+      ? studentResults.reduce((sum: number, result) => sum + parseFloat(result.percentage), 0) / studentResults.length
       : 0;
     
     // For best rank, we would need to compare against other students
@@ -345,10 +345,46 @@ export class MemStorage implements IStorage {
   }
 }
 
-// Use in-memory storage implementation
+// Use Supabase storage implementation
 import { SupabaseStorage } from './supabase-storage.js';
 import { isDbConnected } from './db-connection.js';
 
-// For now, continue using memory storage while we fix the type issues
-// TODO: Switch to Supabase storage once type compatibility is resolved
-export const storage = new MemStorage();
+// Lazy-loaded storage instance
+let storageInstance: SupabaseStorage | null = null;
+
+export const storage = {
+  get instance() {
+    if (!storageInstance) {
+      storageInstance = new SupabaseStorage();
+    }
+    return storageInstance;
+  },
+  
+  // Proxy all IStorage methods to the lazy-loaded instance
+  getUser: (id: number) => storage.instance.getUser(id),
+  getUserByEmail: (email: string) => storage.instance.getUserByEmail(email),
+  createUser: (user: any) => storage.instance.createUser(user),
+  updateUser: (id: number, user: any) => storage.instance.updateUser(id, user),
+  getStudents: () => storage.instance.getStudents(),
+  getStudent: (id: number) => storage.instance.getStudent(id),
+  getStudentByEmail: (email: string) => storage.instance.getStudentByEmail(email),
+  createStudent: (student: any) => storage.instance.createStudent(student),
+  updateStudent: (id: number, student: any) => storage.instance.updateStudent(id, student),
+  deleteStudent: (id: number) => storage.instance.deleteStudent(id),
+  authenticateStudent: (email: string, password: string) => storage.instance.authenticateStudent(email, password),
+  getExams: () => storage.instance.getExams(),
+  getExam: (id: number) => storage.instance.getExam(id),
+  getExamsByStatus: (status: string) => storage.instance.getExamsByStatus(status),
+  createExam: (exam: any) => storage.instance.createExam(exam),
+  updateExam: (id: number, exam: any) => storage.instance.updateExam(id, exam),
+  deleteExam: (id: number) => storage.instance.deleteExam(id),
+  getResults: () => storage.instance.getResults(),
+  getResult: (id: number) => storage.instance.getResult(id),
+  getResultsByStudentId: (studentId: number) => storage.instance.getResultsByStudentId(studentId),
+  getResultsByExamId: (examId: number) => storage.instance.getResultsByExamId(examId),
+  createResult: (result: any) => storage.instance.createResult(result),
+  updateResult: (id: number, result: any) => storage.instance.updateResult(id, result),
+  deleteResult: (id: number) => storage.instance.deleteResult(id),
+  getStatistics: () => storage.instance.getStatistics(),
+  getStudentDashboardData: (studentId: number) => storage.instance.getStudentDashboardData(studentId)
+};

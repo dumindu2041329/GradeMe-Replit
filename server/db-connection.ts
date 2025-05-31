@@ -1,5 +1,9 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 let db: ReturnType<typeof drizzle> | null = null;
 

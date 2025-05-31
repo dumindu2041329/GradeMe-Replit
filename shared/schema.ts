@@ -29,6 +29,7 @@ export const students = pgTable('students', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  password: text('password').notNull(),
   class: text('class').notNull(),
   enrollmentDate: timestamp('enrollment_date').notNull().defaultNow(),
   phone: text('phone'),
