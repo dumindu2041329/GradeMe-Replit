@@ -177,11 +177,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hasCookie = req.headers.cookie && req.headers.cookie.includes('connect.sid');
     
     if (!hasCookie) {
-      console.log("Session request, current session: No session cookie");
+
       return res.status(200).json({ user: null });
     }
     
-    console.log("Session request, current session:", req.session.user ? "User exists" : "No user in session");
+    // Only log when there's an actual user session to reduce noise
+    if (req.session.user) {
+      console.log("Session request, current session: User exists");
+    }
     if (!req.session.user) {
       return res.status(200).json({ user: null });
     }
