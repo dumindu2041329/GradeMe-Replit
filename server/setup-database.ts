@@ -7,14 +7,11 @@ const db = getDb();
 
 export async function setupInitialData() {
   try {
-    console.log('Setting up initial database data...');
-    
     // First, ensure the password column exists in the students table
     try {
       await db.execute(`ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT`);
-      console.log('Password column added to students table (if not exists)');
     } catch (error) {
-      console.log('Password column might already exist, continuing...');
+      // Password column might already exist, continuing...
     }
     
     // Check if admin user already exists
@@ -38,14 +35,12 @@ export async function setupInitialData() {
         smsExamResults: false,
         smsUpcomingExams: false
       });
-      console.log('Admin user created: admin@example.com / admin123');
     } else {
       // Update existing admin password to admin123
       const hashedPassword = await bcrypt.hash('admin123', 10);
       await db.update(users)
         .set({ password: hashedPassword })
         .where(eq(users.email, 'admin@example.com'));
-      console.log('Admin password updated to: admin123');
     }
     
     // Check if sample student exists in students table
@@ -69,7 +64,6 @@ export async function setupInitialData() {
       }).returning();
       
       studentRecord = newStudent;
-      console.log('Sample student created in students table: student@example.com / student123');
     }
     
     // Also create a student user entry in the users table
@@ -92,10 +86,7 @@ export async function setupInitialData() {
         smsExamResults: false,
         smsUpcomingExams: false
       });
-      console.log('Sample student user created in users table: student@example.com / student123');
     }
-    
-    console.log('Database setup completed successfully!');
   } catch (error) {
     console.error('Error setting up database:', error);
   }
