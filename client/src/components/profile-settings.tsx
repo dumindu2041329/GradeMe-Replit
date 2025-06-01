@@ -441,16 +441,16 @@ export function ProfileSettings({
                   type="button" 
                   variant="outline"
                   onClick={() => {
-                    if (userRole === 'student' && studentProfile) {
+                    if (userRole === 'student') {
                       profileForm.reset({
-                        email: studentProfile.email
+                        email: user?.email || ''
                       });
-                    } else if (userRole === 'admin' && user) {
+                    } else if (userRole === 'admin') {
                       profileForm.reset({
-                        name: user.name || '',
-                        email: user.email || ''
+                        name: user?.name || '',
+                        email: user?.email || ''
                       });
-                      setImagePreview(user.profileImage || null);
+                      setImagePreview(null);
                     }
                   }}
                 >
@@ -631,12 +631,12 @@ export function ProfileSettings({
                         emailExamResults: user?.emailExamResults || false,
                         emailUpcomingExams: user?.emailUpcomingExams || false,
                         smsExamResults: user?.smsExamResults || false,
-                        smsUpcomingExams: user?.smsUpcomingExams || false,
+                        smsUpcomingExams: user?.smsUpcomingExams || false
                       });
                     } else if (userRole === 'admin') {
                       notificationForm.reset({
                         emailNotifications: user?.emailNotifications || false,
-                        smsNotifications: user?.smsNotifications || false,
+                        smsNotifications: user?.smsNotifications || false
                       });
                     }
                   }}

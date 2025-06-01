@@ -48,18 +48,14 @@ interface StudentProfileData {
 
 // Form schemas
 const personalInfoSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Name must be at least 2 characters.',
-  }).optional(),
-  email: z.string().email({
-    message: 'Please enter a valid email address.',
-  }),
-  phone: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  dateOfBirth: z.date().optional().nullable(),
-  class: z.string().optional(),
-  guardianName: z.string().optional().nullable(),
-  guardianPhone: z.string().optional().nullable(),
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().nullable(),
+  address: z.string().nullable(),
+  dateOfBirth: z.date().nullable(),
+  class: z.string(),
+  guardianName: z.string().nullable(),
+  guardianPhone: z.string().nullable(),
 });
 
 const notificationFormSchema = z.object({
@@ -72,18 +68,12 @@ const notificationFormSchema = z.object({
 });
 
 const passwordFormSchema = z.object({
-  currentPassword: z.string().min(8, {
-    message: 'Password must be at least 8 characters.',
-  }),
-  newPassword: z.string().min(8, {
-    message: 'Password must be at least 8 characters.',
-  }),
-  confirmPassword: z.string().min(8, {
-    message: 'Password must be at least 8 characters.',
-  }),
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match.',
-  path: ['confirmPassword'],
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
@@ -138,10 +128,6 @@ export default function StudentProfileClear() {
       if (profileData.dateOfBirth) {
         personalInfoForm.setValue('dateOfBirth', new Date(profileData.dateOfBirth));
       }
-      
-      if (profileData.profileImage) {
-        setImagePreview(profileData.profileImage);
-      }
     }
   }, [profileData, user, personalInfoForm]);
 
@@ -166,42 +152,36 @@ export default function StudentProfileClear() {
     },
   });
 
-  // Handle profile image upload
+  // Image upload handler
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Preview the image
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (e.target?.result) {
-          setImagePreview(e.target.result as string);
-        }
+        setImagePreview(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Personal info mutation
+  // Personal Info Form mutation
   const personalInfoMutation = useMutation({
     mutationFn: async (data: PersonalInfoFormValues) => {
-      const requestBody = {
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString().split('T')[0] : null,
-        guardianName: data.guardianName,
-        guardianPhone: data.guardianPhone,
-        profileImage: imagePreview
-      };
-      
-      console.log('Submitting profile update:', requestBody);
-      
-      const response = await fetch('/api/student/profile', {
+      const response = await fetch("/api/student/profile", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : null,
+          guardianName: data.guardianName,
+          guardianPhone: data.guardianPhone,
+          profileImage: imagePreview,
+        }),
       });
       
       if (!response.ok) {
@@ -212,22 +192,21 @@ export default function StudentProfileClear() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Update user state with new profile data
       if (user) {
         setUser({
           ...user,
+          name: data.name,
           email: data.email,
           profileImage: data.profileImage,
         });
       }
       
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
-      
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
     },
     onError: (error: Error) => {
       toast({
@@ -238,10 +217,10 @@ export default function StudentProfileClear() {
     }
   });
 
-  // Notification settings mutation
+  // Notification Form mutation
   const notificationMutation = useMutation({
     mutationFn: async (data: NotificationFormValues) => {
-      const response = await fetch('/api/student/notifications', {
+      const response = await fetch("/api/student/notifications", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -256,20 +235,7 @@ export default function StudentProfileClear() {
       
       return response.json();
     },
-    onSuccess: (data) => {
-      // Update user state with notification preferences
-      if (user) {
-        setUser({
-          ...user,
-          emailNotifications: data.emailNotifications,
-          smsNotifications: data.smsNotifications,
-          emailExamResults: data.emailExamResults,
-          emailUpcomingExams: data.emailUpcomingExams,
-          smsExamResults: data.smsExamResults,
-          smsUpcomingExams: data.smsUpcomingExams
-        });
-      }
-      
+    onSuccess: () => {
       toast({
         title: "Settings Updated",
         description: "Your notification settings have been updated successfully.",
@@ -284,10 +250,10 @@ export default function StudentProfileClear() {
     }
   });
 
-  // Password update mutation
+  // Password Form mutation
   const passwordMutation = useMutation({
     mutationFn: async (data: PasswordFormValues) => {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch("/api/student/password", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -306,7 +272,6 @@ export default function StudentProfileClear() {
       return response.json();
     },
     onSuccess: () => {
-      // Clear password form
       passwordForm.reset({
         currentPassword: '',
         newPassword: '',
@@ -331,11 +296,11 @@ export default function StudentProfileClear() {
   const onPersonalInfoSubmit = (data: PersonalInfoFormValues) => {
     personalInfoMutation.mutate(data);
   };
-  
+
   const onNotificationSubmit = (data: NotificationFormValues) => {
     notificationMutation.mutate(data);
   };
-  
+
   const onPasswordSubmit = (data: PasswordFormValues) => {
     passwordMutation.mutate(data);
   };
@@ -388,36 +353,49 @@ export default function StudentProfileClear() {
                         </AvatarFallback>
                       )}
                     </Avatar>
-                    <h2 className="text-xl font-semibold">{profileData?.name}</h2>
-                    <p className="text-muted-foreground text-sm">{profileData?.email}</p>
-                    <p className="text-primary font-medium mt-1">Class {profileData?.class}</p>
+                    
+                    <h2 className="text-xl font-semibold text-center mb-2">
+                      {profileData?.name || user?.name}
+                    </h2>
+                    <p className="text-muted-foreground text-center">
+                      {profileData?.email || user?.email}
+                    </p>
                   </div>
                   
-                  <div className="flex-1">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Phone Number</h3>
-                        <p>{profileData?.phone || "Not provided"}</p>
+                        <h3 className="font-medium text-sm text-muted-foreground">Class</h3>
+                        <p className="text-sm">{profileData?.class || 'N/A'}</p>
                       </div>
+                      
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Date of Birth</h3>
-                        <p>{profileData?.dateOfBirth ? format(new Date(profileData.dateOfBirth), "MMMM dd, yyyy") : "Not provided"}</p>
+                        <h3 className="font-medium text-sm text-muted-foreground">Enrollment Date</h3>
+                        <p className="text-sm">{formattedEnrollmentDate}</p>
                       </div>
+                      
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Guardian Name</h3>
-                        <p>{profileData?.guardianName || "Not provided"}</p>
+                        <h3 className="font-medium text-sm text-muted-foreground">Phone</h3>
+                        <p className="text-sm">{profileData?.phone || 'Not provided'}</p>
                       </div>
+                    </div>
+                    
+                    <div className="space-y-3">
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Guardian Phone</h3>
-                        <p>{profileData?.guardianPhone || "Not provided"}</p>
+                        <h3 className="font-medium text-sm text-muted-foreground">Address</h3>
+                        <p className="text-sm">{profileData?.address || 'Not provided'}</p>
                       </div>
-                      <div className="md:col-span-2">
-                        <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
-                        <p>{profileData?.address || "Not provided"}</p>
-                      </div>
+                      
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground">Enrollment Date</h3>
-                        <p>{formattedEnrollmentDate}</p>
+                        <h3 className="font-medium text-sm text-muted-foreground">Date of Birth</h3>
+                        <p className="text-sm">
+                          {profileData?.dateOfBirth ? format(new Date(profileData.dateOfBirth), "MMMM dd, yyyy") : 'Not provided'}
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium text-sm text-muted-foreground">Guardian Name</h3>
+                        <p className="text-sm">{profileData?.guardianName || 'Not provided'}</p>
                       </div>
                     </div>
                   </div>
@@ -450,48 +428,46 @@ export default function StudentProfileClear() {
                       <form id="studentPersonalInfoForm" onSubmit={personalInfoForm.handleSubmit(onPersonalInfoSubmit)} className="space-y-6">
                         {/* Profile Image */}
                         <div className="flex flex-col items-center gap-4 mb-6">
-                          <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-[#070b14] relative group">
-                            {imagePreview ? (
-                              <img
-                                src={imagePreview}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span className="text-2xl text-white">
-                                {user?.name?.charAt(0) || 'U'}{user?.name?.split(' ')[1]?.charAt(0) || ''}
-                              </span>
-                            )}
-                            
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Input
-                                id="profile-image"
-                                type="file"
-                                accept="image/*"
-                                className="sr-only"
-                                onChange={handleImageUpload}
-                              />
-                              <label
-                                htmlFor="profile-image"
-                                className="cursor-pointer"
-                              >
-                                <div className="rounded-full p-1 bg-black/30">
-                                  <ArrowUpFromLine className="h-5 w-5 text-white" />
-                                </div>
-                              </label>
-                            </div>
+                          <div className="relative group">
+                            <Avatar className="h-24 w-24 cursor-pointer">
+                              {imagePreview ? (
+                                <AvatarImage src={imagePreview} alt="Profile" />
+                              ) : (
+                                <AvatarFallback className="text-2xl">
+                                  {user?.name?.charAt(0) || 'U'}{user?.name?.split(' ')[1]?.charAt(0) || ''}
+                                </AvatarFallback>
+                              )}
+                              
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Input
+                                  id="profile-image"
+                                  type="file"
+                                  accept="image/*"
+                                  className="sr-only"
+                                  onChange={handleImageUpload}
+                                />
+                                <label
+                                  htmlFor="profile-image"
+                                  className="cursor-pointer"
+                                >
+                                  <div className="rounded-full p-1 bg-black/30">
+                                    <ArrowUpFromLine className="h-5 w-5 text-white" />
+                                  </div>
+                                </label>
+                              </div>
+                            </Avatar>
                           </div>
                           
                           <div className="text-center space-y-1">
                             <p className="text-sm text-muted-foreground">
                               Upload a new profile picture
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              JPG, PNG or GIF, max 5MB
+                            </p>
                           </div>
                         </div>
                         
-                        <Separator />
-                        
-                        {/* Basic Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <h4 className="font-medium">Basic Information</h4>
@@ -509,12 +485,15 @@ export default function StudentProfileClear() {
                                   <FormControl>
                                     <Input {...field} disabled />
                                   </FormControl>
+                                  <FormDescription>
+                                    Your name can only be changed by an administrator
+                                  </FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                             
-                            {/* Email */}
+                            {/* Email (Read-only) */}
                             <FormField
                               control={personalInfoForm.control}
                               name="email"
@@ -527,12 +506,15 @@ export default function StudentProfileClear() {
                                   <FormControl>
                                     <Input {...field} disabled />
                                   </FormControl>
+                                  <FormDescription>
+                                    Your email can only be changed by an administrator
+                                  </FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                             
-                            {/* Phone Number - CLEARABLE */}
+                            {/* Phone - CLEARABLE */}
                             <FormField
                               control={personalInfoForm.control}
                               name="phone"
@@ -568,44 +550,58 @@ export default function StudentProfileClear() {
                               )}
                             />
                             
-                            {/* Date of Birth */}
+                            {/* Date of Birth - CLEARABLE */}
                             <FormField
                               control={personalInfoForm.control}
                               name="dateOfBirth"
                               render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                   <FormLabel>Date of Birth</FormLabel>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <FormControl>
-                                        <Button
-                                          variant={"outline"}
-                                          className={cn(
-                                            "pl-3 text-left font-normal",
-                                            !field.value && "text-muted-foreground"
-                                          )}
-                                        >
-                                          <CalendarIcon className="mr-2 h-4 w-4" />
-                                          {field.value ? (
-                                            format(field.value, "PPP")
-                                          ) : (
-                                            <span>Pick a date</span>
-                                          )}
-                                        </Button>
-                                      </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                      <CalendarComponent
-                                        mode="single"
-                                        selected={field.value || undefined}
-                                        onSelect={field.onChange}
-                                        disabled={(date) =>
-                                          date > new Date() || date < new Date("1900-01-01")
-                                        }
-                                        initialFocus
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
+                                  <div className="flex items-center">
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl className="flex-1">
+                                          <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                              "pl-3 text-left font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(field.value, "PPP")
+                                            ) : (
+                                              <span>Pick a date</span>
+                                            )}
+                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <CalendarComponent
+                                          mode="single"
+                                          selected={field.value || undefined}
+                                          onSelect={field.onChange}
+                                          disabled={(date) =>
+                                            date > new Date() || date < new Date("1900-01-01")
+                                          }
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    {field.value && (
+                                      <Button 
+                                        type="button"
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="ml-2" 
+                                        onClick={() => field.onChange(null)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                        <span className="sr-only">Clear</span>
+                                      </Button>
+                                    )}
+                                  </div>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -765,10 +761,7 @@ export default function StudentProfileClear() {
                               variant="outline"
                               className="flex items-center space-x-2 bg-background"
                               onClick={() => {
-                                // Reset form fields to empty values
-                                Object.keys(personalInfoForm.getValues()).forEach(key => {
-                                  if (key === 'name') {
-                                    // Using reset method instead of setValue for proper form state handling
+                                // Reset form fields to original values using proper reset method
                                 personalInfoForm.reset({
                                   name: profileData?.name || user?.name || '',
                                   email: profileData?.email || user?.email || '',
@@ -779,27 +772,11 @@ export default function StudentProfileClear() {
                                   guardianName: profileData?.guardianName || '',
                                   guardianPhone: profileData?.guardianPhone || '',
                                 });
-                                return; // Exit early to avoid the rest of the forEach
-                                  }
-                                  else if (key === 'email') {
-                                    personalInfoForm.setValue('email', '');
-                                  }
-                                  else if (key === 'class') {
-                                    personalInfoForm.setValue('class', '');
-                                  }
-                                  else if (key === 'dateOfBirth') {
-                                    personalInfoForm.setValue('dateOfBirth', null);
-                                  }
-                                  else {
-                                    // For phone, address, guardian name/phone
-                                    personalInfoForm.setValue(key as any, '');
-                                  }
-                                });
                                 
                                 // Show feedback toast
                                 toast({
                                   title: "Form Reset",
-                                  description: "All form fields have been reset to empty values.",
+                                  description: "All form fields have been reset to their original values.",
                                 });
                               }}
                             >
@@ -808,12 +785,10 @@ export default function StudentProfileClear() {
                           </div>
 
                           <div className="flex justify-end space-x-2">
-                            <input 
-                              type="reset" 
-                              value="Reset" 
-                              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
-                            />
-                            <Button type="submit" disabled={personalInfoMutation.isPending}>
+                            <Button 
+                              type="submit" 
+                              disabled={personalInfoMutation.isPending}
+                            >
                               {personalInfoMutation.isPending ? "Saving..." : "Save Changes"}
                             </Button>
                           </div>
@@ -823,78 +798,134 @@ export default function StudentProfileClear() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
-              {/* Notifications Tab */}
+
+              {/* Notification Settings Tab */}
               <TabsContent value="notifications" className="space-y-6">
                 <Card className="border shadow-sm">
                   <CardContent className="p-6">
                     <div className="mb-6">
-                      <h3 className="text-xl font-semibold mb-2">Notification Preferences</h3>
+                      <h3 className="text-xl font-semibold mb-2">Notification Settings</h3>
                       <p className="text-sm text-muted-foreground">
-                        Control how and when you receive notifications
+                        Choose how you want to receive notifications
                       </p>
                     </div>
-                    
+
                     <Form {...notificationForm}>
                       <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <h4 className="font-medium text-sm">Email Notifications</h4>
-                            
-                            <FormField
-                              control={notificationForm.control}
-                              name="emailNotifications"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                                  <div className="space-y-0.5">
-                                    <FormLabel className="text-base">
-                                      Email Notifications
-                                    </FormLabel>
-                                    <FormDescription>
-                                      Receive all notifications via email
-                                    </FormDescription>
-                                  </div>
-                                  <FormControl>
-                                    <Switch
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                            
-                            <FormField
-                              control={notificationForm.control}
-                              name="emailExamResults"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                                  <div className="space-y-0.5">
-                                    <FormLabel>Exam Results</FormLabel>
-                                    <FormDescription>
-                                      Receive notifications when exam results are available
-                                    </FormDescription>
-                                  </div>
-                                  <FormControl>
-                                    <Switch
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-end space-x-2 pt-4">
-                          <input 
-                            type="reset" 
-                            value="Reset" 
-                            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer"
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Email Notifications</h4>
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="emailExamResults"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between space-y-0">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Exam Results</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Receive exam results via email
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
                           />
+
+                          <FormField
+                            control={notificationForm.control}
+                            name="emailUpcomingExams"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between space-y-0">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Upcoming Exams</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Receive reminders about upcoming exams
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-4">
+                          <h4 className="font-medium">SMS Notifications</h4>
+                          
+                          <FormField
+                            control={notificationForm.control}
+                            name="smsExamResults"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between space-y-0">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Exam Results</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Receive exam results via SMS
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={notificationForm.control}
+                            name="smsUpcomingExams"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between space-y-0">
+                                <div className="space-y-0.5">
+                                  <FormLabel>Upcoming Exams</FormLabel>
+                                  <p className="text-xs text-muted-foreground">
+                                    Receive reminders about upcoming exams
+                                  </p>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex flex-row space-x-2">
                           <Button type="submit" disabled={notificationMutation.isPending}>
                             {notificationMutation.isPending ? "Saving..." : "Save Changes"}
+                          </Button>
+                          
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => {
+                              notificationForm.reset({
+                                emailNotifications: user?.emailNotifications || false,
+                                smsNotifications: user?.smsNotifications || false,
+                                emailExamResults: user?.emailExamResults || false,
+                                emailUpcomingExams: user?.emailUpcomingExams || false,
+                                smsExamResults: user?.smsExamResults || false,
+                                smsUpcomingExams: user?.smsUpcomingExams || false,
+                              });
+                            }}
+                          >
+                            Reset
                           </Button>
                         </div>
                       </form>
@@ -902,133 +933,143 @@ export default function StudentProfileClear() {
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               {/* Security Tab */}
               <TabsContent value="security" className="space-y-6">
                 <Card className="border shadow-sm">
                   <CardContent className="p-6">
                     <div className="mb-6">
-                      <h3 className="text-xl font-semibold mb-2">Security Settings</h3>
+                      <h3 className="text-xl font-semibold mb-2">Change Password</h3>
                       <p className="text-sm text-muted-foreground">
-                        Manage your password and account security
+                        Update your password to keep your account secure
                       </p>
                     </div>
-                    
+
                     <Form {...passwordForm}>
-                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Change Password</h4>
+                      <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                        <FormField
+                          control={passwordForm.control}
+                          name="currentPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Current Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    type={showCurrentPassword ? "text" : "password"}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                  >
+                                    {showCurrentPassword ? (
+                                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                      <Eye className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <span className="sr-only">
+                                      {showCurrentPassword ? "Hide" : "Show"} password
+                                    </span>
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={passwordForm.control}
+                          name="newPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>New Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    type={showNewPassword ? "text" : "password"}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                  >
+                                    {showNewPassword ? (
+                                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                      <Eye className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <span className="sr-only">
+                                      {showNewPassword ? "Hide" : "Show"} password
+                                    </span>
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={passwordForm.control}
+                          name="confirmPassword"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Confirm New Password</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Input
+                                    {...field}
+                                    type={showConfirmPassword ? "text" : "password"}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-0 top-0 h-full px-3"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  >
+                                    {showConfirmPassword ? (
+                                      <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                      <Eye className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                    <span className="sr-only">
+                                      {showConfirmPassword ? "Hide" : "Show"} password
+                                    </span>
+                                  </Button>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex flex-row space-x-2">
+                          <Button type="submit" disabled={passwordMutation.isPending}>
+                            {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                          </Button>
                           
-                          <FormField
-                            control={passwordForm.control}
-                            name="currentPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Current Password</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Input
-                                      {...field}
-                                      type={showCurrentPassword ? "text" : "password"}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="absolute right-0 top-0 h-full px-3"
-                                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                    >
-                                      {showCurrentPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                      ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                      )}
-                                      <span className="sr-only">
-                                        {showCurrentPassword ? "Hide" : "Show"} password
-                                      </span>
-                                    </Button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={passwordForm.control}
-                            name="newPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>New Password</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Input
-                                      {...field}
-                                      type={showNewPassword ? "text" : "password"}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="absolute right-0 top-0 h-full px-3"
-                                      onClick={() => setShowNewPassword(!showNewPassword)}
-                                    >
-                                      {showNewPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                      ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                      )}
-                                      <span className="sr-only">
-                                        {showNewPassword ? "Hide" : "Show"} password
-                                      </span>
-                                    </Button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={passwordForm.control}
-                            name="confirmPassword"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Confirm New Password</FormLabel>
-                                <FormControl>
-                                  <div className="relative">
-                                    <Input
-                                      {...field}
-                                      type={showConfirmPassword ? "text" : "password"}
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="absolute right-0 top-0 h-full px-3"
-                                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    >
-                                      {showConfirmPassword ? (
-                                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                                      ) : (
-                                        <Eye className="h-4 w-4 text-muted-foreground" />
-                                      )}
-                                      <span className="sr-only">
-                                        {showConfirmPassword ? "Hide" : "Show"} password
-                                      </span>
-                                    </Button>
-                                  </div>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <div className="pt-2">
-                            <Button type="submit" disabled={passwordMutation.isPending}>
-                              {passwordMutation.isPending ? "Updating..." : "Update Password"}
-                            </Button>
-                          </div>
+                          <Button 
+                            type="button" 
+                            variant="outline"
+                            onClick={() => {
+                              passwordForm.reset({
+                                currentPassword: '',
+                                newPassword: '',
+                                confirmPassword: '',
+                              });
+                            }}
+                          >
+                            Reset
+                          </Button>
                         </div>
                       </form>
                     </Form>

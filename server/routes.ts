@@ -4,6 +4,17 @@ import { storage } from "./storage";
 import session from "express-session";
 import { User } from "@shared/schema";
 import MemoryStore from 'memorystore';
+import { 
+  supabaseMiddleware, 
+  supabaseAuthMiddleware, 
+  requireAdmin, 
+  requireStudent, 
+  requireAuth,
+  supabaseAdmin,
+  checkSupabaseHealth,
+  createSupabaseSession,
+  signOutUser
+} from "./supabase-middleware";
 
 // Session types for TypeScript
 declare module "express-session" {
@@ -26,8 +37,11 @@ interface LoginCredentials {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Authentication middleware
-  const requireAuth = (req: Request, res: Response, next: Function) => {
+  // Apply Supabase middleware globally
+  app.use(supabaseMiddleware);
+
+  // Legacy authentication middleware (keeping for backward compatibility)
+  const requireAuthLegacy = (req: Request, res: Response, next: Function) => {
     if (!req.session.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -43,6 +57,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // Supabase health check endpoint
+  app.get("/api/supabase/health", async (req: Request, res: Response) => {
+    try {
+      const isHealthy = await checkSupabaseHealth();
+      res.json({ 
+        status: isHealthy ? 'healthy' : 'unhealthy',
+        timestamp: new Date().toISOString(),
+        supabase: {
+          url: process.env.SUPABASE_URL ? 'configured' : 'missing',
+          anon_key: process.env.SUPABASE_ANON_KEY ? 'configured' : 'missing',
+          service_key: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'configured' : 'missing'
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        status: 'error', 
+        message: 'Failed to check Supabase health',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Supabase authentication endpoint
+  app.post("/api/supabase/auth", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+      }
+
+      // First authenticate with your existing storage
+      const user = await storage.instance.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Verify password (assuming bcrypt is used)
+      const bcrypt = require('bcrypt');
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Create Supabase session
+      const session = await createSupabaseSession(user);
+      
+      // Remove password from response
+      const { password: _, ...userWithoutPassword } = user;
+      
+      res.json({
+        user: userWithoutPassword,
+        session: session,
+        message: 'Authentication successful'
+      });
+    } catch (error) {
+      console.error('Supabase auth error:', error);
+      res.status(500).json({ message: 'Authentication failed' });
+    }
+  });
+
+  // Supabase sign out endpoint
+  app.post("/api/supabase/signout", async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+      
+      if (userId) {
+        await signOutUser(userId);
+      }
+      
+      res.json({ message: 'Signed out successfully' });
+    } catch (error) {
+      console.error('Supabase signout error:', error);
+      res.status(500).json({ message: 'Signout failed' });
+    }
+  });
 
   // Contact form endpoint
   app.post("/api/contact", async (req: Request, res: Response) => {
@@ -155,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Statistics endpoint
-  app.get("/api/statistics", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/statistics", requireAuthLegacy, async (req: Request, res: Response) => {
     try {
       const stats = await storage.getStatistics();
       res.json(stats);
@@ -166,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Students CRUD operations
-  app.get("/api/students", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/students", requireAuthLegacy, async (req: Request, res: Response) => {
     try {
       const students = await storage.getStudents();
       res.json(students);
@@ -176,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/students", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/students", requireAuthLegacy, async (req: Request, res: Response) => {
     try {
       // Hash password if provided
       let hashedPassword;
@@ -201,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/students/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/students/:id", requireAuthLegacy, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       // Convert date strings to Date objects if provided
