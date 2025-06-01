@@ -40,26 +40,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply Supabase middleware globally
   app.use(supabaseMiddleware);
 
-  // Apply Supabase auth middleware to protected routes
-  app.use('/api', (req: Request, res: Response, next) => {
-    // Skip authentication for these public routes
-    const publicRoutes = [
-      '/api/supabase/health',
-      '/api/contact',
-      '/api/auth/login',
-      '/api/auth/student/login',
-      '/api/supabase/auth',
-      '/api/supabase/signout'
-    ];
-    
-    if (publicRoutes.includes(req.path)) {
-      return next();
-    }
-    
-    // Apply Supabase authentication for all other routes
-    return supabaseAuthMiddleware(req, res, next);
-  });
-
   // Legacy authentication middleware (keeping for backward compatibility)
   const requireAuthLegacy = (req: Request, res: Response, next: Function) => {
     if (!req.session.user) {
