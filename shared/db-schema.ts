@@ -66,11 +66,44 @@ export const results = pgTable('results', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const examPapers = pgTable('exam_papers', {
+  id: serial('id').primaryKey(),
+  examId: integer('exam_id').notNull(),
+  title: text('title').notNull(),
+  instructions: text('instructions'),
+  totalQuestions: integer('total_questions').notNull().default(0),
+  totalMarks: integer('total_marks').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const questions = pgTable('questions', {
+  id: serial('id').primaryKey(),
+  paperId: integer('paper_id').notNull(),
+  type: text('type').notNull(), // 'mcq' or 'written'
+  questionText: text('question_text').notNull(),
+  marks: integer('marks').notNull(),
+  orderIndex: integer('order_index').notNull(),
+  // MCQ options
+  optionA: text('option_a'),
+  optionB: text('option_b'),
+  optionC: text('option_c'),
+  optionD: text('option_d'),
+  correctAnswer: text('correct_answer'),
+  // Written answer fields
+  expectedAnswer: text('expected_answer'),
+  answerGuidelines: text('answer_guidelines'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Exam = typeof exams.$inferSelect;
 export type Result = typeof results.$inferSelect;
+export type ExamPaper = typeof examPapers.$inferSelect;
+export type Question = typeof questions.$inferSelect;
 
 // Insert schemas using Zod instead of createInsertSchema to avoid type issues
 export const insertUserSchema = z.object({
@@ -120,11 +153,36 @@ export const insertResultSchema = z.object({
   submittedAt: z.date().optional(),
 });
 
+export const insertExamPaperSchema = z.object({
+  examId: z.number(),
+  title: z.string().min(2),
+  instructions: z.string().nullable().optional(),
+  totalQuestions: z.number().default(0),
+  totalMarks: z.number().default(0),
+});
+
+export const insertQuestionSchema = z.object({
+  paperId: z.number(),
+  type: z.enum(['mcq', 'written']),
+  questionText: z.string().min(5),
+  marks: z.number().min(1),
+  orderIndex: z.number(),
+  optionA: z.string().nullable().optional(),
+  optionB: z.string().nullable().optional(),
+  optionC: z.string().nullable().optional(),
+  optionD: z.string().nullable().optional(),
+  correctAnswer: z.string().nullable().optional(),
+  expectedAnswer: z.string().nullable().optional(),
+  answerGuidelines: z.string().nullable().optional(),
+});
+
 // Update schemas
 export const updateUserSchema = insertUserSchema.partial();
 export const updateStudentSchema = insertStudentSchema.partial();
 export const updateExamSchema = insertExamSchema.partial();
 export const updateResultSchema = insertResultSchema.partial();
+export const updateExamPaperSchema = insertExamPaperSchema.partial();
+export const updateQuestionSchema = insertQuestionSchema.partial();
 
 // Login schemas
 export const loginUserSchema = z.object({
@@ -142,10 +200,14 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type InsertResult = z.infer<typeof insertResultSchema>;
+export type InsertExamPaper = z.infer<typeof insertExamPaperSchema>;
+export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type UpdateUser = z.infer<typeof updateUserSchema>;
 export type UpdateStudent = z.infer<typeof updateStudentSchema>;
 export type UpdateExam = z.infer<typeof updateExamSchema>;
 export type UpdateResult = z.infer<typeof updateResultSchema>;
+export type UpdateExamPaper = z.infer<typeof updateExamPaperSchema>;
+export type UpdateQuestion = z.infer<typeof updateQuestionSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
 export type PasswordUpdate = z.infer<typeof passwordUpdateSchema>;
 

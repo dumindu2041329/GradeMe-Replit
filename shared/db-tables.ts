@@ -63,3 +63,34 @@ export const results = pgTable('results', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
+
+export const examPapers = pgTable('exam_papers', {
+  id: serial('id').primaryKey(),
+  examId: integer('exam_id').notNull(),
+  title: text('title').notNull(),
+  instructions: text('instructions'),
+  totalQuestions: integer('total_questions').notNull().default(0),
+  totalMarks: integer('total_marks').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const questions = pgTable('questions', {
+  id: serial('id').primaryKey(),
+  paperId: integer('paper_id').notNull(),
+  type: text('type').notNull(), // 'mcq' or 'written'
+  questionText: text('question_text').notNull(),
+  marks: integer('marks').notNull(),
+  orderIndex: integer('order_index').notNull(),
+  // MCQ options
+  optionA: text('option_a'),
+  optionB: text('option_b'),
+  optionC: text('option_c'),
+  optionD: text('option_d'),
+  correctAnswer: text('correct_answer'),
+  // Written answer fields
+  expectedAnswer: text('expected_answer'),
+  answerGuidelines: text('answer_guidelines'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
