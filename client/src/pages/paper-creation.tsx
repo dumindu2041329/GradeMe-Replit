@@ -325,7 +325,6 @@ export default function PaperCreationPage() {
               </span>
               <Button
                 onClick={() => setIsCreatingQuestion(true)}
-                disabled={!paper?.id}
                 size="sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
