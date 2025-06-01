@@ -432,28 +432,30 @@ export function ProfileSettings({
                 )}
               />
               
-              {/* Student-specific fields removed completely */}
-              
               <div className="flex flex-row space-x-2">
                 <Button type="submit" disabled={profileMutation.isPending}>
                   {profileMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
                 
-                {userRole === 'student' && (
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => {
-                      if (studentProfile) {
-                        profileForm.reset({
-                          email: studentProfile.email
-                        });
-                      }
-                    }}
-                  >
-                    Reset
-                  </Button>
-                )}
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (userRole === 'student' && studentProfile) {
+                      profileForm.reset({
+                        email: studentProfile.email
+                      });
+                    } else if (userRole === 'admin' && user) {
+                      profileForm.reset({
+                        name: user.name || '',
+                        email: user.email || ''
+                      });
+                      setImagePreview(user.profileImage || null);
+                    }
+                  }}
+                >
+                  Reset
+                </Button>
               </div>
             </form>
           </Form>
@@ -615,9 +617,33 @@ export function ProfileSettings({
                 </>
               )}
               
-              <Button type="submit" disabled={notificationMutation.isPending}>
-                {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-              </Button>
+              <div className="flex flex-row space-x-2">
+                <Button type="submit" disabled={notificationMutation.isPending}>
+                  {notificationMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    if (userRole === 'student') {
+                      notificationForm.reset({
+                        emailExamResults: user?.emailExamResults || false,
+                        emailUpcomingExams: user?.emailUpcomingExams || false,
+                        smsExamResults: user?.smsExamResults || false,
+                        smsUpcomingExams: user?.smsUpcomingExams || false,
+                      });
+                    } else if (userRole === 'admin') {
+                      notificationForm.reset({
+                        emailNotifications: user?.emailNotifications || false,
+                        smsNotifications: user?.smsNotifications || false,
+                      });
+                    }
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
@@ -739,9 +765,25 @@ export function ProfileSettings({
                 )}
               />
               
-              <Button type="submit" disabled={passwordMutation.isPending}>
-                {passwordMutation.isPending ? "Updating..." : "Update Password"}
-              </Button>
+              <div className="flex flex-row space-x-2">
+                <Button type="submit" disabled={passwordMutation.isPending}>
+                  {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    passwordForm.reset({
+                      currentPassword: '',
+                      newPassword: '',
+                      confirmPassword: '',
+                    });
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>

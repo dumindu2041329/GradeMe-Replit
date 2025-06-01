@@ -474,24 +474,9 @@ export default function ProfilePage() {
                       )}
                     />
                     
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={profileMutation.isPending}>
-                        {profileMutation.isPending ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => {
-                          profileForm.reset({
-                            name: user?.name || "",
-                            email: user?.email || "",
-                            profileImage: user?.profileImage || "",
-                          });
-                        }}
-                      >
-                        Reset
-                      </Button>
-                    </div>
+                    <Button type="submit" disabled={profileMutation.isPending}>
+                      {profileMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
@@ -555,27 +540,9 @@ export default function ProfilePage() {
                       )}
                     />
                     
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={notificationMutation.isPending}>
-                        {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => {
-                          notificationForm.reset({
-                            emailNotifications: user?.emailNotifications || false,
-                            smsNotifications: user?.smsNotifications || false,
-                            emailExamResults: user?.emailExamResults || false,
-                            emailUpcomingExams: user?.emailUpcomingExams || false,
-                            smsExamResults: user?.smsExamResults || false,
-                            smsUpcomingExams: user?.smsUpcomingExams || false,
-                          });
-                        }}
-                      >
-                        Reset
-                      </Button>
-                    </div>
+                    <Button type="submit" disabled={notificationMutation.isPending}>
+                      {notificationMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
@@ -700,24 +667,9 @@ export default function ProfilePage() {
                       )}
                     />
                     
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={passwordMutation.isPending}>
-                        {passwordMutation.isPending ? "Updating..." : "Update Password"}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => {
-                          passwordForm.reset({
-                            currentPassword: "",
-                            newPassword: "",
-                            confirmPassword: "",
-                          });
-                        }}
-                      >
-                        Reset
-                      </Button>
-                    </div>
+                    <Button type="submit" disabled={passwordMutation.isPending}>
+                      {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
