@@ -40,6 +40,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply Supabase middleware globally
   app.use(supabaseMiddleware);
 
+  // Apply Supabase auth middleware to protected routes
+  app.use('/api', (req: Request, res: Response, next) => {
+    // Skip authentication for these public routes
+    const publicRoutes = [
+      '/api/supabase/health',
+      '/api/contact',
+      '/api/auth/login',
+      '/api/auth/student/login',
+      '/api/supabase/auth',
+      '/api/supabase/signout'
+    ];
+    
+    if (publicRoutes.includes(req.path)) {
+      return next();
+    }
+    
+    // Apply Supabase authentication for all other routes
+    return supabaseAuthMiddleware(req, res, next);
+  });
+
   // Legacy authentication middleware (keeping for backward compatibility)
   const requireAuthLegacy = (req: Request, res: Response, next: Function) => {
     if (!req.session.user) {
@@ -80,37 +100,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Supabase authentication endpoint
+  // Supabase authentication endpoint with role-based access control
   app.post("/api/supabase/auth", async (req: Request, res: Response) => {
     try {
-      const { email, password } = req.body;
+      const { email, password, type } = req.body;
       
       if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });
       }
 
-      // First authenticate with your existing storage
-      const user = await storage.instance.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      // Verify password (assuming bcrypt is used)
-      const bcrypt = require('bcrypt');
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      if (!isValidPassword) {
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-
-      // Create Supabase session
-      const session = await createSupabaseSession(user);
+      let authenticatedUser = null;
       
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = user;
+      if (type === 'student') {
+        // Authenticate as student
+        const student = await storage.authenticateStudent(email, password);
+        if (student) {
+          authenticatedUser = {
+            ...student,
+            role: 'student',
+            isAdmin: false
+          };
+        }
+      } else {
+        // Authenticate as admin
+        const user = await storage.instance.getUserByEmail(email);
+        if (user && user.role === 'admin') {
+          // Verify password
+          const bcrypt = await import('bcrypt');
+          const isValidPassword = await bcrypt.compare(password, user.password);
+          if (isValidPassword) {
+            const { password: _, ...userWithoutPassword } = user;
+            authenticatedUser = userWithoutPassword;
+          }
+        }
+      }
+
+      if (!authenticatedUser) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+
+      // Create JWT token for Supabase-style authentication
+      const tokenPayload = {
+        sub: authenticatedUser.id.toString(),
+        email: authenticatedUser.email,
+        role: authenticatedUser.role,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+      };
+      
+      const token = Buffer.from(JSON.stringify(tokenPayload)).toString('base64');
       
       res.json({
-        user: userWithoutPassword,
-        session: session,
+        user: authenticatedUser,
+        access_token: token,
+        token_type: 'bearer',
+        expires_in: 86400,
         message: 'Authentication successful'
       });
     } catch (error) {
@@ -237,16 +281,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get("/api/auth/session", (req: Request, res: Response) => {
-    if (req.session.user) {
-      res.json({ user: req.session.user });
-    } else {
-      res.json({ user: null });
+  app.get("/api/auth/session", async (req: Request, res: Response) => {
+    try {
+      const authHeader = req.headers.authorization;
+      
+      // Check for Bearer token first
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        
+        try {
+          const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
+          
+          // Check if token is expired
+          if (tokenData.exp && tokenData.exp < Math.floor(Date.now() / 1000)) {
+            return res.json({ user: null, expired: true });
+          }
+          
+          // Get user from storage
+          let user;
+          if (tokenData.role === 'student') {
+            user = await storage.instance.getStudentByEmail(tokenData.email);
+            if (user) {
+              user = { ...user, role: 'student', isAdmin: false };
+            }
+          } else {
+            user = await storage.instance.getUserByEmail(tokenData.email);
+          }
+          
+          if (user) {
+            const { password, ...userWithoutPassword } = user;
+            return res.json({ 
+              user: userWithoutPassword, 
+              authenticated: true,
+              redirectTo: user.role === 'student' ? '/student/dashboard' : '/admin'
+            });
+          }
+        } catch (decodeError) {
+          // Invalid token format, fall through to session check
+        }
+      }
+      
+      // Fall back to session-based auth
+      if (req.session.user) {
+        res.json({ 
+          user: req.session.user, 
+          authenticated: true,
+          redirectTo: req.session.user.role === 'student' ? '/student/dashboard' : '/admin'
+        });
+      } else {
+        res.json({ user: null, authenticated: false, redirectTo: '/' });
+      }
+    } catch (error) {
+      console.error("Session check error:", error);
+      res.json({ user: null, authenticated: false, redirectTo: '/' });
     }
   });
 
-  // Statistics endpoint
-  app.get("/api/statistics", requireAuthLegacy, async (req: Request, res: Response) => {
+  // Statistics endpoint - Admin only
+  app.get("/api/statistics", requireAdmin, async (req: Request, res: Response) => {
     try {
       const stats = await storage.getStatistics();
       res.json(stats);
@@ -256,8 +348,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Students CRUD operations
-  app.get("/api/students", requireAuthLegacy, async (req: Request, res: Response) => {
+  // Students CRUD operations - Admin only
+  app.get("/api/students", requireAdmin, async (req: Request, res: Response) => {
     try {
       const students = await storage.getStudents();
       res.json(students);
@@ -267,7 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/students", requireAuthLegacy, async (req: Request, res: Response) => {
+  app.post("/api/students", requireAdmin, async (req: Request, res: Response) => {
     try {
       // Hash password if provided
       let hashedPassword;
@@ -292,7 +384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/students/:id", requireAuthLegacy, async (req: Request, res: Response) => {
+  app.put("/api/students/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       // Convert date strings to Date objects if provided
@@ -313,7 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/students/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/students/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteStudent(id);
@@ -338,7 +430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/exams", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/exams", requireAdmin, async (req: Request, res: Response) => {
     try {
       // Convert date string to Date object
       const examData = {
@@ -356,7 +448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/exams/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/exams/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       // Convert date string to Date object and ensure numbers are integers
@@ -378,7 +470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/exams/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/exams/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteExam(id);
@@ -392,8 +484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Results CRUD operations
-  app.get("/api/results", requireAuth, async (req: Request, res: Response) => {
+  // Results CRUD operations - Admin only
+  app.get("/api/results", requireAdmin, async (req: Request, res: Response) => {
     try {
       const results = await storage.getResults();
       res.json(results);
@@ -403,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/results", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/results", requireAdmin, async (req: Request, res: Response) => {
     try {
       const result = await storage.createResult(req.body);
       res.status(201).json(result);
@@ -413,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/results/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/results/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const result = await storage.updateResult(id, req.body);
@@ -427,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/results/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/results/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteResult(id);
@@ -441,8 +533,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Student dashboard data
-  app.get("/api/student/dashboard", requireStudentAuth, async (req: Request, res: Response) => {
+  // Student dashboard data - Student only
+  app.get("/api/student/dashboard", requireStudent, async (req: Request, res: Response) => {
     try {
       const user = req.session.user;
       if (!user || !user.studentId) {

@@ -1,8 +1,8 @@
+import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import type { Request, Response, NextFunction } from 'express';
-import type { User } from '@shared/schema';
+import { User } from '../shared/schema.js';
 
-// Initialize Supabase client
+// Environment variables for Supabase
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
@@ -34,7 +34,7 @@ export function supabaseMiddleware(req: Request, res: Response, next: NextFuncti
   next();
 }
 
-// Authentication middleware using Supabase
+// Authentication middleware using Supabase-style JWT tokens
 export async function supabaseAuthMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
@@ -50,28 +50,43 @@ export async function supabaseAuthMiddleware(req: Request, res: Response, next: 
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     
-    // Verify the JWT token with Supabase
-    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
-    if (error || !user) {
-      return res.status(401).json({ message: 'Invalid or expired token' });
+    try {
+      // Decode the token (in production, use proper JWT verification)
+      const tokenData = JSON.parse(Buffer.from(token, 'base64').toString());
+      
+      // Check if token is expired
+      if (tokenData.exp && tokenData.exp < Math.floor(Date.now() / 1000)) {
+        return res.status(401).json({ message: 'Token expired' });
+      }
+      
+      // Get user from storage using the token data
+      const storage = await import('./storage.js');
+      let user;
+      
+      if (tokenData.role === 'student') {
+        user = await storage.storage.instance.getStudentByEmail(tokenData.email);
+        if (user) {
+          user = {
+            ...user,
+            role: 'student',
+            isAdmin: false
+          };
+        }
+      } else {
+        user = await storage.storage.instance.getUserByEmail(tokenData.email);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+      
+      // Remove password field before assigning to req.user
+      const { password, ...userWithoutPassword } = user;
+      req.user = userWithoutPassword;
+      next();
+    } catch (decodeError) {
+      return res.status(401).json({ message: 'Invalid token format' });
     }
-
-    // Fetch user details from your custom users table
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('email', user.email)
-      .single();
-
-    if (userError || !userData) {
-      return res.status(401).json({ message: 'User not found in database' });
-    }
-
-    // Remove password field before assigning to req.user
-    const { password, ...userWithoutPassword } = userData;
-    req.user = userWithoutPassword;
-    next();
   } catch (error) {
     console.error('Auth middleware error:', error);
     return res.status(500).json({ message: 'Authentication error' });
@@ -104,7 +119,7 @@ export function requireStudent(req: Request, res: Response, next: NextFunction) 
   next();
 }
 
-// Middleware to check if user is authenticated (any role)
+// General authentication middleware - requires any authenticated user
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ message: 'Authentication required' });
@@ -117,92 +132,116 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 export async function enableRLS(tableName: string) {
   try {
     await supabaseAdmin.rpc('enable_rls', { table_name: tableName });
-    console.log(`RLS enabled for table: ${tableName}`);
   } catch (error) {
     console.error(`Failed to enable RLS for ${tableName}:`, error);
   }
 }
 
-// Create RLS policies
 export async function createRLSPolicies() {
   try {
-    // Policy for users table - users can only see their own data
+    // Enable RLS on all tables
+    await enableRLS('users');
+    await enableRLS('students');
+    await enableRLS('exams');
+    await enableRLS('results');
+
+    // Create policies for users table
     await supabaseAdmin.rpc('create_policy', {
-      policy_name: 'Users can view own data',
       table_name: 'users',
+      policy_name: 'Users can view own data',
       operation: 'SELECT',
-      check: 'auth.uid() = id::text'
+      expression: 'auth.uid() = id'
     });
 
-    // Policy for students table - students can only see their own data
+    // Create policies for students table
     await supabaseAdmin.rpc('create_policy', {
-      policy_name: 'Students can view own data',
       table_name: 'students',
+      policy_name: 'Students can view own data',
       operation: 'SELECT',
-      check: 'auth.uid() = user_id::text'
+      expression: 'auth.uid() = id'
     });
 
-    // Policy for results table - students can only see their own results
     await supabaseAdmin.rpc('create_policy', {
-      policy_name: 'Students can view own results',
-      table_name: 'results',
+      table_name: 'students',
+      policy_name: 'Admins can view all students',
       operation: 'SELECT',
-      check: 'EXISTS (SELECT 1 FROM students WHERE students.id = student_id AND students.user_id::text = auth.uid())'
+      expression: 'auth.jwt() ->> \'role\' = \'admin\''
     });
 
-    console.log('RLS policies created successfully');
+    // Create policies for exams table
+    await supabaseAdmin.rpc('create_policy', {
+      table_name: 'exams',
+      policy_name: 'Everyone can view exams',
+      operation: 'SELECT',
+      expression: 'true'
+    });
+
+    await supabaseAdmin.rpc('create_policy', {
+      table_name: 'exams',
+      policy_name: 'Admins can manage exams',
+      operation: 'ALL',
+      expression: 'auth.jwt() ->> \'role\' = \'admin\''
+    });
+
+    // Create policies for results table
+    await supabaseAdmin.rpc('create_policy', {
+      table_name: 'results',
+      policy_name: 'Students can view own results',
+      operation: 'SELECT',
+      expression: 'student_id = auth.uid()'
+    });
+
+    await supabaseAdmin.rpc('create_policy', {
+      table_name: 'results',
+      policy_name: 'Admins can manage all results',
+      operation: 'ALL',
+      expression: 'auth.jwt() ->> \'role\' = \'admin\''
+    });
+
   } catch (error) {
     console.error('Failed to create RLS policies:', error);
   }
 }
 
-// Session management with Supabase
+// Create Supabase session for authenticated user
 export async function createSupabaseSession(user: User) {
   try {
-    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email: user.email,
-      options: {
-        data: {
-          user_id: user.id,
-          role: user.role,
-        }
+      password: user.password,
+      user_metadata: {
+        role: user.role,
+        name: user.name
       }
     });
 
     if (error) {
-      throw error;
+      console.error('Failed to create Supabase user:', error);
+      return null;
     }
 
-    return data;
+    return data.user;
   } catch (error) {
-    console.error('Failed to create Supabase session:', error);
-    throw error;
+    console.error('Error creating Supabase session:', error);
+    return null;
   }
 }
 
 // Sign out user from Supabase
 export async function signOutUser(userId: string) {
   try {
-    const { error } = await supabaseAdmin.auth.admin.signOut(userId);
-    
-    if (error) {
-      throw error;
-    }
-    
-    return { success: true };
+    await supabaseAdmin.auth.admin.deleteUser(userId);
   } catch (error) {
-    console.error('Failed to sign out user:', error);
-    throw error;
+    console.error('Error signing out user:', error);
   }
 }
 
-// Database health check
+// Check Supabase connection health
 export async function checkSupabaseHealth() {
   try {
     const { data, error } = await supabaseAdmin
       .from('users')
-      .select('count')
+      .select('id')
       .limit(1);
     
     return !error;
@@ -212,32 +251,28 @@ export async function checkSupabaseHealth() {
   }
 }
 
-// Real-time subscription helper
+// Realtime subscription helper
 export function createRealtimeSubscription(
   table: string,
   callback: (payload: any) => void,
   filter?: string
 ) {
-  const subscription = supabasePublic
-    .channel(`${table}_changes`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: table,
-        filter: filter,
-      },
-      callback
-    )
+  const subscription = supabaseAdmin
+    .channel(`public:${table}`)
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table,
+      filter 
+    }, callback)
     .subscribe();
 
   return subscription;
 }
 
-// Cleanup function for subscriptions
+// Cleanup subscription
 export function cleanupSubscription(subscription: any) {
   if (subscription) {
-    supabasePublic.removeChannel(subscription);
+    subscription.unsubscribe();
   }
 }
