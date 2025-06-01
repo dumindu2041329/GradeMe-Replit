@@ -95,36 +95,48 @@ export async function supabaseAuthMiddleware(req: Request, res: Response, next: 
 
 // Middleware to require admin role
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
+  const user = req.user || req.session?.user;
+  
+  if (!user) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
   
-  if (req.user.role !== 'admin') {
+  if (user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required' });
   }
   
+  // Set req.user for consistency
+  req.user = user;
   next();
 }
 
 // Middleware to require student role
 export function requireStudent(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
+  const user = req.user || req.session?.user;
+  
+  if (!user) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
   
-  if (req.user.role !== 'student') {
+  if (user.role !== 'student') {
     return res.status(403).json({ message: 'Student access required' });
   }
   
+  // Set req.user for consistency
+  req.user = user;
   next();
 }
 
 // General authentication middleware - requires any authenticated user
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
+  const user = req.user || req.session?.user;
+  
+  if (!user) {
     return res.status(401).json({ message: 'Authentication required' });
   }
   
+  // Set req.user for consistency
+  req.user = user;
   next();
 }
 
