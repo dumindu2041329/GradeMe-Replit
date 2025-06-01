@@ -1,7 +1,7 @@
 import { eq, and, desc, sql } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 import { getDb } from './db-connection.js';
-import { users, students, exams, results } from '../shared/schema.js';
+import { users, students, exams, results, examPapers, questions, questionTypeEnum } from '../shared/schema.js';
 import type { 
   User, 
   Student, 
@@ -9,10 +9,14 @@ import type {
   Result, 
   ResultWithDetails, 
   StudentDashboardData,
+  ExamPaper,
+  Question,
   InsertUser,
   InsertStudent,
   InsertExam,
-  InsertResult 
+  InsertResult,
+  InsertExamPaper,
+  InsertQuestion
 } from '../shared/schema.js';
 import type { IStorage } from './storage.js';
 
@@ -338,5 +342,75 @@ export class SupabaseStorage implements IStorage {
       availableExams,
       examHistory: studentResults,
     };
+  }
+
+  // Paper operations
+  async getPapers(): Promise<ExamPaper[]> {
+    const result = await this.db.select().from(examPapers);
+    return result;
+  }
+
+  async getPaper(id: number): Promise<ExamPaper | undefined> {
+    const result = await this.db.select().from(examPapers).where(eq(examPapers.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getPaperByExamId(examId: number): Promise<ExamPaper | undefined> {
+    const result = await this.db.select().from(examPapers).where(eq(examPapers.examId, examId)).limit(1);
+    return result[0];
+  }
+
+  async createPaper(paperData: InsertExamPaper): Promise<ExamPaper> {
+    const result = await this.db.insert(examPapers).values(paperData).returning();
+    return result[0];
+  }
+
+  async updatePaper(id: number, paperData: Partial<InsertExamPaper>): Promise<ExamPaper | undefined> {
+    const updateData = { ...paperData, updatedAt: new Date() };
+    const result = await this.db.update(examPapers)
+      .set(updateData)
+      .where(eq(examPapers.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deletePaper(id: number): Promise<boolean> {
+    const result = await this.db.delete(examPapers).where(eq(examPapers.id, id));
+    return Array.isArray(result) ? result.length > 0 : false;
+  }
+
+  // Question operations
+  async getQuestions(): Promise<Question[]> {
+    const result = await this.db.select().from(questions);
+    return result;
+  }
+
+  async getQuestion(id: number): Promise<Question | undefined> {
+    const result = await this.db.select().from(questions).where(eq(questions.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getQuestionsByPaperId(paperId: number): Promise<Question[]> {
+    const result = await this.db.select().from(questions).where(eq(questions.paperId, paperId));
+    return result;
+  }
+
+  async createQuestion(questionData: InsertQuestion): Promise<Question> {
+    const result = await this.db.insert(questions).values(questionData).returning();
+    return result[0];
+  }
+
+  async updateQuestion(id: number, questionData: Partial<InsertQuestion>): Promise<Question | undefined> {
+    const updateData = { ...questionData, updatedAt: new Date() };
+    const result = await this.db.update(questions)
+      .set(updateData)
+      .where(eq(questions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteQuestion(id: number): Promise<boolean> {
+    const result = await this.db.delete(questions).where(eq(questions.id, id));
+    return Array.isArray(result) ? result.length > 0 : false;
   }
 }

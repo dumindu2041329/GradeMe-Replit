@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/ui/data-table";
-import { PlusCircle, Pencil, Trash2, FileQuestion, Search } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, FileQuestion, Search, FileText } from "lucide-react";
 import { Exam } from "@shared/schema";
 import { ExamModal } from "@/components/modals/exam-modal";
 import { format } from "date-fns";
@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export default function Exams() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +31,7 @@ export default function Exams() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   
   const { data: exams = [], isLoading } = useQuery<Exam[]>({
     queryKey: ["/api/exams"],
@@ -151,6 +153,14 @@ export default function Exams() {
       accessorKey: "id" as keyof Exam,
       cell: (exam: Exam) => (
         <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigate(`/admin/exams/${exam.id}/paper`)}
+            title="Create Question Paper"
+          >
+            <FileText className="h-4 w-4 text-green-500" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => handleEditExam(exam)}>
             <Pencil className="h-4 w-4 text-blue-500" />
           </Button>

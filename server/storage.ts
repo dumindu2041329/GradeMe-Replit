@@ -1,4 +1,4 @@
-import type { User, Student, Exam, Result, ResultWithDetails, StudentDashboardData } from "@shared/schema";
+import type { User, Student, Exam, Result, ResultWithDetails, StudentDashboardData, ExamPaper, Question } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -43,6 +43,22 @@ export interface IStorage {
   
   // Student dashboard data
   getStudentDashboardData(studentId: number): Promise<StudentDashboardData>;
+
+  // Paper operations
+  getPapers(): Promise<ExamPaper[]>;
+  getPaper(id: number): Promise<ExamPaper | undefined>;
+  getPaperByExamId(examId: number): Promise<ExamPaper | undefined>;
+  createPaper(paper: any): Promise<ExamPaper>;
+  updatePaper(id: number, paper: Partial<any>): Promise<ExamPaper | undefined>;
+  deletePaper(id: number): Promise<boolean>;
+
+  // Question operations
+  getQuestions(): Promise<Question[]>;
+  getQuestion(id: number): Promise<Question | undefined>;
+  getQuestionsByPaperId(paperId: number): Promise<Question[]>;
+  createQuestion(question: any): Promise<Question>;
+  updateQuestion(id: number, question: Partial<any>): Promise<Question | undefined>;
+  deleteQuestion(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -50,20 +66,28 @@ export class MemStorage implements IStorage {
   private students: Map<number, Student>;
   private exams: Map<number, Exam>;
   private results: Map<number, Result>;
+  private papers: Map<number, ExamPaper>;
+  private questions: Map<number, Question>;
   private userIdCounter: number;
   private studentIdCounter: number;
   private examIdCounter: number;
   private resultIdCounter: number;
+  private paperIdCounter: number;
+  private questionIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.students = new Map();
     this.exams = new Map();
     this.results = new Map();
+    this.papers = new Map();
+    this.questions = new Map();
     this.userIdCounter = 1;
     this.studentIdCounter = 1;
     this.examIdCounter = 1;
     this.resultIdCounter = 1;
+    this.paperIdCounter = 1;
+    this.questionIdCounter = 1;
     
     // Initialize with sample data
     this.initSampleData();
@@ -343,6 +367,94 @@ export class MemStorage implements IStorage {
       )
     };
   }
+
+  // Paper operations
+  async getPapers(): Promise<ExamPaper[]> {
+    return this.mapToArray(this.papers);
+  }
+
+  async getPaper(id: number): Promise<ExamPaper | undefined> {
+    return this.papers.get(id);
+  }
+
+  async getPaperByExamId(examId: number): Promise<ExamPaper | undefined> {
+    const papers = this.mapToArray(this.papers);
+    return papers.find(paper => paper.examId === examId);
+  }
+
+  async createPaper(paperData: any): Promise<ExamPaper> {
+    const id = this.paperIdCounter++;
+    const newPaper: ExamPaper = { 
+      ...paperData, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.papers.set(id, newPaper);
+    return newPaper;
+  }
+
+  async updatePaper(id: number, paperData: Partial<any>): Promise<ExamPaper | undefined> {
+    const existingPaper = this.papers.get(id);
+    if (!existingPaper) {
+      return undefined;
+    }
+    const updatedPaper = { 
+      ...existingPaper, 
+      ...paperData,
+      updatedAt: new Date()
+    };
+    this.papers.set(id, updatedPaper);
+    return updatedPaper;
+  }
+
+  async deletePaper(id: number): Promise<boolean> {
+    return this.papers.delete(id);
+  }
+
+  // Question operations
+  async getQuestions(): Promise<Question[]> {
+    return this.mapToArray(this.questions);
+  }
+
+  async getQuestion(id: number): Promise<Question | undefined> {
+    return this.questions.get(id);
+  }
+
+  async getQuestionsByPaperId(paperId: number): Promise<Question[]> {
+    const questions = this.mapToArray(this.questions);
+    return questions.filter(question => question.paperId === paperId);
+  }
+
+  async createQuestion(questionData: any): Promise<Question> {
+    const id = this.questionIdCounter++;
+    const newQuestion: Question = { 
+      ...questionData, 
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.questions.set(id, newQuestion);
+    return newQuestion;
+  }
+
+  async updateQuestion(id: number, questionData: Partial<any>): Promise<Question | undefined> {
+    const existingQuestion = this.questions.get(id);
+    if (!existingQuestion) {
+      return undefined;
+    }
+    const updatedQuestion = { 
+      ...existingQuestion, 
+      ...questionData,
+      updatedAt: new Date()
+    };
+    this.questions.set(id, updatedQuestion);
+    return updatedQuestion;
+  }
+
+  async deleteQuestion(id: number): Promise<boolean> {
+    return this.questions.delete(id);
+  }
 }
 
 // Use Supabase storage implementation
@@ -386,5 +498,21 @@ export const storage = {
   updateResult: (id: number, result: any) => storage.instance.updateResult(id, result),
   deleteResult: (id: number) => storage.instance.deleteResult(id),
   getStatistics: () => storage.instance.getStatistics(),
-  getStudentDashboardData: (studentId: number) => storage.instance.getStudentDashboardData(studentId)
+  getStudentDashboardData: (studentId: number) => storage.instance.getStudentDashboardData(studentId),
+  
+  // Paper operations
+  getPapers: () => storage.instance.getPapers(),
+  getPaper: (id: number) => storage.instance.getPaper(id),
+  getPaperByExamId: (examId: number) => storage.instance.getPaperByExamId(examId),
+  createPaper: (paper: any) => storage.instance.createPaper(paper),
+  updatePaper: (id: number, paper: any) => storage.instance.updatePaper(id, paper),
+  deletePaper: (id: number) => storage.instance.deletePaper(id),
+  
+  // Question operations
+  getQuestions: () => storage.instance.getQuestions(),
+  getQuestion: (id: number) => storage.instance.getQuestion(id),
+  getQuestionsByPaperId: (paperId: number) => storage.instance.getQuestionsByPaperId(paperId),
+  createQuestion: (question: any) => storage.instance.createQuestion(question),
+  updateQuestion: (id: number, question: any) => storage.instance.updateQuestion(id, question),
+  deleteQuestion: (id: number) => storage.instance.deleteQuestion(id)
 };

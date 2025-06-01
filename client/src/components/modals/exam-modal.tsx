@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLocation } from "wouter";
 
 const formSchema = insertExamSchema.extend({
   date: z.date(),
@@ -38,6 +39,7 @@ interface ExamModalProps {
 export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const defaultValues: Partial<ExamFormValues> = {
     name: exam?.name || "",
@@ -73,6 +75,14 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           description: `Exam "${newExam.name}" created successfully`,
         });
         
+        // Force refresh the queries to get the latest data
+        await queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+        
+        // Close modal and redirect to paper creation page
+        onOpenChange(false);
+        navigate(`/admin/exams/${newExam.id}/paper`);
+        
         // Reset form fields on successful creation
         form.reset({
           name: "",
@@ -90,12 +100,12 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           title: "Success",
           description: `Exam "${updatedExam.name}" updated successfully`,
         });
+        
+        // Force refresh the queries to get the latest data
+        await queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+        onOpenChange(false);
       }
-      
-      // Force refresh the queries to get the latest data
-      await queryClient.invalidateQueries({ queryKey: ["/api/exams"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
-      onOpenChange(false);
     } catch (error) {
       console.error("Error submitting exam form:", error);
       toast({

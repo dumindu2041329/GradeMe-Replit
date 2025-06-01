@@ -12,6 +12,8 @@ import Exams from "@/pages/exams";
 import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
+import PaperCreationPage from "@/pages/paper-creation";
+
 
 import StudentDashboard from "@/pages/student-dashboard";
 import StudentExams from "@/pages/student-exams";
@@ -192,6 +194,12 @@ function Router() {
         <Route path="/exams">
           <ProtectedRoute>
             <Exams />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/admin/exams/:examId/paper">
+          <ProtectedRoute>
+            <PaperCreationPage />
           </ProtectedRoute>
         </Route>
         

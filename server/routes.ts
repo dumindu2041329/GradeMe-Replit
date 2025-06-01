@@ -529,5 +529,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Paper CRUD operations
+  app.get("/api/papers/:examId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const paper = await storage.getPaperByExamId(examId);
+      res.json(paper);
+    } catch (error) {
+      console.error("Error fetching paper:", error);
+      res.status(500).json({ message: "Failed to fetch paper" });
+    }
+  });
+
+  app.post("/api/papers", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const paperData = {
+        ...req.body,
+        examId: parseInt(req.body.examId),
+        totalQuestions: parseInt(req.body.totalQuestions) || 0,
+        totalMarks: parseInt(req.body.totalMarks) || 0
+      };
+      
+      const paper = await storage.createPaper(paperData);
+      res.status(201).json(paper);
+    } catch (error) {
+      console.error("Error creating paper:", error);
+      res.status(500).json({ message: "Failed to create paper" });
+    }
+  });
+
+  app.put("/api/papers/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const paperData = {
+        ...req.body,
+        ...(req.body.totalQuestions && { totalQuestions: parseInt(req.body.totalQuestions) }),
+        ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
+      };
+      
+      const paper = await storage.updatePaper(id, paperData);
+      if (!paper) {
+        return res.status(404).json({ message: "Paper not found" });
+      }
+      res.json(paper);
+    } catch (error) {
+      console.error("Error updating paper:", error);
+      res.status(500).json({ message: "Failed to update paper" });
+    }
+  });
+
+  // Question CRUD operations
+  app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const paperId = parseInt(req.params.paperId);
+      const questions = await storage.getQuestionsByPaperId(paperId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching questions:", error);
+      res.status(500).json({ message: "Failed to fetch questions" });
+    }
+  });
+
+  app.post("/api/questions", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const questionData = {
+        ...req.body,
+        paperId: parseInt(req.body.paperId),
+        marks: parseInt(req.body.marks),
+        orderIndex: parseInt(req.body.orderIndex)
+      };
+      
+      const question = await storage.createQuestion(questionData);
+      res.status(201).json(question);
+    } catch (error) {
+      console.error("Error creating question:", error);
+      res.status(500).json({ message: "Failed to create question" });
+    }
+  });
+
+  app.put("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const questionData = {
+        ...req.body,
+        ...(req.body.marks && { marks: parseInt(req.body.marks) }),
+        ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
+      };
+      
+      const question = await storage.updateQuestion(id, questionData);
+      if (!question) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      res.json(question);
+    } catch (error) {
+      console.error("Error updating question:", error);
+      res.status(500).json({ message: "Failed to update question" });
+    }
+  });
+
+  app.delete("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteQuestion(id);
+      if (!success) {
+        return res.status(404).json({ message: "Question not found" });
+      }
+      res.json({ message: "Question deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      res.status(500).json({ message: "Failed to delete question" });
+    }
+  });
+
   return createServer(app);
 }
