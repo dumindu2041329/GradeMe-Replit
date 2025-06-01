@@ -228,11 +228,11 @@
   }
   
   .sidebar-link {
-    @apply flex items-center px-4 py-3 text-sidebar-foreground hover:bg-sidebar-accent rounded-md transition-all duration-200 font-medium;
+    @apply flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-all duration-200 font-medium;
   }
   
   .sidebar-link.active {
-    @apply bg-sidebar-accent border-l-2 border-primary text-primary;
+    @apply bg-gray-100 dark:bg-gray-800 border-l-2 border-primary text-primary;
   }
   
   /* Animation for mobile sidebar */

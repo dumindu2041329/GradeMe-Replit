@@ -134,10 +134,10 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md glass-modal">
+      <DialogContent className="sm:max-w-md login-modal-dark" aria-describedby="login-description">
         <DialogHeader>
           <DialogTitle>{isAdmin ? "Admin Login" : "Student Login"}</DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="login-description">
             {loginSuccess
               ? `You are currently logged in as ${isAdmin ? 'an admin' : 'a student'}`
               : `Enter your credentials to access the ${isAdmin ? 'admin' : 'student'} portal`

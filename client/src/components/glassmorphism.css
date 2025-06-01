@@ -226,3 +226,53 @@
 :root:not(.light) .glass-hover-card:hover {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
+/* Login modal that stays dark regardless of theme */
+.login-modal-dark {
+  background: rgba(20, 22, 36, 0.4) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  color: hsl(213, 31%, 91%) !important;
+}
+
+/* Ensure all text elements inside login modal are light colored */
+.login-modal-dark * {
+  color: hsl(213, 31%, 91%) !important;
+}
+
+/* Override any light theme colors for the login modal */
+.login-modal-dark .text-muted-foreground {
+  color: hsl(215, 20%, 65%) !important;
+}
+
+/* Dark input styling for login modal */
+.login-modal-dark .glass-input {
+  background: rgba(20, 22, 36, 0.6) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: hsl(213, 31%, 91%) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.login-modal-dark .glass-input:focus {
+  background: rgba(20, 22, 36, 0.7) !important;
+  border: 1px solid rgba(124, 58, 237, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.3) !important;
+}
+
+.login-modal-dark .glass-input::placeholder {
+  color: hsl(215, 20%, 65%) !important;
+}
+
+/* Dark button styling for login modal */
+.login-modal-dark .glass-button {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.8) 0%, rgba(124, 58, 237, 0.6) 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+}
+
+.login-modal-dark .glass-button:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.9) 0%, rgba(124, 58, 237, 0.7) 100%) !important;
+}

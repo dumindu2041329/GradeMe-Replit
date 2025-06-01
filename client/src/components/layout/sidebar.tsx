@@ -51,10 +51,10 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
 
   return (
     <div className={cn(
-      "w-64 bg-sidebar-background border-r border-sidebar-border flex flex-col",
+      "w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors duration-200",
       className || "h-screen max-h-screen hidden md:flex"
     )}>
-      <div className="h-16 min-h-16 flex items-center border-b border-sidebar-border px-6">
+      <div className="h-16 min-h-16 flex items-center border-b border-gray-200 dark:border-gray-800 px-6">
         <div 
           className="flex items-center gap-2 cursor-pointer" 
           onClick={goToHome}
@@ -84,7 +84,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
         </nav>
 
         <div className="mt-auto px-3 space-y-1">
-          <Separator className="my-4 bg-sidebar-border" />
+          <Separator className="my-4 bg-gray-200 dark:bg-gray-800" />
           
           <div className="w-full px-3 py-2">
             <ThemeToggle />
