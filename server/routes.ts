@@ -548,7 +548,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/papers/:examId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const examId = parseInt(req.params.examId);
-      const paper = await storage.getPaperByExamId(examId);
+      let paper = await storage.getPaperByExamId(examId);
+      
+      // If no paper exists for this exam, create one automatically
+      if (!paper) {
+        const exam = await storage.getExam(examId);
+        if (exam) {
+          const paperData = {
+            examId: examId,
+            title: `${exam.name} Question Paper`,
+            instructions: "Read all questions carefully before answering.",
+            totalQuestions: 0,
+            totalMarks: 0
+          };
+          paper = await storage.createPaper(paperData);
+        }
+      }
       res.json(paper);
     } catch (error) {
       console.error("Error fetching paper:", error);

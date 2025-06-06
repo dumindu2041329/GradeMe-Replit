@@ -6,7 +6,8 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = parseInt(req.params.paperId);
-      const questions = await questionFileStorage.getQuestionsByPaperId(paperId);
+      const examId = req.query.examId ? parseInt(req.query.examId as string) : undefined;
+      const questions = await questionFileStorage.getQuestionsByPaperId(paperId, examId);
       res.json(questions);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -105,7 +106,8 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   app.get("/api/question-file/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = parseInt(req.params.paperId);
-      const questionFile = await questionFileStorage.getQuestionFile(paperId);
+      const examId = req.query.examId ? parseInt(req.query.examId as string) : undefined;
+      const questionFile = await questionFileStorage.getQuestionFile(paperId, examId);
       
       if (!questionFile) {
         return res.status(404).json({ message: "Question file not found" });
@@ -139,6 +141,51 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
     } catch (error) {
       console.error("Error saving question file:", error);
       res.status(500).json({ message: "Failed to save question file" });
+    }
+  });
+
+  // Get all questions for an entire exam (all papers)
+  app.get("/api/exam-questions/:examId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const examQuestions = await questionFileStorage.getAllQuestionsByExamId(examId);
+      res.json(examQuestions);
+    } catch (error) {
+      console.error("Error fetching exam questions:", error);
+      res.status(500).json({ message: "Failed to fetch exam questions" });
+    }
+  });
+
+  // Delete all questions for an entire exam
+  app.delete("/api/exam-questions/:examId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const success = await questionFileStorage.deleteAllQuestionsForExam(examId);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete exam questions" });
+      }
+      
+      res.json({ message: "All exam questions deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting exam questions:", error);
+      res.status(500).json({ message: "Failed to delete exam questions" });
+    }
+  });
+
+  // Manual bucket creation endpoint for troubleshooting
+  app.post("/api/storage/create-bucket", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const success = await questionFileStorage.createBucketManually();
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to create storage bucket" });
+      }
+      
+      res.json({ message: "Storage bucket created successfully" });
+    } catch (error) {
+      console.error("Error creating storage bucket:", error);
+      res.status(500).json({ message: "Failed to create storage bucket" });
     }
   });
 }

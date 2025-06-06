@@ -151,7 +151,7 @@ export default function PaperCreationPage() {
         paperId: paper?.id || 0,
         orderIndex: questions.length,
       };
-      return apiRequest<Question>("POST", "/api/questions", questionData);
+      return apiRequest<Question>("POST", "/api/questions", { ...questionData, examId: examId || 0 });
     },
     onSuccess: () => {
       toast({
