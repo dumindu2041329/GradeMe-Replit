@@ -1,13 +1,12 @@
 import { Request, Response, Express } from 'express';
-import { questionFileStorage } from './question-file-storage.js';
+import { storage } from './storage.js';
 
 export function registerQuestionRoutes(app: Express, requireAdmin: any) {
-  // Get questions for a specific paper - now using file storage
+  // Get questions for a specific paper - using database storage
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = parseInt(req.params.paperId);
-      const examId = req.query.examId ? parseInt(req.query.examId as string) : undefined;
-      const questions = await questionFileStorage.getQuestionsByPaperId(paperId, examId);
+      const questions = await storage.getQuestionsByPaperId(paperId);
       res.json(questions);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -15,30 +14,31 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
     }
   });
 
-  // Create a new question - now using file storage
+  // Create a new question - using database storage
   app.post("/api/questions", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = parseInt(req.body.paperId);
-      const examId = parseInt(req.body.examId);
       
-      if (!paperId || !examId) {
-        return res.status(400).json({ message: "paperId and examId are required" });
+      if (!paperId) {
+        return res.status(400).json({ message: "paperId is required" });
       }
 
       const questionData = {
-        question: req.body.question,
+        paperId: paperId,
         type: req.body.type,
-        options: req.body.options,
-        correctAnswer: req.body.correctAnswer,
+        questionText: req.body.questionText || req.body.question,
         marks: parseInt(req.body.marks),
-        orderIndex: parseInt(req.body.orderIndex)
+        orderIndex: parseInt(req.body.orderIndex),
+        optionA: req.body.optionA || null,
+        optionB: req.body.optionB || null,
+        optionC: req.body.optionC || null,
+        optionD: req.body.optionD || null,
+        correctAnswer: req.body.correctAnswer || null,
+        expectedAnswer: req.body.expectedAnswer || null,
+        answerGuidelines: req.body.answerGuidelines || null
       };
       
-      const question = await questionFileStorage.addQuestion(paperId, examId, questionData);
-      
-      if (!question) {
-        return res.status(500).json({ message: "Failed to create question" });
-      }
+      const question = await storage.createQuestion(questionData);
       
       res.status(201).json(question);
     } catch (error) {
@@ -47,27 +47,29 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
     }
   });
 
-  // Update a question - now using file storage
+  // Update a question - using database storage
   app.put("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const questionId = req.params.id;
-      const paperId = parseInt(req.body.paperId);
-      const examId = parseInt(req.body.examId);
+      const questionId = parseInt(req.params.id);
       
-      if (!paperId || !examId) {
-        return res.status(400).json({ message: "paperId and examId are required" });
+      const updateData: any = {};
+      if (req.body.questionText || req.body.question) {
+        updateData.questionText = req.body.questionText || req.body.question;
       }
-
-      const updateData = {
-        ...(req.body.question && { question: req.body.question }),
-        ...(req.body.type && { type: req.body.type }),
-        ...(req.body.options && { options: req.body.options }),
-        ...(req.body.correctAnswer && { correctAnswer: req.body.correctAnswer }),
-        ...(req.body.marks && { marks: parseInt(req.body.marks) }),
-        ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
-      };
+      if (req.body.type) {
+        updateData.type = req.body.type;
+      }
+      if (req.body.optionA !== undefined) updateData.optionA = req.body.optionA;
+      if (req.body.optionB !== undefined) updateData.optionB = req.body.optionB;
+      if (req.body.optionC !== undefined) updateData.optionC = req.body.optionC;
+      if (req.body.optionD !== undefined) updateData.optionD = req.body.optionD;
+      if (req.body.correctAnswer !== undefined) updateData.correctAnswer = req.body.correctAnswer;
+      if (req.body.expectedAnswer !== undefined) updateData.expectedAnswer = req.body.expectedAnswer;
+      if (req.body.answerGuidelines !== undefined) updateData.answerGuidelines = req.body.answerGuidelines;
+      if (req.body.marks) updateData.marks = parseInt(req.body.marks);
+      if (req.body.orderIndex !== undefined) updateData.orderIndex = parseInt(req.body.orderIndex);
       
-      const question = await questionFileStorage.updateQuestion(paperId, examId, questionId, updateData);
+      const question = await storage.updateQuestion(questionId, updateData);
       
       if (!question) {
         return res.status(404).json({ message: "Question not found" });
@@ -79,18 +81,12 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
     }
   });
 
-  // Delete a question - now using file storage
+  // Delete a question - using database storage
   app.delete("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const questionId = req.params.id;
-      const paperId = parseInt(req.body.paperId || req.query.paperId as string);
-      const examId = parseInt(req.body.examId || req.query.examId as string);
+      const questionId = parseInt(req.params.id);
       
-      if (!paperId || !examId) {
-        return res.status(400).json({ message: "paperId and examId are required" });
-      }
-      
-      const success = await questionFileStorage.deleteQuestion(paperId, examId, questionId);
+      const success = await storage.deleteQuestion(questionId);
       
       if (!success) {
         return res.status(404).json({ message: "Question not found" });
@@ -102,90 +98,4 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
     }
   });
 
-  // Get complete question file for a paper (for editing)
-  app.get("/api/question-file/:paperId", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const paperId = parseInt(req.params.paperId);
-      const examId = req.query.examId ? parseInt(req.query.examId as string) : undefined;
-      const questionFile = await questionFileStorage.getQuestionFile(paperId, examId);
-      
-      if (!questionFile) {
-        return res.status(404).json({ message: "Question file not found" });
-      }
-      
-      res.json(questionFile);
-    } catch (error) {
-      console.error("Error fetching question file:", error);
-      res.status(500).json({ message: "Failed to fetch question file" });
-    }
-  });
-
-  // Bulk save questions for a paper (for editing)
-  app.put("/api/question-file/:paperId", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const paperId = parseInt(req.params.paperId);
-      const examId = parseInt(req.body.examId);
-      const questions = req.body.questions;
-      
-      if (!examId || !Array.isArray(questions)) {
-        return res.status(400).json({ message: "examId and questions array are required" });
-      }
-      
-      const success = await questionFileStorage.saveQuestions(paperId, examId, questions);
-      
-      if (!success) {
-        return res.status(500).json({ message: "Failed to save questions" });
-      }
-      
-      res.json({ message: "Questions saved successfully" });
-    } catch (error) {
-      console.error("Error saving question file:", error);
-      res.status(500).json({ message: "Failed to save question file" });
-    }
-  });
-
-  // Get all questions for an entire exam (all papers)
-  app.get("/api/exam-questions/:examId", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const examId = parseInt(req.params.examId);
-      const examQuestions = await questionFileStorage.getAllQuestionsByExamId(examId);
-      res.json(examQuestions);
-    } catch (error) {
-      console.error("Error fetching exam questions:", error);
-      res.status(500).json({ message: "Failed to fetch exam questions" });
-    }
-  });
-
-  // Delete all questions for an entire exam
-  app.delete("/api/exam-questions/:examId", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const examId = parseInt(req.params.examId);
-      const success = await questionFileStorage.deleteAllQuestionsForExam(examId);
-      
-      if (!success) {
-        return res.status(500).json({ message: "Failed to delete exam questions" });
-      }
-      
-      res.json({ message: "All exam questions deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting exam questions:", error);
-      res.status(500).json({ message: "Failed to delete exam questions" });
-    }
-  });
-
-  // Manual bucket creation endpoint for troubleshooting
-  app.post("/api/storage/create-bucket", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const success = await questionFileStorage.createBucketManually();
-      
-      if (!success) {
-        return res.status(500).json({ message: "Failed to create storage bucket" });
-      }
-      
-      res.json({ message: "Storage bucket created successfully" });
-    } catch (error) {
-      console.error("Error creating storage bucket:", error);
-      res.status(500).json({ message: "Failed to create storage bucket" });
-    }
-  });
 }

@@ -608,103 +608,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Question CRUD operations
-  app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const paperId = parseInt(req.params.paperId);
-      const { questionFileStorage } = await import('./question-file-storage.js');
-      const questions = await questionFileStorage.getQuestionsByPaperId(paperId);
-      res.json(questions);
-    } catch (error) {
-      console.error("Error fetching questions:", error);
-      res.status(500).json({ message: "Failed to fetch questions" });
-    }
-  });
-
-  app.post("/api/questions", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const questionData = {
-        ...req.body,
-        paperId: parseInt(req.body.paperId),
-        marks: parseInt(req.body.marks),
-        orderIndex: parseInt(req.body.orderIndex)
-      };
-      
-      const paperId = parseInt(req.body.paperId);
-      const examId = parseInt(req.body.examId);
-      
-      const { questionFileStorage } = await import('./question-file-storage.js');
-      const question = await questionFileStorage.addQuestion(paperId, examId, {
-        question: req.body.question,
-        type: req.body.type,
-        options: req.body.options,
-        correctAnswer: req.body.correctAnswer,
-        marks: parseInt(req.body.marks),
-        orderIndex: parseInt(req.body.orderIndex)
-      });
-      
-      if (!question) {
-        return res.status(500).json({ message: "Failed to create question" });
-      }
-      res.status(201).json(question);
-    } catch (error) {
-      console.error("Error creating question:", error);
-      res.status(500).json({ message: "Failed to create question" });
-    }
-  });
-
-  app.put("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const questionData = {
-        ...req.body,
-        ...(req.body.marks && { marks: parseInt(req.body.marks) }),
-        ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
-      };
-      
-      const questionId = req.params.id;
-      const paperId = parseInt(req.body.paperId);
-      const examId = parseInt(req.body.examId);
-      
-      const { questionFileStorage } = await import('./question-file-storage.js');
-      const question = await questionFileStorage.updateQuestion(paperId, examId, questionId, {
-        ...(req.body.question && { question: req.body.question }),
-        ...(req.body.type && { type: req.body.type }),
-        ...(req.body.options && { options: req.body.options }),
-        ...(req.body.correctAnswer && { correctAnswer: req.body.correctAnswer }),
-        ...(req.body.marks && { marks: parseInt(req.body.marks) }),
-        ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
-      });
-      if (!question) {
-        return res.status(404).json({ message: "Question not found" });
-      }
-      res.json(question);
-    } catch (error) {
-      console.error("Error updating question:", error);
-      res.status(500).json({ message: "Failed to update question" });
-    }
-  });
-
-  app.delete("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      const questionId = req.params.id;
-      const paperId = parseInt(req.body.paperId || req.query.paperId as string);
-      const examId = parseInt(req.body.examId || req.query.examId as string);
-      
-      const { questionFileStorage } = await import('./question-file-storage.js');
-      const success = await questionFileStorage.deleteQuestion(paperId, examId, questionId);
-      if (!success) {
-        return res.status(404).json({ message: "Question not found" });
-      }
-      res.json({ message: "Question deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting question:", error);
-      res.status(500).json({ message: "Failed to delete question" });
-    }
-  });
 
 
+
+  // Register question routes
+  const { registerQuestionRoutes } = await import('./question-routes.js');
+  registerQuestionRoutes(app, requireAdmin);
 
   return createServer(app);
 }
