@@ -167,7 +167,6 @@ export default function PaperCreationPage() {
             <h1 className="text-3xl font-bold">Create Question Paper</h1>
             <p className="text-muted-foreground">
               <span className="text-lg font-semibold text-primary block">Exam {examId}</span>
-              <span className="text-sm">Frontend Only - No Database</span>
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -229,7 +228,7 @@ export default function PaperCreationPage() {
                 />
                 
                 <Button type="submit">
-                  Save Paper Details (UI Only)
+                  Save Paper Details
                 </Button>
               </form>
             </Form>
