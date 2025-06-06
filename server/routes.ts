@@ -410,6 +410,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get individual exam by ID
+  app.get("/api/exams/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const exam = await storage.getExam(id);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      res.json(exam);
+    } catch (error) {
+      console.error("Error fetching exam:", error);
+      res.status(500).json({ message: "Failed to fetch exam" });
+    }
+  });
+
   app.post("/api/exams", requireAdmin, async (req: Request, res: Response) => {
     try {
       // Convert date string to Date object
@@ -582,7 +597,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = parseInt(req.params.paperId);
-      const questions = await storage.getQuestionsByPaperId(paperId);
+      const { questionFileStorage } = await import('./question-file-storage.js');
+      const questions = await questionFileStorage.getQuestionsByPaperId(paperId);
       res.json(questions);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -599,7 +615,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderIndex: parseInt(req.body.orderIndex)
       };
       
-      const question = await storage.createQuestion(questionData);
+      const paperId = parseInt(req.body.paperId);
+      const examId = parseInt(req.body.examId);
+      
+      const { questionFileStorage } = await import('./question-file-storage.js');
+      const question = await questionFileStorage.addQuestion(paperId, examId, {
+        question: req.body.question,
+        type: req.body.type,
+        options: req.body.options,
+        correctAnswer: req.body.correctAnswer,
+        marks: parseInt(req.body.marks),
+        orderIndex: parseInt(req.body.orderIndex)
+      });
+      
+      if (!question) {
+        return res.status(500).json({ message: "Failed to create question" });
+      }
       res.status(201).json(question);
     } catch (error) {
       console.error("Error creating question:", error);
@@ -616,7 +647,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
       };
       
-      const question = await storage.updateQuestion(id, questionData);
+      const questionId = req.params.id;
+      const paperId = parseInt(req.body.paperId);
+      const examId = parseInt(req.body.examId);
+      
+      const { questionFileStorage } = await import('./question-file-storage.js');
+      const question = await questionFileStorage.updateQuestion(paperId, examId, questionId, {
+        ...(req.body.question && { question: req.body.question }),
+        ...(req.body.type && { type: req.body.type }),
+        ...(req.body.options && { options: req.body.options }),
+        ...(req.body.correctAnswer && { correctAnswer: req.body.correctAnswer }),
+        ...(req.body.marks && { marks: parseInt(req.body.marks) }),
+        ...(req.body.orderIndex && { orderIndex: parseInt(req.body.orderIndex) })
+      });
       if (!question) {
         return res.status(404).json({ message: "Question not found" });
       }
@@ -630,7 +673,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await storage.deleteQuestion(id);
+      const questionId = req.params.id;
+      const paperId = parseInt(req.body.paperId || req.query.paperId as string);
+      const examId = parseInt(req.body.examId || req.query.examId as string);
+      
+      const { questionFileStorage } = await import('./question-file-storage.js');
+      const success = await questionFileStorage.deleteQuestion(paperId, examId, questionId);
       if (!success) {
         return res.status(404).json({ message: "Question not found" });
       }
@@ -640,6 +688,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete question" });
     }
   });
+
+
 
   return createServer(app);
 }

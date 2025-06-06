@@ -246,7 +246,8 @@ export default function PaperCreationPage() {
           <div>
             <h1 className="text-3xl font-bold">Create Question Paper</h1>
             <p className="text-muted-foreground">
-              {exam?.name} - {exam?.subject}
+              <span className="text-lg font-semibold text-primary block">{exam?.name}</span>
+              <span className="text-sm">Subject: {exam?.subject}</span>
             </p>
           </div>
           <div className="flex items-center gap-4">
