@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRoute, useLocation } from "wouter";
+import { Exam } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,10 +70,16 @@ interface Question {
 }
 
 export default function PaperCreationPage() {
-  const [match, params] = useRoute("/admin/exams/:examId/paper");
+  const [match, params] = useRoute("/exams/:examId/paper");
   const examId = params?.examId ? parseInt(params.examId) : null;
   const { toast } = useToast();
   const [, navigate] = useLocation();
+
+  // Fetch exam details to get the exam name
+  const { data: exam } = useQuery<Exam>({
+    queryKey: [`/api/exams/${examId}`],
+    enabled: !!examId,
+  });
   
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
@@ -166,7 +174,9 @@ export default function PaperCreationPage() {
           <div>
             <h1 className="text-3xl font-bold">Create Question Paper</h1>
             <p className="text-muted-foreground">
-              <span className="text-lg font-semibold text-primary block">Exam {examId}</span>
+              <span className="text-lg font-semibold text-primary block">
+                {exam?.name || `Exam ${examId}`}
+              </span>
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -537,7 +547,7 @@ export default function PaperCreationPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Continue Editing</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => navigate("/admin/exams")}
+              onClick={() => navigate("/exams")}
               className="bg-red-600 hover:bg-red-700"
             >
               Yes, Cancel

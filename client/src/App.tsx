@@ -20,7 +20,7 @@ import StudentExams from "@/pages/student-exams";
 import StudentResults from "@/pages/student-results";
 import StudentExamPage from "@/pages/student-exam-page";
 import StudentProfile from "@/pages/student-profile";
-import StudentProfileClear from "@/pages/student-profile-clear";
+
 import StudentAcademicInfo from "@/pages/student-academic-info";
 import LandingPage from "@/pages/landing";
 
@@ -197,7 +197,7 @@ function Router() {
           </ProtectedRoute>
         </Route>
         
-        <Route path="/admin/exams/:examId/paper">
+        <Route path="/exams/:examId/paper">
           <ProtectedRoute>
             <PaperCreationPage />
           </ProtectedRoute>

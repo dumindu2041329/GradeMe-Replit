@@ -80,7 +80,7 @@ type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-export default function StudentProfileClear() {
+export default function StudentProfile() {
   const { user, setUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

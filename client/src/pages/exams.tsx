@@ -156,7 +156,7 @@ export default function Exams() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => navigate(`/admin/exams/${exam.id}/paper`)}
+            onClick={() => navigate(`/exams/${exam.id}/paper`)}
             title="Create Question Paper"
           >
             <FileText className="h-4 w-4 text-green-500" />
