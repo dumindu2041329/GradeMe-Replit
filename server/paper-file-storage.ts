@@ -186,7 +186,8 @@ export class PaperFileStorage {
         .from(this.bucketName)
         .upload(fileName, JSON.stringify(fullPaperData, null, 2), {
           cacheControl: '3600',
-          upsert: true
+          upsert: true,
+          contentType: 'application/json'
         });
       
       if (error) {
@@ -234,12 +235,16 @@ export class PaperFileStorage {
 
   async addQuestion(examId: number, questionData: Omit<QuestionData, 'id' | 'createdAt' | 'updatedAt'>): Promise<QuestionData | null> {
     try {
+      console.log('Adding question to examId:', examId, 'questionData:', questionData);
+      
       const existingPaper = await this.getPaperByExamId(examId);
       
       if (!existingPaper) {
         console.error('Paper not found for exam ID:', examId);
         return null;
       }
+      
+      console.log('Existing paper found:', existingPaper.id, 'current questions:', existingPaper.questions.length);
       
       const now = new Date().toISOString();
       const newQuestion: QuestionData = {
@@ -249,7 +254,10 @@ export class PaperFileStorage {
         updatedAt: now
       };
       
+      console.log('New question created:', newQuestion.id);
+      
       const updatedQuestions = [...existingPaper.questions, newQuestion];
+      console.log('Updated questions count:', updatedQuestions.length);
       
       const updatedPaper: Omit<PaperData, 'id' | 'examId' | 'createdAt' | 'updatedAt' | 'metadata'> = {
         ...existingPaper,
@@ -258,7 +266,10 @@ export class PaperFileStorage {
         totalMarks: updatedQuestions.reduce((sum, q) => sum + q.marks, 0)
       };
       
+      console.log('About to save paper with', updatedPaper.questions.length, 'questions');
       const savedPaper = await this.savePaper(examId, updatedPaper);
+      console.log('Paper saved successfully:', !!savedPaper);
+      
       return savedPaper ? newQuestion : null;
     } catch (error) {
       console.error('Error adding question:', error);

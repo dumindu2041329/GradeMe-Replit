@@ -5,10 +5,20 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   // Get questions for a specific paper - using file storage
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const paperId = parseInt(req.params.paperId);
+      const paperId = req.params.paperId;
+      // Extract examId from paper ID if it's a string like "paper_5_new"
+      let examId: number;
+      
+      if (paperId.startsWith('paper_')) {
+        const match = paperId.match(/paper_(\d+)_/);
+        examId = match ? parseInt(match[1]) : parseInt(paperId);
+      } else {
+        examId = parseInt(paperId);
+      }
+      
       // For file storage, we need examId instead of paperId
       // We'll get the paper data which contains questions
-      const paper = await paperFileStorage.getPaperByExamId(paperId);
+      const paper = await paperFileStorage.getPaperByExamId(examId);
       const questions = paper ? paper.questions : [];
       res.json(questions);
     } catch (error) {
@@ -20,18 +30,46 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   // Create a new question - using file storage
   app.post("/api/questions", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const examId = parseInt(req.body.examId || req.body.paperId);
+      let examId: number;
       
-      if (!examId) {
-        return res.status(400).json({ message: "examId is required" });
+      // Handle both examId and paperId
+      if (req.body.examId) {
+        examId = parseInt(req.body.examId);
+      } else if (req.body.paperId) {
+        // Extract examId from paperId if it's in format "paper_5_new" or similar
+        const paperId = req.body.paperId;
+        if (typeof paperId === 'string' && paperId.startsWith('paper_')) {
+          const match = paperId.match(/paper_(\d+)_/);
+          examId = match ? parseInt(match[1]) : parseInt(paperId);
+        } else {
+          examId = parseInt(paperId);
+        }
+      } else {
+        return res.status(400).json({ message: "examId or paperId is required" });
+      }
+      
+      if (!examId || isNaN(examId)) {
+        return res.status(400).json({ message: "Valid examId is required" });
       }
 
+      // Map frontend question types to backend types
+      const typeMapping: { [key: string]: string } = {
+        'mcq': 'multiple_choice',
+        'written': 'short_answer',
+        'essay': 'essay',
+        'true_false': 'true_false',
+        'multiple_choice': 'multiple_choice',
+        'short_answer': 'short_answer'
+      };
+
+      const questionType = typeMapping[req.body.type] || req.body.type;
+
       const questionData = {
-        type: req.body.type,
+        type: questionType,
         question: req.body.questionText || req.body.question,
         marks: parseInt(req.body.marks),
-        orderIndex: parseInt(req.body.orderIndex),
-        options: req.body.type === 'multiple_choice' ? [
+        orderIndex: parseInt(req.body.orderIndex) || 0,
+        options: (questionType === 'multiple_choice' && req.body.type === 'mcq') ? [
           req.body.optionA,
           req.body.optionB,
           req.body.optionC,
@@ -57,10 +95,27 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   app.put("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const questionId = req.params.id;
-      const examId = parseInt(req.body.examId);
+      let examId: number;
       
-      if (!examId) {
-        return res.status(400).json({ message: "examId is required" });
+      // Handle both examId and paperId, or extract from query
+      if (req.body.examId) {
+        examId = parseInt(req.body.examId);
+      } else if (req.body.paperId) {
+        const paperId = req.body.paperId;
+        if (typeof paperId === 'string' && paperId.startsWith('paper_')) {
+          const match = paperId.match(/paper_(\d+)_/);
+          examId = match ? parseInt(match[1]) : parseInt(paperId);
+        } else {
+          examId = parseInt(paperId);
+        }
+      } else if (req.query.examId) {
+        examId = parseInt(req.query.examId as string);
+      } else {
+        return res.status(400).json({ message: "examId or paperId is required" });
+      }
+      
+      if (!examId || isNaN(examId)) {
+        return res.status(400).json({ message: "Valid examId is required" });
       }
       
       const updateData: any = {};
@@ -100,10 +155,27 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
   app.delete("/api/questions/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const questionId = req.params.id;
-      const examId = parseInt(req.body.examId || req.query.examId as string);
+      let examId: number;
       
-      if (!examId) {
-        return res.status(400).json({ message: "examId is required" });
+      // Handle examId from query params or body
+      if (req.query.examId) {
+        examId = parseInt(req.query.examId as string);
+      } else if (req.body.examId) {
+        examId = parseInt(req.body.examId);
+      } else if (req.query.paperId) {
+        const paperId = req.query.paperId as string;
+        if (paperId.startsWith('paper_')) {
+          const match = paperId.match(/paper_(\d+)_/);
+          examId = match ? parseInt(match[1]) : parseInt(paperId);
+        } else {
+          examId = parseInt(paperId);
+        }
+      } else {
+        return res.status(400).json({ message: "examId is required as query parameter" });
+      }
+      
+      if (!examId || isNaN(examId)) {
+        return res.status(400).json({ message: "Valid examId is required" });
       }
       
       const success = await paperFileStorage.deleteQuestion(examId, questionId);

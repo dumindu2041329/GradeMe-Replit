@@ -74,15 +74,24 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch questions for the paper
-  const { data: questions = [], isLoading: isQuestionsLoading } = useQuery<DbQuestion[]>({
-    queryKey: [`/api/questions/${paper?.id}`],
-    enabled: !!paper?.id,
-  });
-  
+  // Local state for questions (managed in frontend until paper update)
+  const [localQuestions, setLocalQuestions] = useState<DbQuestion[]>([]);
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<DbQuestion | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+
+  // Fetch questions for the paper only to initialize local state
+  const { data: savedQuestions = [], isLoading: isQuestionsLoading } = useQuery<DbQuestion[]>({
+    queryKey: [`/api/questions/${paper?.id}`],
+    enabled: !!paper?.id,
+  });
+
+  // Initialize local questions from saved questions
+  useEffect(() => {
+    if (savedQuestions.length > 0 && localQuestions.length === 0) {
+      setLocalQuestions(savedQuestions);
+    }
+  }, [savedQuestions]);
 
   // Paper form
   const paperForm = useForm<PaperFormValues>({
@@ -156,16 +165,28 @@ export default function PaperCreationPage() {
 
   const updatePaperMutation = useMutation({
     mutationFn: async (data: PaperFormValues) => {
+      // Update paper with all local questions
       return apiRequest("PUT", `/api/papers/${paper!.id}`, {
         title: data.title,
         instructions: data.instructions || "",
+        questions: localQuestions.map(q => ({
+          type: q.type,
+          question: q.questionText,
+          marks: q.marks,
+          orderIndex: q.orderIndex,
+          options: q.type === 'mcq' ? [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean) : undefined,
+          correctAnswer: q.correctAnswer || q.expectedAnswer || null
+        })),
+        totalQuestions: localQuestions.length,
+        totalMarks: localQuestions.reduce((sum, q) => sum + q.marks, 0)
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/papers/${examId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
       toast({
         title: "Success",
-        description: "Paper details updated successfully",
+        description: `Paper updated with ${localQuestions.length} questions saved to storage`,
       });
     },
     onError: (error) => {
@@ -177,105 +198,47 @@ export default function PaperCreationPage() {
     },
   });
 
-  // Mutations for question operations
-  const createQuestionMutation = useMutation({
-    mutationFn: async (data: QuestionFormValues) => {
-      return apiRequest("POST", "/api/questions", {
-        paperId: paper!.id,
-        type: data.type,
-        questionText: data.questionText,
-        marks: data.marks,
-        orderIndex: questions.length,
-        optionA: data.optionA || null,
-        optionB: data.optionB || null,
-        optionC: data.optionC || null,
-        optionD: data.optionD || null,
-        correctAnswer: data.correctAnswer || null,
-        expectedAnswer: data.expectedAnswer || null,
-        answerGuidelines: data.answerGuidelines || null,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
-      questionForm.reset({
-        type: "mcq",
-        questionText: "",
-        marks: 1,
-        optionA: undefined,
-        optionB: undefined,
-        optionC: undefined,
-        optionD: undefined,
-        correctAnswer: undefined,
-        expectedAnswer: undefined,
-        answerGuidelines: undefined,
-      });
-      setIsCreatingQuestion(false);
-      toast({
-        title: "Success",
-        description: "Question added successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to add question",
-        variant: "destructive",
-      });
-    },
-  });
+  // Local question operations (no API calls until paper update)
+  const addQuestionToLocal = (data: QuestionFormValues) => {
+    const newQuestion: DbQuestion = {
+      id: Date.now(), // Temporary ID for local state
+      paperId: paper?.id || 0,
+      type: data.type,
+      questionText: data.questionText,
+      marks: data.marks,
+      orderIndex: localQuestions.length,
+      optionA: data.optionA || null,
+      optionB: data.optionB || null,
+      optionC: data.optionC || null,
+      optionD: data.optionD || null,
+      correctAnswer: data.correctAnswer || null,
+      expectedAnswer: data.expectedAnswer || null,
+      answerGuidelines: data.answerGuidelines || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-  const updateQuestionMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: QuestionFormValues }) => {
-      return apiRequest("PUT", `/api/questions/${id}`, {
-        type: data.type,
-        questionText: data.questionText,
-        marks: data.marks,
-        optionA: data.optionA || null,
-        optionB: data.optionB || null,
-        optionC: data.optionC || null,
-        optionD: data.optionD || null,
-        correctAnswer: data.correctAnswer || null,
-        expectedAnswer: data.expectedAnswer || null,
-        answerGuidelines: data.answerGuidelines || null,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
-      setEditingQuestion(null);
-      questionForm.reset();
-      toast({
-        title: "Success",
-        description: "Question updated successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update question",
-        variant: "destructive",
-      });
-    },
-  });
+    setLocalQuestions(prev => [...prev, newQuestion]);
+    questionForm.reset({
+      type: "mcq",
+      questionText: "",
+      marks: 1,
+      optionA: undefined,
+      optionB: undefined,
+      optionC: undefined,
+      optionD: undefined,
+      correctAnswer: undefined,
+      expectedAnswer: undefined,
+      answerGuidelines: undefined,
+    });
+    setIsCreatingQuestion(false);
+    toast({
+      title: "Success",
+      description: "Question added to paper (will be saved when you update paper details)",
+    });
+  };
 
-  const deleteQuestionMutation = useMutation({
-    mutationFn: async (questionId: number) => {
-      return apiRequest("DELETE", `/api/questions/${questionId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
-      toast({
-        title: "Success",
-        description: "Question deleted successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to delete question",
-        variant: "destructive",
-      });
-    },
-  });
+
 
   const onPaperSubmit = (data: PaperFormValues) => {
     if (paper) {
@@ -287,15 +250,46 @@ export default function PaperCreationPage() {
 
   const onQuestionSubmit = (data: QuestionFormValues) => {
     if (editingQuestion) {
-      updateQuestionMutation.mutate({ id: editingQuestion.id, data });
+      updateQuestionLocal(editingQuestion.id, data);
     } else {
-      createQuestionMutation.mutate(data);
+      addQuestionToLocal(data);
     }
+  };
+
+  const updateQuestionLocal = (questionId: number, data: QuestionFormValues) => {
+    setLocalQuestions(prev => prev.map(q => 
+      q.id === questionId 
+        ? {
+            ...q,
+            type: data.type,
+            questionText: data.questionText,
+            marks: data.marks,
+            optionA: data.optionA || null,
+            optionB: data.optionB || null,
+            optionC: data.optionC || null,
+            optionD: data.optionD || null,
+            correctAnswer: data.correctAnswer || null,
+            expectedAnswer: data.expectedAnswer || null,
+            answerGuidelines: data.answerGuidelines || null,
+            updatedAt: new Date(),
+          }
+        : q
+    ));
+    setEditingQuestion(null);
+    questionForm.reset();
+    toast({
+      title: "Success",
+      description: "Question updated (will be saved when you update paper details)",
+    });
   };
 
   const handleDeleteQuestion = (questionId: number) => {
     if (confirm("Are you sure you want to delete this question?")) {
-      deleteQuestionMutation.mutate(questionId);
+      setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
+      toast({
+        title: "Success",
+        description: "Question deleted (will be saved when you update paper details)",
+      });
     }
   };
 
@@ -335,7 +329,7 @@ export default function PaperCreationPage() {
           </div>
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="text-sm">
-              {questions.length} Questions
+              {localQuestions.length} Questions
             </Badge>
             <Button
               variant="outline"
@@ -408,7 +402,7 @@ export default function PaperCreationPage() {
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5" />
-                Questions ({questions.length})
+                Questions ({localQuestions.length})
               </span>
               <Button
                 onClick={() => setIsCreatingQuestion(true)}
@@ -429,7 +423,7 @@ export default function PaperCreationPage() {
             )}
             
             {/* Existing Questions */}
-            {!isQuestionsLoading && questions.map((question, index) => (
+            {!isQuestionsLoading && localQuestions.map((question: DbQuestion, index: number) => (
               <div key={question.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -482,7 +476,7 @@ export default function PaperCreationPage() {
               </div>
             ))}
 
-            {!isQuestionsLoading && questions.length === 0 && (
+            {!isQuestionsLoading && localQuestions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No questions added yet</p>
@@ -684,13 +678,11 @@ export default function PaperCreationPage() {
                   <div className="flex gap-2 pt-4">
                     <Button 
                       type="submit" 
-                      disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending || !paper}
+                      disabled={!paper}
                     >
-                      {createQuestionMutation.isPending || updateQuestionMutation.isPending 
-                        ? "Saving..." 
-                        : editingQuestion 
-                          ? "Update Question" 
-                          : "Add Question"
+                      {editingQuestion 
+                        ? "Update Question" 
+                        : "Add Question"
                       }
                     </Button>
                     <Button 

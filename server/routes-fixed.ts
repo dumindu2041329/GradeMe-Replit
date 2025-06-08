@@ -539,10 +539,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // FIXED: Properly handle string-based paper IDs and save questions
+  // FIXED: Properly handle string-based paper IDs
   app.put("/api/papers/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = req.params.id; // Keep as string - don't parseInt
+      const paperData = {
+        ...req.body,
+        ...(req.body.totalQuestions && { totalQuestions: parseInt(req.body.totalQuestions) }),
+        ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
+      };
       
       // Extract examId from paper ID or use examId from request body
       let examId = req.body.examId;
@@ -554,46 +559,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!examId) {
         return res.status(400).json({ message: "examId is required" });
       }
-
-      console.log('Updating paper with questions:', req.body.questions?.length || 0);
-
-      // If questions are provided, save the complete paper with questions
-      if (req.body.questions && Array.isArray(req.body.questions)) {
-        const paperData = {
-          title: req.body.title,
-          instructions: req.body.instructions || "",
-          totalQuestions: parseInt(req.body.totalQuestions) || req.body.questions.length,
-          totalMarks: parseInt(req.body.totalMarks) || req.body.questions.reduce((sum: number, q: any) => sum + (q.marks || 0), 0),
-          questions: req.body.questions.map((q: any, index: number) => ({
-            id: `question_${examId}_${Date.now()}_${index}`,
-            question: q.question || q.questionText,
-            type: q.type === 'mcq' ? 'multiple_choice' : q.type,
-            marks: parseInt(q.marks) || 1,
-            orderIndex: q.orderIndex !== undefined ? parseInt(q.orderIndex) : index,
-            options: q.options || (q.type === 'mcq' ? [q.optionA, q.optionB, q.optionC, q.optionD].filter(Boolean) : undefined),
-            correctAnswer: q.correctAnswer || null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }))
-        };
-
-        const paper = await paperFileStorage.savePaper(parseInt(examId), paperData);
-        if (!paper) {
-          return res.status(500).json({ message: "Failed to save paper with questions" });
-        }
-        console.log('Paper saved with', paper.questions.length, 'questions');
-        res.json(paper);
-      } else {
-        // If no questions provided, just update paper details
-        const paper = await paperFileStorage.updatePaperDetails(parseInt(examId), {
-          title: req.body.title,
-          instructions: req.body.instructions
-        });
-        if (!paper) {
-          return res.status(404).json({ message: "Paper not found" });
-        }
-        res.json(paper);
+      
+      const paper = await paperFileStorage.updatePaperDetails(parseInt(examId), {
+        title: req.body.title,
+        instructions: req.body.instructions
+      });
+      if (!paper) {
+        return res.status(404).json({ message: "Paper not found" });
       }
+      res.json(paper);
     } catch (error) {
       console.error("Error updating paper:", error);
       res.status(500).json({ message: "Failed to update paper" });
