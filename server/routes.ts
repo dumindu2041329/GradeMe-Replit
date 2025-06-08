@@ -15,6 +15,7 @@ import {
   createSupabaseSession,
   signOutUser
 } from "./supabase-middleware";
+import { paperFileStorage } from "./paper-file-storage.js";
 
 // Session types for TypeScript
 declare module "express-session" {
@@ -548,20 +549,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/papers/:examId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const examId = parseInt(req.params.examId);
-      let paper = await storage.getPaperByExamId(examId);
+      let paper = await paperFileStorage.getPaperByExamId(examId);
       
-      // If no paper exists for this exam, create one automatically
+      // If no paper exists for this exam, return a basic structure
       if (!paper) {
         const exam = await storage.getExam(examId);
         if (exam) {
-          const paperData = {
+          paper = {
+            id: `paper_${examId}_new`,
             examId: examId,
             title: `${exam.name} Question Paper`,
             instructions: "Read all questions carefully before answering.",
             totalQuestions: 0,
-            totalMarks: 0
+            totalMarks: 0,
+            questions: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            metadata: {
+              examName: exam.name,
+              lastUpdated: new Date().toISOString(),
+              version: '1.0'
+            }
           };
-          paper = await storage.createPaper(paperData);
         }
       }
       res.json(paper);
@@ -580,7 +589,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalMarks: parseInt(req.body.totalMarks) || 0
       };
       
-      const paper = await storage.createPaper(paperData);
+      const paper = await paperFileStorage.savePaper(parseInt(req.body.examId), {
+        title: req.body.title || "",
+        instructions: req.body.instructions || "",
+        totalQuestions: 0,
+        totalMarks: 0,
+        questions: []
+      });
       res.status(201).json(paper);
     } catch (error) {
       console.error("Error creating paper:", error);
@@ -597,7 +612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
       };
       
-      const paper = await storage.updatePaper(id, paperData);
+      const paper = await paperFileStorage.updatePaperDetails(id, {
+        title: req.body.title,
+        instructions: req.body.instructions
+      });
       if (!paper) {
         return res.status(404).json({ message: "Paper not found" });
       }
