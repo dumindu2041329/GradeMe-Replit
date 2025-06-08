@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRoute, useLocation } from "wouter";
-import { Exam } from "@shared/schema";
+import { Exam, ExamPaper, Question as DbQuestion, insertExamPaperSchema, insertQuestionSchema } from "@shared/schema";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,15 +25,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, FileText, CheckCircle, Trash2, Edit2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
-const paperSchema = z.object({
-  title: z.string().min(2, "Title must be at least 2 characters"),
+// Use schemas from shared schema with extended validation
+const paperFormSchema = insertExamPaperSchema.omit({ examId: true, totalQuestions: true, totalMarks: true }).extend({
   instructions: z.string().optional(),
 });
 
-const questionSchema = z.object({
+const questionFormSchema = insertQuestionSchema.omit({ paperId: true, orderIndex: true }).extend({
   type: z.enum(["mcq", "written"]),
-  questionText: z.string().min(5, "Question text must be at least 5 characters"),
   marks: z.coerce.number().min(1, "Marks must be at least 1"),
   optionA: z.string().optional(),
   optionB: z.string().optional(),
@@ -52,114 +52,268 @@ const questionSchema = z.object({
   path: ["optionA"]
 });
 
-type PaperFormValues = z.infer<typeof paperSchema>;
-type QuestionFormValues = z.infer<typeof questionSchema>;
-
-interface Question {
-  id: number;
-  type: "mcq" | "written";
-  questionText: string;
-  marks: number;
-  optionA?: string;
-  optionB?: string;
-  optionC?: string;
-  optionD?: string;
-  correctAnswer?: string;
-  expectedAnswer?: string;
-  answerGuidelines?: string;
-}
+type PaperFormValues = z.infer<typeof paperFormSchema>;
+type QuestionFormValues = z.infer<typeof questionFormSchema>;
 
 export default function PaperCreationPage() {
   const [match, params] = useRoute("/exams/:examId/paper");
   const examId = params?.examId ? parseInt(params.examId) : null;
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   // Fetch exam details to get the exam name
   const { data: exam } = useQuery<Exam>({
     queryKey: [`/api/exams/${examId}`],
     enabled: !!examId,
   });
+
+  // Fetch existing paper for this exam
+  const { data: paper, isLoading: isPaperLoading } = useQuery<ExamPaper>({
+    queryKey: [`/api/papers/${examId}`],
+    enabled: !!examId,
+  });
+
+  // Fetch questions for the paper
+  const { data: questions = [], isLoading: isQuestionsLoading } = useQuery<DbQuestion[]>({
+    queryKey: [`/api/questions/${paper?.id}`],
+    enabled: !!paper?.id,
+  });
   
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState<DbQuestion | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [nextQuestionId, setNextQuestionId] = useState(1);
 
   // Paper form
   const paperForm = useForm<PaperFormValues>({
-    resolver: zodResolver(paperSchema),
+    resolver: zodResolver(paperFormSchema),
     defaultValues: {
-      title: "Question Paper",
-      instructions: "Read all questions carefully before answering.",
+      title: "",
+      instructions: "",
     },
   });
 
   // Question form
   const questionForm = useForm<QuestionFormValues>({
-    resolver: zodResolver(questionSchema),
+    resolver: zodResolver(questionFormSchema),
     defaultValues: {
       type: "mcq",
       questionText: "",
       marks: 1,
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      correctAnswer: "",
-      expectedAnswer: "",
-      answerGuidelines: "",
+      optionA: undefined,
+      optionB: undefined,
+      optionC: undefined,
+      optionD: undefined,
+      correctAnswer: undefined,
+      expectedAnswer: undefined,
+      answerGuidelines: undefined,
     },
   });
 
+  // Update paper form when paper data is loaded
+  useEffect(() => {
+    if (paper) {
+      paperForm.reset({
+        title: paper.title,
+        instructions: paper.instructions || "",
+      });
+    } else if (exam) {
+      paperForm.reset({
+        title: `${exam.name} Question Paper`,
+        instructions: "Read all questions carefully before answering.",
+      });
+    }
+  }, [paper, exam, paperForm]);
+
   const selectedQuestionType = questionForm.watch("type");
 
+  // Mutations for paper operations
+  const createPaperMutation = useMutation({
+    mutationFn: async (data: PaperFormValues) => {
+      return apiRequest("POST", "/api/papers", {
+        examId: examId!,
+        title: data.title,
+        instructions: data.instructions || "",
+        totalQuestions: 0,
+        totalMarks: 0,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/papers/${examId}`] });
+      toast({
+        title: "Success",
+        description: "Paper details saved successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save paper details",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePaperMutation = useMutation({
+    mutationFn: async (data: PaperFormValues) => {
+      return apiRequest("PUT", `/api/papers/${paper!.id}`, {
+        title: data.title,
+        instructions: data.instructions || "",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/papers/${examId}`] });
+      toast({
+        title: "Success",
+        description: "Paper details updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update paper details",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutations for question operations
+  const createQuestionMutation = useMutation({
+    mutationFn: async (data: QuestionFormValues) => {
+      return apiRequest("POST", "/api/questions", {
+        paperId: paper!.id,
+        type: data.type,
+        questionText: data.questionText,
+        marks: data.marks,
+        orderIndex: questions.length,
+        optionA: data.optionA || null,
+        optionB: data.optionB || null,
+        optionC: data.optionC || null,
+        optionD: data.optionD || null,
+        correctAnswer: data.correctAnswer || null,
+        expectedAnswer: data.expectedAnswer || null,
+        answerGuidelines: data.answerGuidelines || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
+      questionForm.reset({
+        type: "mcq",
+        questionText: "",
+        marks: 1,
+        optionA: undefined,
+        optionB: undefined,
+        optionC: undefined,
+        optionD: undefined,
+        correctAnswer: undefined,
+        expectedAnswer: undefined,
+        answerGuidelines: undefined,
+      });
+      setIsCreatingQuestion(false);
+      toast({
+        title: "Success",
+        description: "Question added successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add question",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateQuestionMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: QuestionFormValues }) => {
+      return apiRequest("PUT", `/api/questions/${id}`, {
+        type: data.type,
+        questionText: data.questionText,
+        marks: data.marks,
+        optionA: data.optionA || null,
+        optionB: data.optionB || null,
+        optionC: data.optionC || null,
+        optionD: data.optionD || null,
+        correctAnswer: data.correctAnswer || null,
+        expectedAnswer: data.expectedAnswer || null,
+        answerGuidelines: data.answerGuidelines || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
+      setEditingQuestion(null);
+      questionForm.reset();
+      toast({
+        title: "Success",
+        description: "Question updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update question",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async (questionId: number) => {
+      return apiRequest("DELETE", `/api/questions/${questionId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper?.id}`] });
+      toast({
+        title: "Success",
+        description: "Question deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete question",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onPaperSubmit = (data: PaperFormValues) => {
-    toast({
-      title: "Success",
-      description: "Paper details saved (UI only - no backend)",
-    });
+    if (paper) {
+      updatePaperMutation.mutate(data);
+    } else {
+      createPaperMutation.mutate(data);
+    }
   };
 
   const onQuestionSubmit = (data: QuestionFormValues) => {
-    const newQuestion: Question = {
-      id: nextQuestionId,
-      ...data,
-    };
-    
-    setQuestions(prev => [...prev, newQuestion]);
-    setNextQuestionId(prev => prev + 1);
-    
-    questionForm.reset({
-      type: "mcq",
-      questionText: "",
-      marks: 1,
-      optionA: "",
-      optionB: "",
-      optionC: "",
-      optionD: "",
-      correctAnswer: "",
-      expectedAnswer: "",
-      answerGuidelines: "",
-    });
-    
-    setIsCreatingQuestion(false);
-    
-    toast({
-      title: "Success",
-      description: "Question added (UI only - no backend)",
-    });
+    if (editingQuestion) {
+      updateQuestionMutation.mutate({ id: editingQuestion.id, data });
+    } else {
+      createQuestionMutation.mutate(data);
+    }
   };
 
   const handleDeleteQuestion = (questionId: number) => {
     if (confirm("Are you sure you want to delete this question?")) {
-      setQuestions(prev => prev.filter(q => q.id !== questionId));
-      toast({
-        title: "Success",
-        description: "Question deleted (UI only - no backend)",
-      });
+      deleteQuestionMutation.mutate(questionId);
     }
+  };
+
+  const handleEditQuestion = (question: DbQuestion) => {
+    setEditingQuestion(question);
+    questionForm.reset({
+      type: question.type,
+      questionText: question.questionText,
+      marks: question.marks,
+      optionA: question.optionA || undefined,
+      optionB: question.optionB || undefined,
+      optionC: question.optionC || undefined,
+      optionD: question.optionD || undefined,
+      correctAnswer: question.correctAnswer || undefined,
+      expectedAnswer: question.expectedAnswer || undefined,
+      answerGuidelines: question.answerGuidelines || undefined,
+    });
+    setIsCreatingQuestion(true);
   };
 
   if (!match || !examId) {
@@ -237,8 +391,11 @@ export default function PaperCreationPage() {
                   )}
                 />
                 
-                <Button type="submit">
-                  Save Paper Details
+                <Button 
+                  type="submit" 
+                  disabled={createPaperMutation.isPending || updatePaperMutation.isPending}
+                >
+                  {createPaperMutation.isPending || updatePaperMutation.isPending ? "Saving..." : paper ? "Update Paper Details" : "Save Paper Details"}
                 </Button>
               </form>
             </Form>
@@ -263,8 +420,16 @@ export default function PaperCreationPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Loading state */}
+            {isQuestionsLoading && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading questions...</p>
+              </div>
+            )}
+            
             {/* Existing Questions */}
-            {questions.map((question, index) => (
+            {!isQuestionsLoading && questions.map((question, index) => (
               <div key={question.id} className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -301,7 +466,7 @@ export default function PaperCreationPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setEditingQuestion(question)}
+                      onClick={() => handleEditQuestion(question)}
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -317,7 +482,7 @@ export default function PaperCreationPage() {
               </div>
             ))}
 
-            {questions.length === 0 && (
+            {!isQuestionsLoading && questions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>No questions added yet</p>
@@ -517,13 +682,25 @@ export default function PaperCreationPage() {
                   )}
                   
                   <div className="flex gap-2 pt-4">
-                    <Button type="submit">
-                      Add Question (UI Only)
+                    <Button 
+                      type="submit" 
+                      disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending || !paper}
+                    >
+                      {createQuestionMutation.isPending || updateQuestionMutation.isPending 
+                        ? "Saving..." 
+                        : editingQuestion 
+                          ? "Update Question" 
+                          : "Add Question"
+                      }
                     </Button>
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => setIsCreatingQuestion(false)}
+                      onClick={() => {
+                        setIsCreatingQuestion(false);
+                        setEditingQuestion(null);
+                        questionForm.reset();
+                      }}
                     >
                       Cancel
                     </Button>
