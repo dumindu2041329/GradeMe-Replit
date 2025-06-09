@@ -1,11 +1,13 @@
 import { Request, Response, Express } from 'express';
 import { paperFileStorage } from './paper-file-storage.js';
 
-export function registerQuestionRoutes(app: Express, requireAdmin: any) {
+export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcastUpdate?: (type: string, data: any) => void) {
   // Get questions for a specific paper - using file storage
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
     try {
       const paperId = req.params.paperId;
+      console.log('Fetching questions for paperId:', paperId);
+      
       // Extract examId from paper ID if it's a string like "paper_5_new"
       let examId: number;
       
@@ -16,9 +18,18 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
         examId = parseInt(paperId);
       }
       
+      console.log('Extracted examId:', examId);
+      
       // For file storage, we need examId instead of paperId
       // We'll get the paper data which contains questions
       const paper = await paperFileStorage.getPaperByExamId(examId);
+      
+      console.log('Retrieved paper:', paper ? {
+        id: paper.id,
+        examId: paper.examId,
+        title: paper.title,
+        questionsCount: paper.questions.length
+      } : 'null');
       
       // Map storage question format to frontend expected format
       const questions = paper ? paper.questions.map(q => ({
@@ -39,6 +50,7 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
         updatedAt: q.updatedAt
       })) : [];
       
+      console.log('Returning questions count:', questions.length);
       res.json(questions);
     } catch (error) {
       console.error("Error fetching questions:", error);
@@ -103,6 +115,11 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
         return res.status(400).json({ message: "Failed to create question" });
       }
       
+      // Broadcast question creation to connected clients
+      if (broadcastUpdate) {
+        broadcastUpdate('questions_updated', { examId, paperId: req.body.paperId, action: 'created', question });
+      }
+      
       res.status(201).json(question);
     } catch (error) {
       console.error("Error creating question:", error);
@@ -163,6 +180,12 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
       if (!question) {
         return res.status(404).json({ message: "Question not found" });
       }
+      
+      // Broadcast question update to connected clients
+      if (broadcastUpdate) {
+        broadcastUpdate('questions_updated', { examId, paperId: req.body.paperId, action: 'updated', question });
+      }
+      
       res.json(question);
     } catch (error) {
       console.error("Error updating question:", error);
@@ -202,6 +225,12 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
       if (!success) {
         return res.status(404).json({ message: "Question not found" });
       }
+      
+      // Broadcast question deletion to connected clients
+      if (broadcastUpdate) {
+        broadcastUpdate('questions_updated', { examId, questionId, action: 'deleted' });
+      }
+      
       res.json({ message: "Question deleted successfully" });
     } catch (error) {
       console.error("Error deleting question:", error);

@@ -133,6 +133,18 @@ export class PaperFileStorage {
       await this.ensureBucketExists();
       
       const fileName = await this.getFileName(examId);
+      console.log('Looking for paper file:', fileName);
+      
+      // First, let's list all files in the bucket to see what's there
+      const { data: files, error: listError } = await supabase.storage
+        .from(this.bucketName)
+        .list('', { limit: 100 });
+      
+      if (listError) {
+        console.error('Error listing files:', listError);
+      } else {
+        console.log('Files in exam-papers bucket:', files?.map(f => f.name) || []);
+      }
       
       const { data, error } = await supabase.storage
         .from(this.bucketName)
@@ -140,6 +152,7 @@ export class PaperFileStorage {
       
       if (error) {
         if (error.message.includes('Object not found')) {
+          console.log('Paper file not found:', fileName);
           return null; // Paper doesn't exist yet
         }
         console.error('Error downloading paper:', error);
@@ -148,6 +161,13 @@ export class PaperFileStorage {
       
       const text = await data.text();
       const paperData: PaperData = JSON.parse(text);
+      
+      console.log('Successfully loaded paper:', {
+        id: paperData.id,
+        examId: paperData.examId,
+        title: paperData.title,
+        questionsCount: paperData.questions.length
+      });
       
       return paperData;
     } catch (error) {

@@ -458,7 +458,7 @@ export class MemStorage implements IStorage {
 }
 
 // Use Supabase storage implementation
-import { SupabaseStorage } from './supabase-storage.js';
+import { SupabaseStorage } from './supabase-storage-fixed.js';
 import { isDbConnected } from './db-connection.js';
 
 // Lazy-loaded storage instance

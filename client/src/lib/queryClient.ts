@@ -53,8 +53,8 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      refetchOnWindowFocus: true,
+      staleTime: 0, // Always consider data stale to ensure fresh data from Supabase storage
       retry: false,
     },
     mutations: {

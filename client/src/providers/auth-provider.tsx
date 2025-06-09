@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadUser();
-  }, [toast]);
+  }, []); // Remove toast dependency to prevent infinite loops
 
   const handleLogin = async (email: string, password: string) => {
     try {

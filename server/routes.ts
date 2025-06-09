@@ -9,6 +9,7 @@ import bcrypt from "bcrypt";
 import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from "./supabase-middleware";
 import { paperFileStorage } from "./paper-file-storage";
 import { questionFileStorage } from "./question-file-storage";
+import { registerQuestionRoutes } from "./question-routes";
 
 declare module "express-session" {
   interface SessionData {
@@ -30,6 +31,37 @@ interface LoginCredentials {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // WebSocket server for real-time updates
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients
+  const clients = new Set();
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    clients.add(ws);
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+      clients.delete(ws);
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      clients.delete(ws);
+    });
+  });
+  
+  // Function to broadcast updates to all connected clients
+  const broadcastUpdate = (type: string, data: any) => {
+    const message = JSON.stringify({ type, data });
+    clients.forEach((client: any) => {
+      if (client.readyState === 1) { // WebSocket.OPEN
+        client.send(message);
+      }
+    });
+  };
   
   // Use supabase middleware
   app.use(supabaseMiddleware);
@@ -582,6 +614,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(500).json({ message: "Failed to save paper with questions" });
         }
         console.log('Paper saved with', paper.questions.length, 'questions');
+        
+        // Broadcast paper and questions update to connected clients
+        broadcastUpdate('paper_updated', { examId: parseInt(examId), paperId: paper.id });
+        broadcastUpdate('questions_updated', { examId: parseInt(examId), paperId: paper.id, action: 'bulk_updated', count: paper.questions.length });
+        
         res.json(paper);
       } else {
         // If no questions provided, just update paper details
@@ -592,6 +629,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!paper) {
           return res.status(404).json({ message: "Paper not found" });
         }
+        
+        // Broadcast paper update to connected clients
+        broadcastUpdate('paper_updated', { examId: parseInt(examId), paperId: paper.id });
+        
         res.json(paper);
       }
     } catch (error) {
@@ -599,6 +640,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update paper" });
     }
   });
+
+  // Register question routes with WebSocket broadcast function
+  registerQuestionRoutes(app, requireAdmin, broadcastUpdate);
 
   return httpServer;
 }

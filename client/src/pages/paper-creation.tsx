@@ -81,17 +81,69 @@ export default function PaperCreationPage() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   // Fetch questions for the paper only to initialize local state
-  const { data: savedQuestions = [], isLoading: isQuestionsLoading } = useQuery<DbQuestion[]>({
+  const { data: savedQuestions = [], isLoading: isQuestionsLoading, refetch: refetchQuestions } = useQuery<DbQuestion[]>({
     queryKey: [`/api/questions/${paper?.id}`],
     enabled: !!paper?.id,
+    staleTime: 0, // Force fresh data from Supabase storage
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
 
-  // Initialize local questions from saved questions
+  // Initialize local questions from saved questions and set up real-time updates
   useEffect(() => {
     if (savedQuestions.length > 0) {
       setLocalQuestions(savedQuestions);
+    } else if (savedQuestions.length === 0 && paper?.id) {
+      // Reset local questions when navigating to a different paper
+      setLocalQuestions([]);
     }
-  }, [savedQuestions]);
+  }, [savedQuestions, paper?.id]);
+
+  // Force refresh questions when navigating between pages
+  useEffect(() => {
+    if (paper?.id) {
+      queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper.id}`] });
+    }
+  }, [paper?.id, queryClient, examId]);
+
+  // Set up WebSocket connection for real-time updates
+  useEffect(() => {
+    if (!paper?.id) return;
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log('WebSocket connected for real-time updates');
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'questions_updated' || message.type === 'paper_updated') {
+          console.log('Received update:', message.data);
+          // Force refetch both paper and questions data
+          queryClient.invalidateQueries({ queryKey: [`/api/papers/${examId}`] });
+          queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper.id}`] });
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [paper?.id, queryClient, examId]);
 
   // Paper form
   const paperForm = useForm<PaperFormValues>({
@@ -109,13 +161,13 @@ export default function PaperCreationPage() {
       type: "mcq",
       questionText: "",
       marks: 1,
-      optionA: undefined,
-      optionB: undefined,
-      optionC: undefined,
-      optionD: undefined,
-      correctAnswer: undefined,
-      expectedAnswer: undefined,
-      answerGuidelines: undefined,
+      optionA: "",
+      optionB: "",
+      optionC: "",
+      optionD: "",
+      correctAnswer: "",
+      expectedAnswer: "",
+      answerGuidelines: "",
     },
   });
 
@@ -419,34 +471,49 @@ export default function PaperCreationPage() {
             
             {/* Existing Questions */}
             {!isQuestionsLoading && localQuestions.map((question: DbQuestion, index: number) => (
-              <div key={question.id} className="border rounded-lg p-4 space-y-2">
+              <div key={`${question.id}-${question.updatedAt || Date.now()}`} className="border rounded-lg p-4 space-y-2 bg-card hover:bg-muted/50 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant={question.type === "mcq" ? "default" : "secondary"}>
-                        {question.type.toUpperCase()}
+                        {question.type === "mcq" ? "MCQ" : question.type.toUpperCase()}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
                         Question {index + 1} • {question.marks} marks
                       </span>
                     </div>
-                    <p className="font-medium">{question.questionText}</p>
+                    <p className="font-medium mb-3">{question.questionText}</p>
                     
                     {question.type === "mcq" && (
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                        <div>A) {question.optionA}</div>
-                        <div>B) {question.optionB}</div>
-                        <div>C) {question.optionC}</div>
-                        <div>D) {question.optionD}</div>
-                        <div className="col-span-2 text-green-600 font-medium">
-                          Correct: {question.correctAnswer}
+                      <div className="mt-2 space-y-1 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">A)</span>
+                          <span>{question.optionA}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">B)</span>
+                          <span>{question.optionB}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">C)</span>
+                          <span>{question.optionC}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-blue-600">D)</span>
+                          <span>{question.optionD}</span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-green-200">
+                          <span className="text-green-600 font-medium">
+                            Correct: {question.correctAnswer}
+                          </span>
                         </div>
                       </div>
                     )}
                     
                     {question.type === "written" && question.answerGuidelines && (
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        <strong>Guidelines:</strong> {question.answerGuidelines}
+                      <div className="mt-2 p-2 bg-muted rounded text-sm">
+                        <strong className="text-foreground">Guidelines:</strong> 
+                        <span className="text-muted-foreground ml-1">{question.answerGuidelines}</span>
                       </div>
                     )}
                   </div>
@@ -456,6 +523,7 @@ export default function PaperCreationPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleEditQuestion(question)}
+                      className="hover:bg-blue-50 hover:border-blue-300"
                     >
                       <Edit2 className="h-4 w-4" />
                     </Button>
@@ -463,6 +531,7 @@ export default function PaperCreationPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteQuestion(question.id)}
+                      className="hover:bg-red-50 hover:border-red-300 text-red-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
