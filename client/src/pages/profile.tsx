@@ -192,7 +192,7 @@ export default function ProfilePage() {
       if (user) {
         setUser({
           ...user,
-          profileImage: profileForm.getValues().profileImage,
+          profileImage: profileForm.getValues().profileImage ?? null,
         });
       }
       
@@ -360,7 +360,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <AppShell title="My Profile" sidebar={user?.role === "admin" ? "admin" : "student"}>
+    <AppShell title="My Profile" sidebar={user?.role === "admin" ? "admin" : undefined}>
       <div className="mx-auto max-w-4xl space-y-8">
         <h1 className="text-3xl font-bold">My Profile</h1>
         
@@ -416,14 +416,35 @@ export default function ProfilePage() {
                   
                   <div className="flex-1 flex justify-center items-center">
                     <div className="flex flex-col items-center text-center gap-2 mt-4">
-                      <h3 className="text-xl font-semibold">{user?.name}</h3>
+                      <h3 className="text-xl font-semibold">{user?.name || 'No name available'}</h3>
                       <Badge variant="outline" className="mb-1">
                         {user?.role === 'admin' ? 'Administrator' : 'Student'}
                       </Badge>
-                      <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      {user?.role !== 'admin' && (
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      )}
+                      {user?.role === 'student' && user?.studentId && (
+                        <p className="text-sm text-muted-foreground">
+                          Student ID: {user.studentId}
+                        </p>
+                      )}
+                      {user?.id && user?.role !== 'admin' && (
+                        <p className="text-xs text-muted-foreground">
+                          User ID: {user.id}
+                        </p>
+                      )}
+                      {user?.createdAt && user?.role !== 'admin' && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Member since: {new Date(user.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
+                      )}
                       {user?.role === 'student' && (
                         <p className="text-sm text-muted-foreground">
-                          Class: {user?.class || 'Not specified'}
+                          Class: Not specified
                         </p>
                       )}
                     </div>

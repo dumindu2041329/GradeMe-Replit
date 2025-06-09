@@ -40,7 +40,10 @@ export async function getSession(): Promise<User | null> {
       throw new Error("Failed to fetch session");
     }
     
-    return await response.json();
+    const data = await response.json();
+    // The session endpoint returns { user, authenticated, redirectTo }
+    // We need to extract just the user object
+    return data.user || null;
   } catch (error) {
     console.error("Error fetching session:", error);
     return null;

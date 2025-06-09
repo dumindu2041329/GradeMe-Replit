@@ -88,7 +88,7 @@ export default function PaperCreationPage() {
 
   // Initialize local questions from saved questions
   useEffect(() => {
-    if (savedQuestions.length > 0 && localQuestions.length === 0) {
+    if (savedQuestions.length > 0) {
       setLocalQuestions(savedQuestions);
     }
   }, [savedQuestions]);
@@ -385,12 +385,7 @@ export default function PaperCreationPage() {
                   )}
                 />
                 
-                <Button 
-                  type="submit" 
-                  disabled={createPaperMutation.isPending || updatePaperMutation.isPending}
-                >
-                  {createPaperMutation.isPending || updatePaperMutation.isPending ? "Saving..." : paper ? "Update Paper Details" : "Save Paper Details"}
-                </Button>
+
               </form>
             </Form>
           </CardContent>
@@ -485,6 +480,18 @@ export default function PaperCreationPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Update Paper Details Button */}
+        <div className="flex justify-center">
+          <Button 
+            onClick={paperForm.handleSubmit(onPaperSubmit)}
+            disabled={createPaperMutation.isPending || updatePaperMutation.isPending}
+            size="lg"
+            className="min-w-48"
+          >
+            {createPaperMutation.isPending || updatePaperMutation.isPending ? "Saving..." : paper ? "Update Paper Details" : "Save Paper Details"}
+          </Button>
+        </div>
 
         {/* Add Question Form */}
         {isCreatingQuestion && (

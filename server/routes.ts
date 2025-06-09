@@ -191,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const { password: _, ...userWithoutPassword } = user;
-      res.json({ user: req.session.user });
+      res.json(req.session.user);
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         updatedAt: student.updatedAt || new Date()
       };
 
-      res.json({ user: req.session.user });
+      res.json(req.session.user);
     } catch (error) {
       console.error("Student login error:", error);
       res.status(500).json({ message: "Login failed" });

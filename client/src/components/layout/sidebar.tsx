@@ -18,7 +18,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
   const links = [
     {
       name: "Dashboard",
-      href: "/",
+      href: "/admin",
       icon: Home,
     },
     {
@@ -45,7 +45,7 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
   };
 
   const goToHome = () => {
-    navigate('/');
+    navigate('/admin');
     handleClick();
   };
 

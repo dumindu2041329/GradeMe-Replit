@@ -19,7 +19,26 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any) {
       // For file storage, we need examId instead of paperId
       // We'll get the paper data which contains questions
       const paper = await paperFileStorage.getPaperByExamId(examId);
-      const questions = paper ? paper.questions : [];
+      
+      // Map storage question format to frontend expected format
+      const questions = paper ? paper.questions.map(q => ({
+        id: q.id,
+        paperId: paperId, // Use the paperId from request
+        type: q.type === 'multiple_choice' ? 'mcq' : 'written',
+        questionText: q.question,
+        marks: q.marks,
+        orderIndex: q.orderIndex,
+        optionA: q.options?.[0] || null,
+        optionB: q.options?.[1] || null,
+        optionC: q.options?.[2] || null,
+        optionD: q.options?.[3] || null,
+        correctAnswer: q.correctAnswer || null,
+        expectedAnswer: null,
+        answerGuidelines: null,
+        createdAt: q.createdAt,
+        updatedAt: q.updatedAt
+      })) : [];
+      
       res.json(questions);
     } catch (error) {
       console.error("Error fetching questions:", error);
