@@ -51,7 +51,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
     if (!isMobile && isMobileSidebarOpen) {
       setIsMobileSidebarOpen(false);
     }
-  }, [isMobile, isMobileSidebarOpen]);
+  }, [isMobile]); // Remove isMobileSidebarOpen from dependencies to prevent infinite loop
 
   const closeMobileSidebar = () => {
     setIsMobileSidebarOpen(false);

@@ -41,6 +41,9 @@ export class PaperFileStorage {
   private bucketName = 'exam-papers';
   private bucketInitialized = false;
   private db = getDb();
+  private examNameCache = new Map<number, string>();
+  private paperCache = new Map<number, PaperData>();
+  private cacheTimeout = 30000; // 30 seconds cache
 
   constructor() {
     // Initialize bucket asynchronously without blocking constructor
@@ -112,9 +115,24 @@ export class PaperFileStorage {
   }
 
   private async getExamName(examId: number): Promise<string> {
+    // Check cache first
+    if (this.examNameCache.has(examId)) {
+      return this.examNameCache.get(examId)!;
+    }
+
     try {
       const exam = await this.db.select().from(exams).where(eq(exams.id, examId)).limit(1);
-      return exam[0]?.name || `Exam ${examId}`;
+      const examName = exam[0]?.name || `Exam ${examId}`;
+      
+      // Cache the result
+      this.examNameCache.set(examId, examName);
+      
+      // Clear cache after timeout
+      setTimeout(() => {
+        this.examNameCache.delete(examId);
+      }, this.cacheTimeout);
+      
+      return examName;
     } catch (error) {
       console.error('Error fetching exam name:', error);
       return `Exam ${examId}`;
@@ -129,22 +147,23 @@ export class PaperFileStorage {
   }
 
   async getPaperByExamId(examId: number): Promise<PaperData | null> {
+    // Check cache first for fast retrieval
+    if (this.paperCache.has(examId)) {
+      const cachedPaper = this.paperCache.get(examId)!;
+      console.log('Using cached paper:', {
+        id: cachedPaper.id,
+        examId: cachedPaper.examId,
+        title: cachedPaper.title,
+        questionsCount: cachedPaper.questions.length
+      });
+      return cachedPaper;
+    }
+
     try {
       await this.ensureBucketExists();
       
       const fileName = await this.getFileName(examId);
       console.log('Looking for paper file:', fileName);
-      
-      // First, let's list all files in the bucket to see what's there
-      const { data: files, error: listError } = await supabase.storage
-        .from(this.bucketName)
-        .list('', { limit: 100 });
-      
-      if (listError) {
-        console.error('Error listing files:', listError);
-      } else {
-        console.log('Files in exam-papers bucket:', files?.map(f => f.name) || []);
-      }
       
       const { data, error } = await supabase.storage
         .from(this.bucketName)
@@ -162,7 +181,15 @@ export class PaperFileStorage {
       const text = await data.text();
       const paperData: PaperData = JSON.parse(text);
       
-      console.log('Successfully loaded paper:', {
+      // Cache the result for faster subsequent access
+      this.paperCache.set(examId, paperData);
+      
+      // Clear cache after timeout
+      setTimeout(() => {
+        this.paperCache.delete(examId);
+      }, this.cacheTimeout);
+      
+      console.log('Successfully loaded and cached paper:', {
         id: paperData.id,
         examId: paperData.examId,
         title: paperData.title,

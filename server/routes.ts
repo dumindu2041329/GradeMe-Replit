@@ -10,6 +10,14 @@ import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from ".
 import { paperFileStorage } from "./paper-file-storage";
 import { questionFileStorage } from "./question-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
+import { 
+  performanceMiddleware, 
+  cacheHeadersMiddleware, 
+  fastServerDb, 
+  cacheUtils, 
+  performanceMonitor,
+  preloadServerData
+} from "./performance-optimizer";
 
 declare module "express-session" {
   interface SessionData {

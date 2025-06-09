@@ -68,10 +68,14 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch existing paper for this exam
+  // Fetch existing paper for this exam with optimized refresh
   const { data: paper, isLoading: isPaperLoading } = useQuery<ExamPaper>({
     queryKey: [`/api/papers/${examId}`],
     enabled: !!examId,
+    refetchInterval: 1000, // Automatically refresh every 1 second
+    refetchIntervalInBackground: false, // Reduce background network usage
+    staleTime: 500, // Cache for 500ms to reduce redundant calls
+    gcTime: 30000, // Keep in cache for 30 seconds (updated from cacheTime)
   });
 
   // Local state for questions (managed in frontend until paper update)
@@ -80,13 +84,16 @@ export default function PaperCreationPage() {
   const [editingQuestion, setEditingQuestion] = useState<DbQuestion | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
-  // Fetch questions for the paper only to initialize local state
+  // Fetch questions for the paper with optimized automatic refresh
   const { data: savedQuestions = [], isLoading: isQuestionsLoading, refetch: refetchQuestions } = useQuery<DbQuestion[]>({
     queryKey: [`/api/questions/${paper?.id}`],
     enabled: !!paper?.id,
-    staleTime: 0, // Force fresh data from Supabase storage
+    staleTime: 500, // Cache for 500ms to reduce redundant network calls
+    cacheTime: 30000, // Keep in cache for 30 seconds
     refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnWindowFocus: false, // Reduce unnecessary refetches on focus
+    refetchInterval: 1000, // Automatically refresh every 1 second (1000ms)
+    refetchIntervalInBackground: false, // Optimize background performance
   });
 
   // Initialize local questions from saved questions and set up real-time updates
@@ -205,6 +212,11 @@ export default function PaperCreationPage() {
         title: "Success",
         description: "Paper details saved successfully",
       });
+      
+      // Automatically reload the page after successful creation
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Wait 1 second to allow toast to be seen
     },
     onError: (error) => {
       toast({
@@ -240,6 +252,11 @@ export default function PaperCreationPage() {
         title: "Success",
         description: `Paper updated with ${localQuestions.length} questions saved to storage`,
       });
+      
+      // Automatically reload the page after successful update
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // Wait 1 second to allow toast to be seen
     },
     onError: (error) => {
       toast({

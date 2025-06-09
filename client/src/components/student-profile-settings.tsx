@@ -166,7 +166,7 @@ export function StudentProfileSettings({
         personalInfoForm.setValue('dateOfBirth', new Date(studentProfile.dateOfBirth));
       }
     }
-  }, [studentProfile, user, personalInfoForm]);
+  }, [studentProfile, user]); // Remove personalInfoForm from dependencies to prevent infinite loop
   
   // Initialize notification form
   const notificationForm = useForm<NotificationFormValues>({

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/components/ui/link";
 import { useLocation } from "wouter";
+import SpeedTestWidget from "@/components/SpeedTestWidget";
 
 interface Statistics {
   totalStudents: number;
@@ -104,7 +105,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <SpeedTestWidget />
         <Card className="shadow">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-semibold">Quick Actions - Exams</CardTitle>

@@ -35,6 +35,8 @@ export class QuestionFileStorage {
   private bucketName = 'exam-questions';
   private bucketInitialized = false;
   private db = getDb();
+  private questionCache = new Map<string, QuestionData[]>();
+  private cacheTimeout = 30000; // 30 seconds cache
 
   constructor() {
     // Initialize bucket asynchronously without blocking constructor
@@ -128,6 +130,14 @@ export class QuestionFileStorage {
   }
 
   async getQuestionsByPaperId(paperId: number, examId?: number): Promise<QuestionData[]> {
+    // Check cache first for fast retrieval
+    const cacheKey = `${paperId}_${examId || 'no-exam'}`;
+    if (this.questionCache.has(cacheKey)) {
+      const cachedQuestions = this.questionCache.get(cacheKey)!;
+      console.log(`Using cached questions for paperId: ${paperId}, count: ${cachedQuestions.length}`);
+      return cachedQuestions;
+    }
+
     try {
       await this.ensureBucketExists();
       
@@ -152,7 +162,18 @@ export class QuestionFileStorage {
 
       const text = await data.text();
       const questionFile: QuestionFile = JSON.parse(text);
-      return questionFile.questions || [];
+      const questions = questionFile.questions || [];
+      
+      // Cache the result for faster subsequent access
+      this.questionCache.set(cacheKey, questions);
+      
+      // Clear cache after timeout
+      setTimeout(() => {
+        this.questionCache.delete(cacheKey);
+      }, this.cacheTimeout);
+      
+      console.log(`Loaded and cached ${questions.length} questions for paperId: ${paperId}`);
+      return questions;
     } catch (error) {
       console.error('Error fetching questions from file storage:', error);
       return [];
