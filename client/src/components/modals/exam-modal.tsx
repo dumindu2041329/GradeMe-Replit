@@ -81,7 +81,7 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
         
         // Close modal and redirect to paper creation page
         onOpenChange(false);
-        navigate(`/admin/exams/${newExam.id}/paper`);
+        navigate(`/exams/${newExam.id}/paper`);
         
         // Reset form fields on successful creation
         form.reset({
