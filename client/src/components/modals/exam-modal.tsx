@@ -6,7 +6,7 @@ import { insertExamSchema, Exam } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -125,12 +125,12 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           <DialogTitle>
             {mode === "create" ? "Create New Exam" : "Edit Exam"}
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
+          <DialogDescription>
             {mode === "create" 
               ? "Add a new exam to the system by filling out the form below." 
               : "Update the exam details using the form below."
             }
-          </p>
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
@@ -238,7 +238,7 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select status" />

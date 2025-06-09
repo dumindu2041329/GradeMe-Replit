@@ -99,12 +99,12 @@ export default function PaperCreationPage() {
     }
   }, [savedQuestions, paper?.id]);
 
-  // Force refresh questions when navigating between pages
+  // Force refresh questions when paper changes (remove examId dependency to prevent excessive calls)
   useEffect(() => {
     if (paper?.id) {
       queryClient.invalidateQueries({ queryKey: [`/api/questions/${paper.id}`] });
     }
-  }, [paper?.id, queryClient, examId]);
+  }, [paper?.id, queryClient]);
 
   // Set up WebSocket connection for real-time updates
   useEffect(() => {
@@ -184,7 +184,7 @@ export default function PaperCreationPage() {
         instructions: "Read all questions carefully before answering.",
       });
     }
-  }, [paper, exam, paperForm]);
+  }, [paper, exam]); // Remove paperForm from dependencies to prevent infinite loop
 
   const selectedQuestionType = questionForm.watch("type");
 
@@ -693,7 +693,7 @@ export default function PaperCreationPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Correct Answer</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select correct option" />
