@@ -83,13 +83,15 @@ export default function PaperCreationPage() {
   const [isCreatingQuestion, setIsCreatingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<DbQuestion | null>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<DbQuestion | null>(null);
 
   // Fetch questions for the paper with optimized automatic refresh
   const { data: savedQuestions = [], isLoading: isQuestionsLoading, refetch: refetchQuestions } = useQuery<DbQuestion[]>({
     queryKey: [`/api/questions/${paper?.id}`],
     enabled: !!paper?.id,
     staleTime: 500, // Cache for 500ms to reduce redundant network calls
-    cacheTime: 30000, // Keep in cache for 30 seconds
+    gcTime: 30000, // Keep in cache for 30 seconds (updated from cacheTime)
     refetchOnMount: true, // Always refetch when component mounts
     refetchOnWindowFocus: false, // Reduce unnecessary refetches on focus
     refetchInterval: 1000, // Automatically refresh every 1 second (1000ms)
@@ -98,11 +100,13 @@ export default function PaperCreationPage() {
 
   // Initialize local questions from saved questions and set up real-time updates
   useEffect(() => {
-    if (savedQuestions.length > 0) {
-      setLocalQuestions(savedQuestions);
-    } else if (savedQuestions.length === 0 && paper?.id) {
-      // Reset local questions when navigating to a different paper
-      setLocalQuestions([]);
+    if (savedQuestions && Array.isArray(savedQuestions)) {
+      if (savedQuestions.length > 0) {
+        setLocalQuestions(savedQuestions);
+      } else if (savedQuestions.length === 0 && paper?.id) {
+        // Reset local questions when navigating to a different paper
+        setLocalQuestions([]);
+      }
     }
   }, [savedQuestions, paper?.id]);
 
@@ -353,12 +357,22 @@ export default function PaperCreationPage() {
   };
 
   const handleDeleteQuestion = (questionId: number) => {
-    if (confirm("Are you sure you want to delete this question?")) {
-      setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
+    const question = localQuestions.find(q => q.id === questionId);
+    if (question) {
+      setQuestionToDelete(question);
+      setIsDeleteDialogOpen(true);
+    }
+  };
+
+  const confirmDeleteQuestion = () => {
+    if (questionToDelete) {
+      setLocalQuestions(prev => prev.filter(q => q.id !== questionToDelete.id));
       toast({
         title: "Success",
         description: "Question deleted (will be saved when you update paper details)",
       });
+      setIsDeleteDialogOpen(false);
+      setQuestionToDelete(null);
     }
   };
 
@@ -813,6 +827,56 @@ export default function PaperCreationPage() {
               className="bg-red-600 hover:bg-red-700"
             >
               Yes, Cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Question Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </div>
+              Delete Question?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Are you sure you want to delete this question? This action cannot be undone.</p>
+              
+              {questionToDelete && (
+                <div className="p-3 bg-muted rounded-lg border-l-4 border-l-red-500">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant={questionToDelete.type === "mcq" ? "default" : "secondary"} className="text-xs">
+                      {questionToDelete.type.toUpperCase()}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {questionToDelete.marks} marks
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-foreground line-clamp-2">
+                    {questionToDelete.questionText}
+                  </p>
+                  {questionToDelete.type === "mcq" && questionToDelete.correctAnswer && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Correct Answer: {questionToDelete.correctAnswer}
+                    </p>
+                  )}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setQuestionToDelete(null)}>
+              Keep Question
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteQuestion}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Question
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
