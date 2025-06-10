@@ -546,25 +546,9 @@ export default function ProfilePage() {
                       )}
                     />
                     
-                    <div className="flex gap-2">
+                    <div className="flex justify-start">
                       <Button type="submit" disabled={notificationMutation.isPending}>
                         {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-                      </Button>
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => {
-                          notificationForm.reset({
-                            emailNotifications: user?.emailNotifications || false,
-                            smsNotifications: user?.smsNotifications || false,
-                            emailExamResults: user?.emailExamResults || false,
-                            emailUpcomingExams: user?.emailUpcomingExams || false,
-                            smsExamResults: user?.smsExamResults || false,
-                            smsUpcomingExams: user?.smsUpcomingExams || false,
-                          });
-                        }}
-                      >
-                        Reset
                       </Button>
                     </div>
                   </form>

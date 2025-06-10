@@ -63,7 +63,7 @@ export default function Dashboard() {
 
   return (
     <AppShell title="Dashboard">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
         {isStatsLoading ? (
           <>
             {[1, 2, 3, 4].map((i) => (
@@ -105,12 +105,12 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="mb-8">
         <SpeedTestWidget />
       </div>
 
       <Card className="shadow">
-        <CardHeader className="pb-2 flex justify-between items-center">
+        <CardHeader className="pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <CardTitle className="text-lg font-semibold">Recent Exams</CardTitle>
           <Button 
             variant="ghost" 
@@ -134,44 +134,70 @@ export default function Dashboard() {
               ))}
             </div>
           ) : recentExams.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
-                      Exam Name
-                    </th>
-                    <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
-                      Date
-                    </th>
-                    <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {recentExams.map((exam) => (
-                    <tr 
-                      key={exam.id}
-                      className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
-                      onClick={() => {
-                        navigate("/exams");
-                        // Open the edit modal for this exam when navigating
-                        sessionStorage.setItem("editExamId", String(exam.id));
-                      }}
-                    >
-                      <td className="py-3 px-4 whitespace-nowrap">{exam.name}</td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {format(new Date(exam.date), "yyyy-MM-dd")}
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap">
-                        {renderStatusBadge(exam.status)}
-                      </td>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
+                        Exam Name
+                      </th>
+                      <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
+                        Date
+                      </th>
+                      <th className="py-3 px-4 text-xs uppercase font-medium text-muted-foreground tracking-wider">
+                        Status
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {recentExams.map((exam) => (
+                      <tr 
+                        key={exam.id}
+                        className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                        onClick={() => {
+                          navigate("/exams");
+                          sessionStorage.setItem("editExamId", String(exam.id));
+                        }}
+                      >
+                        <td className="py-3 px-4 whitespace-nowrap">{exam.name}</td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {format(new Date(exam.date), "yyyy-MM-dd")}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {renderStatusBadge(exam.status)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              
+              {/* Mobile Card Layout */}
+              <div className="md:hidden space-y-3">
+                {recentExams.map((exam) => (
+                  <Card 
+                    key={exam.id}
+                    className="cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors p-4"
+                    onClick={() => {
+                      navigate("/exams");
+                      sessionStorage.setItem("editExamId", String(exam.id));
+                    }}
+                  >
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-medium text-sm">{exam.name}</h3>
+                        {renderStatusBadge(exam.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(exam.date), "MMM dd, yyyy")}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
           ) : (
             <div className="py-8 text-center text-muted-foreground">
               <Clock className="mx-auto h-8 w-8 mb-2 text-muted-foreground/60" />

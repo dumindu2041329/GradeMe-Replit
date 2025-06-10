@@ -617,31 +617,9 @@ export function ProfileSettings({
                 </>
               )}
               
-              <div className="flex flex-row space-x-2">
+              <div className="flex justify-start">
                 <Button type="submit" disabled={notificationMutation.isPending}>
                   {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => {
-                    if (userRole === 'student') {
-                      notificationForm.reset({
-                        emailExamResults: user?.emailExamResults || false,
-                        emailUpcomingExams: user?.emailUpcomingExams || false,
-                        smsExamResults: user?.smsExamResults || false,
-                        smsUpcomingExams: user?.smsUpcomingExams || false
-                      });
-                    } else if (userRole === 'admin') {
-                      notificationForm.reset({
-                        emailNotifications: user?.emailNotifications || false,
-                        smsNotifications: user?.smsNotifications || false
-                      });
-                    }
-                  }}
-                >
-                  Reset
                 </Button>
               </div>
             </form>

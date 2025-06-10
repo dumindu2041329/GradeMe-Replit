@@ -800,20 +800,7 @@ export function StudentProfileSettings({
                   </div>
                 </div>
                 
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => {
-                    // Clear form values completely
-                    notificationForm.reset({
-                      emailNotifications: false,
-                      smsNotifications: false,
-                      emailExamResults: false,
-                      emailUpcomingExams: false,
-                      smsExamResults: false,
-                      smsUpcomingExams: false,
-                    });
-                  }}>
-                    Reset
-                  </Button>
+                <div className="flex justify-end pt-4">
                   <Button type="submit" disabled={notificationMutation.isPending}>
                     {notificationMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>

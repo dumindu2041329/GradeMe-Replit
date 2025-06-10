@@ -57,7 +57,7 @@ export default function SpeedTestWidget() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0 pb-2">
         <CardTitle className="text-lg font-medium flex items-center gap-2">
           <Zap className="h-5 w-5" />
           Supabase Speed Test
@@ -66,7 +66,7 @@ export default function SpeedTestWidget() {
           onClick={runSpeedTest} 
           disabled={isRunning}
           size="sm"
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
         >
           {isRunning ? 'Testing...' : 'Run Test'}
         </Button>
@@ -74,16 +74,16 @@ export default function SpeedTestWidget() {
       <CardContent className="space-y-4">
         {results ? (
           <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-2">
+              <div className="text-center p-2 rounded-lg bg-muted/30">
                 <div className="text-sm text-muted-foreground">First Call</div>
                 <div className="text-lg font-bold text-red-600">{results.firstCall}ms</div>
               </div>
-              <div className="text-center">
+              <div className="text-center p-2 rounded-lg bg-muted/30">
                 <div className="text-sm text-muted-foreground">Cached Call</div>
                 <div className="text-lg font-bold text-green-600">{results.cachedCall}ms</div>
               </div>
-              <div className="text-center">
+              <div className="text-center p-2 rounded-lg bg-muted/30">
                 <div className="text-sm text-muted-foreground">Multiple Calls</div>
                 <div className="text-lg font-bold text-blue-600">{results.multipleCalls}ms</div>
               </div>
@@ -101,7 +101,7 @@ export default function SpeedTestWidget() {
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Activity className="h-4 w-4" />
                 Cache: {cacheSize} items

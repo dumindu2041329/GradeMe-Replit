@@ -195,7 +195,7 @@ export function AppShell({ children }: AppShellProps) {
         </header>
         
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 p-4 lg:p-6 overflow-x-hidden">
           {children}
         </main>
       </div>
