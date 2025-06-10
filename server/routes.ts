@@ -10,14 +10,7 @@ import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from ".
 import { paperFileStorage } from "./paper-file-storage";
 import { questionFileStorage } from "./question-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
-import { 
-  performanceMiddleware, 
-  cacheHeadersMiddleware, 
-  fastServerDb, 
-  cacheUtils, 
-  performanceMonitor,
-  preloadServerData
-} from "./performance-optimizer";
+// Performance optimization imports removed during migration
 
 declare module "express-session" {
   interface SessionData {
@@ -328,10 +321,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/students", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      // Validate required fields
+      if (!req.body.password || req.body.password.trim() === '') {
+        return res.status(400).json({ message: "Password is required and cannot be empty" });
+      }
+      
+      if (!req.body.email || req.body.email.trim() === '') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+      
+      if (!req.body.name || req.body.name.trim() === '') {
+        return res.status(400).json({ message: "Name is required" });
+      }
+      
       const studentData = {
         ...req.body,
-        password: hashedPassword
+        password: req.body.password.trim()
       };
       const student = await storage.createStudent(studentData);
       res.status(201).json(student);
@@ -346,8 +351,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       let studentData = { ...req.body };
       
-      // Hash password if provided
-      if (req.body.password) {
+      // Validate that password is not empty if provided
+      if (req.body.password !== undefined && req.body.password.trim() === '') {
+        return res.status(400).json({ message: "Password cannot be empty" });
+      }
+      
+      // Hash password if provided and not empty
+      if (req.body.password && req.body.password.trim()) {
         studentData.password = await bcrypt.hash(req.body.password, 10);
       }
       

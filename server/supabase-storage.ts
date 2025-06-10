@@ -70,27 +70,101 @@ export class SupabaseStorage implements IStorage {
     return result[0];
   }
 
-  async createStudent(studentData: InsertStudent): Promise<Student> {
-    const result = await this.db.insert(students).values(studentData).returning();
+  async createStudent(studentData: InsertStudent & { password: string }): Promise<Student> {
+    // Hash password for both tables
+    const hashedPassword = await bcrypt.hash(studentData.password, 10);
+    
+    // Create user first (for authentication)
+    const userData = {
+      email: studentData.email,
+      password: hashedPassword,
+      name: studentData.name,
+      role: 'student' as const,
+      isAdmin: false,
+      emailNotifications: true,
+      smsNotifications: false,
+      emailExamResults: true,
+      emailUpcomingExams: true,
+      smsExamResults: false,
+      smsUpcomingExams: false,
+    };
+    
+    const userResult = await this.db.insert(users).values(userData).returning();
+    const user = userResult[0];
+    
+    // Create student record with hashed password
+    const studentRecord = {
+      ...studentData,
+      password: hashedPassword
+    };
+    const result = await this.db.insert(students).values(studentRecord).returning();
+    
+    // Update the user record to link to the student
+    await this.db.update(users)
+      .set({ studentId: result[0].id })
+      .where(eq(users.id, user.id));
+    
     return result[0];
   }
 
-  async updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined> {
-    const updateData = { ...studentData, updatedAt: new Date() };
+  async updateStudent(id: number, studentData: Partial<InsertStudent & { password?: string }>): Promise<Student | undefined> {
+    // Get current student to find associated user
+    const currentStudent = await this.getStudent(id);
+    if (!currentStudent) return undefined;
+    
+    // Prepare student update data
+    const updateData: any = { ...studentData, updatedAt: new Date() };
+    
+    // Hash password if provided
+    if (studentData.password) {
+      updateData.password = await bcrypt.hash(studentData.password, 10);
+    }
+    
+    // Update student record
     const result = await this.db.update(students)
       .set(updateData)
       .where(eq(students.id, id))
       .returning();
+    
+    // Update user record if password or other user fields changed
+    if (studentData.password || studentData.email || studentData.name) {
+      const userUpdateData: any = { updatedAt: new Date() };
+      if (studentData.email) userUpdateData.email = studentData.email;
+      if (studentData.name) userUpdateData.name = studentData.name;
+      if (studentData.password) {
+        userUpdateData.password = await bcrypt.hash(studentData.password, 10);
+      }
+      
+      // Find user by email to update
+      const user = await this.getUserByEmail(currentStudent.email);
+      if (user) {
+        await this.db.update(users)
+          .set(userUpdateData)
+          .where(eq(users.id, user.id));
+      }
+    }
+    
     return result[0];
   }
 
   async deleteStudent(id: number): Promise<boolean> {
     try {
+      // Get student to find associated user
+      const student = await this.getStudent(id);
+      if (!student) return false;
+      
       // First delete related results
       await this.db.delete(results).where(eq(results.studentId, id));
       
-      // Then delete the student
-      const result = await this.db.delete(students).where(eq(students.id, id));
+      // Delete the student record
+      await this.db.delete(students).where(eq(students.id, id));
+      
+      // Delete associated user record
+      const user = await this.getUserByEmail(student.email);
+      if (user) {
+        await this.db.delete(users).where(eq(users.id, user.id));
+      }
+      
       return true; // If no error thrown, deletion was successful
     } catch (error) {
       console.error("Error deleting student:", error);
@@ -99,8 +173,15 @@ export class SupabaseStorage implements IStorage {
   }
 
   async authenticateStudent(email: string, password: string): Promise<Student | null> {
-    // For now, we'll assume students don't have passwords in the students table
-    // You might want to add a password field to students or use a different approach
+    // Get the user record for authentication
+    const user = await this.getUserByEmail(email);
+    if (!user || user.role !== 'student') return null;
+    
+    // Verify password
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return null;
+    
+    // Return corresponding student record
     const student = await this.getStudentByEmail(email);
     return student || null;
   }
