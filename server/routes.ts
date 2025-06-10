@@ -298,6 +298,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public landing page statistics
+  app.get("/api/landing/statistics", async (req: Request, res: Response) => {
+    try {
+      const db = getDb();
+      
+      // Get total students count
+      const studentsCount = await db.select().from(students);
+      const activeStudents = studentsCount.length;
+      
+      // Get total admins/educators count
+      const educatorsCount = await db.select().from(users).where(eq(users.role, 'admin'));
+      const educators = educatorsCount.length;
+      
+      // Get completed exams count
+      const completedExamsCount = await db.select().from(results);
+      const examsCompleted = completedExamsCount.length;
+      
+      // Calculate uptime (assume 99% for now, could be enhanced with actual monitoring)
+      const uptime = "99%";
+      
+      res.json({
+        activeStudents,
+        educators,
+        examsCompleted,
+        uptime
+      });
+    } catch (error) {
+      console.error("Error fetching landing statistics:", error);
+      res.status(500).json({ message: "Failed to fetch landing statistics" });
+    }
+  });
+
   // Dashboard statistics - Admin only
   app.get("/api/statistics", requireAdmin, async (req: Request, res: Response) => {
     try {

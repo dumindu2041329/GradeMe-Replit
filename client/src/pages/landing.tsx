@@ -5,10 +5,24 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GraduationCap, BookOpen, Award, Users, Lock, ChevronUp } from "lucide-react";
 import { LoginDialog } from "@/components/login-dialog";
 import { ThreeScene } from "@/components/three-scene";
+import { useQuery } from "@tanstack/react-query";
+
+interface LandingStatistics {
+  activeStudents: number;
+  educators: number;
+  examsCompleted: number;
+  uptime: string;
+}
 
 export default function LandingPage() {
   const [, navigate] = useLocation();
   const [showScrollButton, setShowScrollButton] = useState(false);
+  
+  // Fetch live statistics from Supabase
+  const { data: stats, isLoading } = useQuery<LandingStatistics>({
+    queryKey: ["/api/landing/statistics"],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
   
   // Handle scroll to show/hide the scroll-to-top button
   useEffect(() => {
@@ -253,19 +267,27 @@ export default function LandingPage() {
           <div className="relative z-20 container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-cyan-400 mb-2">10K+</div>
+                <div className="text-3xl md:text-4xl font-bold text-cyan-400 mb-2">
+                  {isLoading ? "..." : stats?.activeStudents?.toLocaleString() || "0"}
+                </div>
                 <div className="text-white/70">Active Students</div>
               </div>
               <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-2">500+</div>
+                <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-2">
+                  {isLoading ? "..." : stats?.educators?.toLocaleString() || "0"}
+                </div>
                 <div className="text-white/70">Educators</div>
               </div>
               <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">1M+</div>
+                <div className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">
+                  {isLoading ? "..." : stats?.examsCompleted?.toLocaleString() || "0"}
+                </div>
                 <div className="text-white/70">Exams Completed</div>
               </div>
               <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-green-400 mb-2">99%</div>
+                <div className="text-3xl md:text-4xl font-bold text-green-400 mb-2">
+                  {isLoading ? "..." : stats?.uptime || "99%"}
+                </div>
                 <div className="text-white/70">Uptime</div>
               </div>
             </div>
