@@ -474,9 +474,9 @@ export default function ProfilePage() {
                         variant="outline"
                         onClick={() => {
                           profileForm.reset({
-                            name: user?.name || "",
-                            email: user?.email || "",
-                            profileImage: user?.profileImage || "",
+                            name: "",
+                            email: "",
+                            profileImage: "",
                           });
                         }}
                       >

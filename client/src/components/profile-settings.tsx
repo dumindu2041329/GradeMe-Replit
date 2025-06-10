@@ -443,12 +443,12 @@ export function ProfileSettings({
                   onClick={() => {
                     if (userRole === 'student') {
                       profileForm.reset({
-                        email: user?.email || ''
+                        email: ''
                       });
                     } else if (userRole === 'admin') {
                       profileForm.reset({
-                        name: user?.name || '',
-                        email: user?.email || ''
+                        name: '',
+                        email: ''
                       });
                       setImagePreview(null);
                     }
