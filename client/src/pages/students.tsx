@@ -55,18 +55,32 @@ interface Student {
   password?: string;
 }
 
-// Form schema for create/edit student
-const formSchema = z.object({
+// Form schema for create student (password required)
+const createFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   email: z.string().email({ message: "Please enter a valid email address" }),
   class: z.string().min(1, { message: "Class is required" }),
-  password: z.string().optional(),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
   enrollmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
     message: "Please enter a valid date",
   })
 });
 
-type StudentFormValues = z.infer<typeof formSchema>;
+// Form schema for edit student (password optional)
+const editFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  class: z.string().min(1, { message: "Class is required" }),
+  password: z.string().optional().refine(val => !val || val.length >= 6, {
+    message: "Password must be at least 6 characters"
+  }),
+  enrollmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
+    message: "Please enter a valid date",
+  })
+});
+
+type CreateStudentFormValues = z.infer<typeof createFormSchema>;
+type EditStudentFormValues = z.infer<typeof editFormSchema>;
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,27 +116,8 @@ export default function Students() {
     setIsDeleteDialogOpen(true);
   };
 
-  const onCreateSubmit = async (data: StudentFormValues) => {
+  const onCreateSubmit = async (data: CreateStudentFormValues) => {
     try {
-      // Validate that password is provided for new students
-      if (!data.password || data.password.trim() === "") {
-        toast({
-          title: "Error",
-          description: "Password is required when creating a new student",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (data.password.length < 6) {
-        toast({
-          title: "Error",
-          description: "Password must be at least 6 characters",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       setIsSubmitting(true);
       
       const newStudent = await apiRequest<Student>("POST", "/api/students", data);
@@ -152,23 +147,19 @@ export default function Students() {
     }
   };
   
-  const onEditSubmit = async (data: StudentFormValues) => {
+  const onEditSubmit = async (data: EditStudentFormValues) => {
     if (!selectedStudent) return;
     
     try {
-      // For edit, if password is provided, check length
-      if (data.password && data.password.trim() !== "" && data.password.length < 6) {
-        toast({
-          title: "Error", 
-          description: "Password must be at least 6 characters",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       setIsSubmitting(true);
       
-      const updatedStudent = await apiRequest<Student>("PUT", `/api/students/${selectedStudent.id}`, data);
+      // Remove password from data if it's empty (don't update password)
+      const updateData = { ...data };
+      if (!updateData.password || updateData.password.trim() === '') {
+        delete updateData.password;
+      }
+      
+      const updatedStudent = await apiRequest<Student>("PUT", `/api/students/${selectedStudent.id}`, updateData);
       console.log("Updated student:", updatedStudent);
       
       toast({
@@ -229,8 +220,8 @@ export default function Students() {
   };
 
   // Form for creating a new student
-  const createForm = useForm<StudentFormValues>({
-    resolver: zodResolver(formSchema),
+  const createForm = useForm<CreateStudentFormValues>({
+    resolver: zodResolver(createFormSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -241,8 +232,8 @@ export default function Students() {
   });
   
   // Form for editing an existing student
-  const editForm = useForm<StudentFormValues>({
-    resolver: zodResolver(formSchema),
+  const editForm = useForm<EditStudentFormValues>({
+    resolver: zodResolver(editFormSchema),
     defaultValues: {
       name: "",
       email: "",

@@ -321,6 +321,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/students", requireAdmin, async (req: Request, res: Response) => {
     try {
+      console.log("Creating student with data:", req.body);
+      
       // Validate required fields
       if (!req.body.password || req.body.password.trim() === '') {
         return res.status(400).json({ message: "Password is required and cannot be empty" });
@@ -334,55 +336,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Name is required" });
       }
       
+      if (!req.body.class || req.body.class.trim() === '') {
+        return res.status(400).json({ message: "Class is required" });
+      }
+      
+      // Prepare student data with proper defaults
       const studentData = {
-        ...req.body,
-        password: req.body.password.trim()
+        name: req.body.name.trim(),
+        email: req.body.email.trim(),
+        password: req.body.password.trim(),
+        class: req.body.class.trim(),
+        phone: req.body.phone || null,
+        address: req.body.address || null,
+        guardianName: req.body.guardianName || null,
+        guardianPhone: req.body.guardianPhone || null,
+        profileImage: req.body.profileImage || null,
+        enrollmentDate: req.body.enrollmentDate || new Date().toISOString().split('T')[0],
+        dateOfBirth: req.body.dateOfBirth || null
       };
+      
+      console.log("Processed student data:", studentData);
+      
       const student = await storage.createStudent(studentData);
       res.status(201).json(student);
     } catch (error) {
       console.error("Error creating student:", error);
-      res.status(500).json({ message: "Failed to create student" });
+      res.status(500).json({ message: "Failed to create student", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   app.put("/api/students/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      let studentData = { ...req.body };
+      console.log("Updating student with ID:", id, "Data:", req.body);
       
-      // Validate that password is not empty if provided
-      if (req.body.password !== undefined && req.body.password.trim() === '') {
-        return res.status(400).json({ message: "Password cannot be empty" });
+      // Prepare update data
+      let updateData: any = {};
+      
+      // Only include fields that are provided
+      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
+      if (req.body.email !== undefined) updateData.email = req.body.email.trim();
+      if (req.body.class !== undefined) updateData.class = req.body.class.trim();
+      if (req.body.phone !== undefined) updateData.phone = req.body.phone || null;
+      if (req.body.address !== undefined) updateData.address = req.body.address || null;
+      if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
+      if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
+      if (req.body.profileImage !== undefined) updateData.profileImage = req.body.profileImage || null;
+      if (req.body.enrollmentDate !== undefined) updateData.enrollmentDate = req.body.enrollmentDate;
+      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth;
+      
+      // Handle password separately
+      if (req.body.password !== undefined) {
+        if (req.body.password.trim() === '') {
+          return res.status(400).json({ message: "Password cannot be empty" });
+        }
+        updateData.password = req.body.password.trim();
       }
       
-      // Hash password if provided and not empty
-      if (req.body.password && req.body.password.trim()) {
-        studentData.password = await bcrypt.hash(req.body.password, 10);
-      }
+      console.log("Processed update data:", updateData);
       
-      const student = await storage.updateStudent(id, studentData);
+      const student = await storage.updateStudent(id, updateData);
       if (!student) {
         return res.status(404).json({ message: "Student not found" });
       }
       res.json(student);
     } catch (error) {
       console.error("Error updating student:", error);
-      res.status(500).json({ message: "Failed to update student" });
+      res.status(500).json({ message: "Failed to update student", error: error instanceof Error ? error.message : String(error) });
     }
   });
 
   app.delete("/api/students/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      console.log("Deleting student with ID:", id);
+      
       const success = await storage.deleteStudent(id);
       if (!success) {
         return res.status(404).json({ message: "Student not found" });
       }
-      res.json({ message: "Student deleted successfully" });
+      res.json({ success: true, message: "Student deleted successfully" });
     } catch (error) {
       console.error("Error deleting student:", error);
-      res.status(500).json({ message: "Failed to delete student" });
+      res.status(500).json({ message: "Failed to delete student", error: error instanceof Error ? error.message : String(error) });
     }
   });
 

@@ -92,11 +92,22 @@ export class SupabaseStorage implements IStorage {
     const userResult = await this.db.insert(users).values(userData).returning();
     const user = userResult[0];
     
-    // Create student record with hashed password
+    // Create student record with proper date handling
+    const now = new Date();
     const studentRecord = {
-      ...studentData,
-      password: hashedPassword
+      name: studentData.name,
+      email: studentData.email,
+      password: hashedPassword,
+      class: studentData.class,
+      phone: studentData.phone || null,
+      address: studentData.address || null,
+      guardianName: studentData.guardianName || null,
+      guardianPhone: studentData.guardianPhone || null,
+      profileImage: studentData.profileImage || null,
+      enrollmentDate: studentData.enrollmentDate ? new Date(studentData.enrollmentDate + 'T00:00:00.000Z') : now,
+      dateOfBirth: studentData.dateOfBirth ? new Date(studentData.dateOfBirth + 'T00:00:00.000Z') : null,
     };
+    
     const result = await this.db.insert(students).values(studentRecord).returning();
     
     // Update the user record to link to the student
@@ -112,8 +123,26 @@ export class SupabaseStorage implements IStorage {
     const currentStudent = await this.getStudent(id);
     if (!currentStudent) return undefined;
     
-    // Prepare student update data
-    const updateData: any = { ...studentData, updatedAt: new Date() };
+    // Prepare student update data with proper date handling
+    const updateData: any = { updatedAt: new Date() };
+    
+    // Only update fields that are provided
+    if (studentData.name !== undefined) updateData.name = studentData.name;
+    if (studentData.email !== undefined) updateData.email = studentData.email;
+    if (studentData.class !== undefined) updateData.class = studentData.class;
+    if (studentData.phone !== undefined) updateData.phone = studentData.phone;
+    if (studentData.address !== undefined) updateData.address = studentData.address;
+    if (studentData.guardianName !== undefined) updateData.guardianName = studentData.guardianName;
+    if (studentData.guardianPhone !== undefined) updateData.guardianPhone = studentData.guardianPhone;
+    if (studentData.profileImage !== undefined) updateData.profileImage = studentData.profileImage;
+    
+    // Handle date fields properly
+    if (studentData.enrollmentDate !== undefined) {
+      updateData.enrollmentDate = studentData.enrollmentDate ? new Date(studentData.enrollmentDate + 'T00:00:00.000Z') : null;
+    }
+    if (studentData.dateOfBirth !== undefined) {
+      updateData.dateOfBirth = studentData.dateOfBirth ? new Date(studentData.dateOfBirth + 'T00:00:00.000Z') : null;
+    }
     
     // Hash password if provided
     if (studentData.password) {
