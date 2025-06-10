@@ -175,23 +175,44 @@ export function ProfileImageUpload({
     <Card className={`border shadow-sm ${className}`}>
       <CardContent className="p-6">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative group">
-            <Avatar className="h-24 w-24">
-              {imagePreview ? (
+          {imagePreview ? (
+            // Show image with overlay when image exists
+            <div className="relative group">
+              <Avatar className="h-24 w-24">
                 <AvatarImage src={imagePreview} alt={userName || 'Profile'} />
-              ) : (
-                <AvatarFallback className="text-xl">
+              </Avatar>
+              
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                   onClick={triggerFileSelect}>
+                <Camera className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          ) : userType === 'admin' ? (
+            // Show initials for admin when no image exists (like "JD")
+            <div className="relative group">
+              <Avatar className="h-24 w-24">
+                <AvatarFallback className="text-xl bg-slate-700 text-white">
                   {getInitials()}
                 </AvatarFallback>
-              )}
-            </Avatar>
-            
-            {/* Overlay on hover */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                 onClick={triggerFileSelect}>
-              <Camera className="h-6 w-6 text-white" />
+              </Avatar>
+              
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                   onClick={triggerFileSelect}>
+                <Camera className="h-6 w-6 text-white" />
+              </div>
             </div>
-          </div>
+          ) : (
+            // Show upload area for students when no image exists
+            <div 
+              className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors bg-white"
+              onClick={triggerFileSelect}
+            >
+              <Upload className="h-5 w-5 text-gray-400 mb-1" />
+              <span className="text-xs text-gray-500 font-medium">Upload</span>
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button
@@ -201,7 +222,7 @@ export function ProfileImageUpload({
               variant="outline"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Uploading...' : 'Change Photo'}
+              {isUploading ? 'Uploading...' : imagePreview ? 'Change Photo' : 'Upload Photo'}
             </Button>
             
             {imagePreview && (
