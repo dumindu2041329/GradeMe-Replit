@@ -1,17 +1,5 @@
 CREATE TYPE "public"."exam_status" AS ENUM('upcoming', 'active', 'completed');--> statement-breakpoint
-CREATE TYPE "public"."question_type" AS ENUM('mcq', 'written');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('admin', 'student');--> statement-breakpoint
-CREATE TABLE "exam_papers" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"exam_id" integer NOT NULL,
-	"title" text NOT NULL,
-	"instructions" text,
-	"total_questions" integer DEFAULT 0 NOT NULL,
-	"total_marks" integer DEFAULT 0 NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "exams" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -21,24 +9,6 @@ CREATE TABLE "exams" (
 	"total_marks" integer NOT NULL,
 	"status" "exam_status" DEFAULT 'upcoming' NOT NULL,
 	"description" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
-CREATE TABLE "questions" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"paper_id" integer NOT NULL,
-	"type" "question_type" NOT NULL,
-	"question_text" text NOT NULL,
-	"marks" integer NOT NULL,
-	"order_index" integer NOT NULL,
-	"option_a" text,
-	"option_b" text,
-	"option_c" text,
-	"option_d" text,
-	"correct_answer" text,
-	"expected_answer" text,
-	"answer_guidelines" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -91,3 +61,7 @@ CREATE TABLE "users" (
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
+--> statement-breakpoint
+ALTER TABLE "results" ADD CONSTRAINT "results_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "results" ADD CONSTRAINT "results_exam_id_exams_id_fk" FOREIGN KEY ("exam_id") REFERENCES "public"."exams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE set null ON UPDATE no action;

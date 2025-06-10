@@ -4,7 +4,6 @@ import { pgTable, serial, text, boolean, timestamp, integer, decimal, pgEnum } f
 // Database enums
 export const userRoleEnum = pgEnum('user_role', ['admin', 'student']);
 export const examStatusEnum = pgEnum('exam_status', ['upcoming', 'active', 'completed']);
-export const questionTypeEnum = pgEnum('question_type', ['mcq', 'written']);
 
 // Database tables
 export const users = pgTable('users', {
@@ -15,7 +14,7 @@ export const users = pgTable('users', {
   role: userRoleEnum('role').notNull().default('student'),
   isAdmin: boolean('is_admin').notNull().default(false),
   profileImage: text('profile_image'),
-  studentId: integer('student_id'),
+  studentId: integer('student_id').references(() => students.id, { onDelete: 'set null' }),
   emailNotifications: boolean('email_notifications').notNull().default(true),
   smsNotifications: boolean('sms_notifications').notNull().default(false),
   emailExamResults: boolean('email_exam_results').notNull().default(true),
@@ -58,8 +57,8 @@ export const exams = pgTable('exams', {
 
 export const results = pgTable('results', {
   id: serial('id').primaryKey(),
-  studentId: integer('student_id').notNull(),
-  examId: integer('exam_id').notNull(),
+  studentId: integer('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  examId: integer('exam_id').notNull().references(() => exams.id, { onDelete: 'cascade' }),
   score: decimal('score', { precision: 10, scale: 2 }).notNull(),
   percentage: decimal('percentage', { precision: 5, scale: 2 }).notNull(),
   submittedAt: timestamp('submitted_at').notNull().defaultNow(),
@@ -67,36 +66,7 @@ export const results = pgTable('results', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const examPapers = pgTable('exam_papers', {
-  id: serial('id').primaryKey(),
-  examId: integer('exam_id').notNull(),
-  title: text('title').notNull(),
-  instructions: text('instructions'),
-  totalQuestions: integer('total_questions').notNull().default(0),
-  totalMarks: integer('total_marks').notNull().default(0),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
 
-export const questions = pgTable('questions', {
-  id: serial('id').primaryKey(),
-  paperId: integer('paper_id').notNull(),
-  type: questionTypeEnum('type').notNull(),
-  questionText: text('question_text').notNull(),
-  marks: integer('marks').notNull(),
-  orderIndex: integer('order_index').notNull(),
-  // MCQ specific fields
-  optionA: text('option_a'),
-  optionB: text('option_b'),
-  optionC: text('option_c'),
-  optionD: text('option_d'),
-  correctAnswer: text('correct_answer'),
-  // Written question specific fields
-  expectedAnswer: text('expected_answer'),
-  answerGuidelines: text('answer_guidelines'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
 
 
 
@@ -105,12 +75,9 @@ export type User = typeof users.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Exam = typeof exams.$inferSelect;
 export type Result = typeof results.$inferSelect;
-export type ExamPaper = typeof examPapers.$inferSelect;
-export type Question = typeof questions.$inferSelect;
 
 export type UserRole = 'admin' | 'student';
 export type ExamStatus = 'upcoming' | 'active' | 'completed';
-export type QuestionType = 'mcq' | 'written';
 
 export type ResultWithDetails = Result & {
   student: Student;
@@ -184,30 +151,7 @@ export const insertResultSchema = z.object({
   submittedAt: z.date().default(() => new Date())
 });
 
-export const insertExamPaperSchema = z.object({
-  examId: z.number(),
-  title: z.string().min(2, "Title must be at least 2 characters"),
-  instructions: z.string().optional().nullable(),
-  totalQuestions: z.number().min(0).default(0),
-  totalMarks: z.number().min(0).default(0)
-});
 
-export const insertQuestionSchema = z.object({
-  paperId: z.number(),
-  type: z.enum(["mcq", "written"]),
-  questionText: z.string().min(5, "Question text must be at least 5 characters"),
-  marks: z.number().min(1, "Marks must be at least 1"),
-  orderIndex: z.number().min(0),
-  // MCQ specific fields
-  optionA: z.string().optional().nullable(),
-  optionB: z.string().optional().nullable(),
-  optionC: z.string().optional().nullable(),
-  optionD: z.string().optional().nullable(),
-  correctAnswer: z.string().optional().nullable(),
-  // Written question specific fields
-  expectedAnswer: z.string().optional().nullable(),
-  answerGuidelines: z.string().optional().nullable()
-});
 
 
 
@@ -264,8 +208,6 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertStudent = z.infer<typeof insertStudentSchema>;
 export type InsertExam = z.infer<typeof insertExamSchema>;
 export type InsertResult = z.infer<typeof insertResultSchema>;
-export type InsertExamPaper = z.infer<typeof insertExamPaperSchema>;
-export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
 export type StudentLogin = z.infer<typeof studentLoginSchema>;
 export type UpdateStudent = z.infer<typeof updateStudentSchema>;
