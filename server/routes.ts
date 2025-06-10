@@ -330,6 +330,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get demo credentials for README
+  app.get("/api/demo/credentials", async (req: Request, res: Response) => {
+    try {
+      const db = getDb();
+      
+      // Get admin users (excluding passwords for security)
+      const adminUsers = await db.select({
+        email: users.email,
+        name: users.name,
+        role: users.role
+      }).from(users).where(eq(users.role, 'admin')).limit(3);
+      
+      // Get student users (excluding passwords for security)
+      const studentUsers = await db.select({
+        email: students.email,
+        name: students.name,
+        class: students.class,
+        enrollmentDate: students.enrollmentDate
+      }).from(students).limit(5);
+      
+      res.json({
+        admins: adminUsers,
+        students: studentUsers,
+        note: "Passwords are not displayed for security reasons. Check your database setup or contact admin for login credentials."
+      });
+    } catch (error) {
+      console.error("Error fetching demo credentials:", error);
+      res.status(500).json({ message: "Failed to fetch demo credentials" });
+    }
+  });
+
   // Dashboard statistics - Admin only
   app.get("/api/statistics", requireAdmin, async (req: Request, res: Response) => {
     try {

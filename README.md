@@ -16,23 +16,19 @@ GradeMe is an exam management system that helps educators track students, exams,
 ## Login credentials
 
 ### Admin Account
-- **Email:** admin@grademe.com
-- **Password:** password123
+- **Email:** admin@example.com
+- **Password:** admin123
 - **Role:** Administrator
 - **Access:** Full system access including student management, exam creation, and results tracking
 
-### Student Accounts
+### Student Account
 1. **John Doe**
-   - Email: john@example.com
+   - Email: student@example.com
    - Password: student123
-   - Class: 10A
-   - Enrollment Date: January 15, 2024
-
-2. **Jane Smith**
-   - Email: jane@example.com
-   - Password: student123
-   - Class: 10B
-   - Enrollment Date: January 20, 2024
+   - Class: 12th Grade
+   - Phone: 123-456-7890
+   - Guardian: Jane Doe (123-456-7891)
+   - Date of Birth: January 15, 2005
 
 ## Project structure
 - `client/` - Frontend React application
