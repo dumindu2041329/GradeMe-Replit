@@ -72,13 +72,37 @@ export class SupabaseStorage implements IStorage {
 
   async createStudent(studentData: InsertStudent): Promise<Student> {
     // Hash password before storing
-    const dataToInsert = { ...studentData };
-    if (dataToInsert.password) {
-      dataToInsert.password = await bcrypt.hash(dataToInsert.password, 10);
+    const hashedPassword = studentData.password ? await bcrypt.hash(studentData.password, 10) : '';
+    
+    const dataToInsert = { 
+      ...studentData,
+      password: hashedPassword
+    };
+    
+    // Create student record
+    const studentResult = await this.db.insert(students).values([dataToInsert]).returning();
+    const newStudent = studentResult[0];
+    
+    // Create corresponding user record
+    if (hashedPassword) {
+      await this.db.insert(users).values([{
+        email: studentData.email,
+        password: hashedPassword,
+        name: studentData.name,
+        role: 'student' as const,
+        isAdmin: false,
+        studentId: newStudent.id,
+        profileImage: studentData.profileImage || null,
+        emailNotifications: true,
+        smsNotifications: false,
+        emailExamResults: true,
+        emailUpcomingExams: true,
+        smsExamResults: false,
+        smsUpcomingExams: false
+      }]);
     }
     
-    const result = await this.db.insert(students).values(dataToInsert).returning();
-    return result[0];
+    return newStudent;
   }
 
   async updateStudent(id: number, studentData: Partial<InsertStudent>): Promise<Student | undefined> {
@@ -100,6 +124,9 @@ export class SupabaseStorage implements IStorage {
     try {
       // First delete related results
       await this.db.delete(results).where(eq(results.studentId, id));
+      
+      // Delete corresponding user record
+      await this.db.delete(users).where(eq(users.studentId, id));
       
       // Then delete the student
       const result = await this.db.delete(students).where(eq(students.id, id));

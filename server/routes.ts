@@ -351,8 +351,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         guardianName: req.body.guardianName || null,
         guardianPhone: req.body.guardianPhone || null,
         profileImage: req.body.profileImage || null,
-        enrollmentDate: req.body.enrollmentDate || new Date().toISOString().split('T')[0],
-        dateOfBirth: req.body.dateOfBirth || null
+        enrollmentDate: req.body.enrollmentDate ? new Date(req.body.enrollmentDate) : new Date(),
+        dateOfBirth: req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null
       };
       
       console.log("Processed student data:", studentData);
@@ -382,8 +382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
       if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
       if (req.body.profileImage !== undefined) updateData.profileImage = req.body.profileImage || null;
-      if (req.body.enrollmentDate !== undefined) updateData.enrollmentDate = req.body.enrollmentDate;
-      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth;
+      if (req.body.enrollmentDate !== undefined) updateData.enrollmentDate = req.body.enrollmentDate ? new Date(req.body.enrollmentDate) : null;
+      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null;
       
       // Handle password separately
       if (req.body.password !== undefined) {
@@ -515,7 +515,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/results", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const result = await storage.createResult(req.body);
+      const resultData = {
+        ...req.body,
+        submittedAt: req.body.submittedAt ? new Date(req.body.submittedAt) : new Date()
+      };
+      const result = await storage.createResult(resultData);
       res.status(201).json(result);
     } catch (error) {
       console.error("Error creating result:", error);
@@ -526,7 +530,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/results/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
-      const result = await storage.updateResult(id, req.body);
+      const updateData = {
+        ...req.body,
+        ...(req.body.submittedAt && { submittedAt: new Date(req.body.submittedAt) })
+      };
+      const result = await storage.updateResult(id, updateData);
       if (!result) {
         return res.status(404).json({ message: "Result not found" });
       }
