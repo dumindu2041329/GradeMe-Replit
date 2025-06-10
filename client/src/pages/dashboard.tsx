@@ -107,69 +107,6 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <SpeedTestWidget />
-        <Card className="shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold">Quick Actions - Exams</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <p className="text-muted-foreground mb-4">
-              Manage, create and schedule exams for students
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                className="flex gap-2"
-                onClick={() => navigate("/exams")}
-              >
-                <BookOpen className="h-4 w-4" />
-                View All Exams
-              </Button>
-              <Button
-                className="flex gap-2 bg-primary hover:bg-primary/90"
-                onClick={() => {
-                  navigate("/exams");
-                  // We'll need to trigger the create modal on the exams page
-                  sessionStorage.setItem("openExamCreateModal", "true");
-                }}
-              >
-                <PlusCircle className="h-4 w-4" />
-                Create New Exam
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold">Quick Actions - Students</CardTitle>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <p className="text-muted-foreground mb-4">
-              Manage students, enrollment and view their progress
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button 
-                variant="outline" 
-                className="flex gap-2"
-                onClick={() => navigate("/students")}
-              >
-                <Users className="h-4 w-4" />
-                View All Students
-              </Button>
-              <Button
-                className="flex gap-2 bg-primary hover:bg-primary/90"
-                onClick={() => {
-                  navigate("/students");
-                  // We'll need to trigger the create modal on the students page
-                  sessionStorage.setItem("openStudentCreateModal", "true");
-                }}
-              >
-                <PlusCircle className="h-4 w-4" />
-                Add New Student
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <Card className="shadow">
