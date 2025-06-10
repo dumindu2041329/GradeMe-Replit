@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,8 +37,8 @@ export default function PaperCreationPage() {
     queryKey: ['exam', examId],
     queryFn: async () => {
       if (!examId) return null;
-      const response = await apiRequest(`/api/exams/${examId}`);
-      return response.data as Exam;
+      const response = await apiRequest('GET', `/api/exams/${examId}`);
+      return response as Exam;
     },
     enabled: !!examId,
   });
@@ -47,24 +47,36 @@ export default function PaperCreationPage() {
   const examForm = useForm<ExamFormValues>({
     resolver: zodResolver(examFormSchema),
     defaultValues: {
-      name: exam?.name || "",
-      subject: exam?.subject || "",
-      date: exam?.date ? new Date(exam.date) : new Date(),
-      duration: exam?.duration || 60,
-      totalMarks: exam?.totalMarks || 100,
-      status: exam?.status || "upcoming",
-      description: exam?.description || "",
+      name: "",
+      subject: "",
+      date: new Date(),
+      duration: 60,
+      totalMarks: 100,
+      status: "upcoming",
+      description: "",
     },
   });
+
+  // Update form when exam data loads
+  useEffect(() => {
+    if (exam) {
+      examForm.reset({
+        name: exam.name || "",
+        subject: exam.subject || "",
+        date: exam.date ? new Date(exam.date) : new Date(),
+        duration: exam.duration || 60,
+        totalMarks: exam.totalMarks || 100,
+        status: exam.status || "upcoming",
+        description: exam.description || "",
+      });
+    }
+  }, [exam, examForm]);
 
   // Update exam mutation
   const updateExamMutation = useMutation({
     mutationFn: async (data: ExamFormValues) => {
       if (!examId) throw new Error("Exam ID is required");
-      return apiRequest(`/api/exams/${examId}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PUT", `/api/exams/${examId}`, data);
     },
     onSuccess: () => {
       toast({ title: "Exam updated successfully" });
@@ -82,7 +94,7 @@ export default function PaperCreationPage() {
 
   if (!examId) {
     return (
-      <AppShell>
+      <AppShell title="Paper Creation">
         <div className="container mx-auto py-6">
           <Card>
             <CardContent className="pt-6">
@@ -108,7 +120,7 @@ export default function PaperCreationPage() {
 
   if (isLoading) {
     return (
-      <AppShell>
+      <AppShell title="Paper Creation">
         <div className="container mx-auto py-6">
           <Card>
             <CardContent className="pt-6">
@@ -122,7 +134,7 @@ export default function PaperCreationPage() {
 
   if (!exam) {
     return (
-      <AppShell>
+      <AppShell title="Paper Creation">
         <div className="container mx-auto py-6">
           <Card>
             <CardContent className="pt-6">
@@ -149,7 +161,7 @@ export default function PaperCreationPage() {
   };
 
   return (
-    <AppShell>
+    <AppShell title="Paper Creation">
       <div className="container mx-auto py-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
