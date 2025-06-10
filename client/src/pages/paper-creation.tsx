@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -85,6 +85,9 @@ export default function PaperCreationPage() {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<DbQuestion | null>(null);
+  
+  // Ref for scrolling to question form
+  const questionFormRef = useRef<HTMLDivElement>(null);
 
   // Fetch questions for the paper with optimized automatic refresh
   const { data: savedQuestions = [], isLoading: isQuestionsLoading, refetch: refetchQuestions } = useQuery<DbQuestion[]>({
@@ -195,7 +198,7 @@ export default function PaperCreationPage() {
         instructions: "Read all questions carefully before answering.",
       });
     }
-  }, [paper, exam]); // Remove paperForm from dependencies to prevent infinite loop
+  }, [paper?.id, exam?.id, paper?.title, exam?.name]); // Use specific properties to prevent infinite loop
 
   const selectedQuestionType = questionForm.watch("type");
 
@@ -376,6 +379,15 @@ export default function PaperCreationPage() {
     }
   };
 
+  const scrollToQuestionForm = () => {
+    setTimeout(() => {
+      questionFormRef.current?.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }, 100);
+  };
+
   const handleEditQuestion = (question: DbQuestion) => {
     setEditingQuestion(question);
     questionForm.reset({
@@ -391,6 +403,7 @@ export default function PaperCreationPage() {
       answerGuidelines: question.answerGuidelines || undefined,
     });
     setIsCreatingQuestion(true);
+    scrollToQuestionForm();
   };
 
   if (!match || !examId) {
@@ -483,7 +496,10 @@ export default function PaperCreationPage() {
                 Questions ({localQuestions.length})
               </span>
               <Button
-                onClick={() => setIsCreatingQuestion(true)}
+                onClick={() => {
+                  setIsCreatingQuestion(true);
+                  scrollToQuestionForm();
+                }}
                 size="sm"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -595,9 +611,11 @@ export default function PaperCreationPage() {
 
         {/* Add Question Form */}
         {isCreatingQuestion && (
-          <Card>
+          <Card ref={questionFormRef}>
             <CardHeader>
-              <CardTitle>Add New Question</CardTitle>
+              <CardTitle>
+                {editingQuestion ? "Update Existing Question" : "Add New Question"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Form {...questionForm}>
