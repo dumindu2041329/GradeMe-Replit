@@ -10,6 +10,7 @@ import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from ".
 import { paperFileStorage } from "./paper-file-storage";
 import { questionFileStorage } from "./question-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
+import { registerProfileRoutes } from "./profile-routes";
 // Performance optimization imports removed during migration
 
 declare module "express-session" {
@@ -705,6 +706,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register question routes with WebSocket broadcast function
   registerQuestionRoutes(app, requireAdmin, broadcastUpdate);
+  
+  // Register profile image upload routes
+  registerProfileRoutes(app, requireAuth, requireAdmin, requireStudent);
 
   return httpServer;
 }

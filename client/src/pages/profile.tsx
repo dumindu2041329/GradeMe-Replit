@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Upload } from "lucide-react";
 import { PhotoGuidelines } from "@/components/photo-guidelines";
+import { ProfileImageUpload } from "@/components/profile-image-upload";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 
@@ -372,83 +373,52 @@ export default function ProfilePage() {
           
           <TabsContent value="general" className="space-y-6">
             {/* Profile Photo */}
+            <ProfileImageUpload
+              userType={user?.role === 'admin' ? 'admin' : 'student'}
+              currentImageUrl={user?.profileImage}
+              userName={user?.name}
+              onImageUpdate={(imageUrl) => {
+                if (user && setUser) {
+                  setUser({ ...user, profileImage: imageUrl });
+                }
+              }}
+            />
+            
+            {/* User Info Card */}
             <Card className="border shadow-sm">
               <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <Avatar className="h-24 w-24">
-                      {user?.profileImage ? (
-                        <AvatarImage src={user.profileImage} alt={user?.name} />
-                      ) : (
-                        <AvatarFallback className="text-xl">
-                          {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      accept="image/png, image/jpeg, image/gif, image/webp"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="mt-2"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={imageLoading}
-                    >
-                      {imageLoading ? (
-                        <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="mr-2 h-4 w-4" />
-                          Upload Photo
-                        </>
-                      )}
-                    </Button>
-                    <PhotoGuidelines />
-                  </div>
-                  
-                  <div className="flex-1 flex justify-center items-center">
-                    <div className="flex flex-col items-center text-center gap-2 mt-4">
-                      <h3 className="text-xl font-semibold">{user?.name || 'No name available'}</h3>
-                      <Badge variant="outline" className="mb-1">
-                        {user?.role === 'admin' ? 'Administrator' : 'Student'}
-                      </Badge>
-                      {user?.role !== 'admin' && (
-                        <p className="text-sm text-muted-foreground">{user?.email}</p>
-                      )}
-                      {user?.role === 'student' && user?.studentId && (
-                        <p className="text-sm text-muted-foreground">
-                          Student ID: {user.studentId}
-                        </p>
-                      )}
-                      {user?.id && user?.role !== 'admin' && (
-                        <p className="text-xs text-muted-foreground">
-                          User ID: {user.id}
-                        </p>
-                      )}
-                      {user?.createdAt && user?.role !== 'admin' && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Member since: {new Date(user.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </p>
-                      )}
-                      {user?.role === 'student' && (
-                        <p className="text-sm text-muted-foreground">
-                          Class: Not specified
-                        </p>
-                      )}
-                    </div>
-                  </div>
+                <div className="flex flex-col items-center text-center gap-2">
+                  <h3 className="text-xl font-semibold">{user?.name || 'No name available'}</h3>
+                  <Badge variant="outline" className="mb-1">
+                    {user?.role === 'admin' ? 'Administrator' : 'Student'}
+                  </Badge>
+                  {user?.role !== 'admin' && (
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  )}
+                  {user?.role === 'student' && user?.studentId && (
+                    <p className="text-sm text-muted-foreground">
+                      Student ID: {user.studentId}
+                    </p>
+                  )}
+                  {user?.id && user?.role !== 'admin' && (
+                    <p className="text-xs text-muted-foreground">
+                      User ID: {user.id}
+                    </p>
+                  )}
+                  {user?.createdAt && user?.role !== 'admin' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Member since: {new Date(user.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  )}
+                  {user?.role === 'student' && (
+                    <p className="text-sm text-muted-foreground">
+                      Class: Not specified
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
