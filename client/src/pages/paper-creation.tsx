@@ -26,10 +26,21 @@ const examFormSchema = insertExamSchema.extend({
 
 const questionFormSchema = z.object({
   question: z.string().min(1, "Question is required"),
-  type: z.enum(["multiple_choice", "short_answer", "essay", "true_false"]),
+  type: z.enum(["multiple_choice", "written"]),
   options: z.array(z.string()).optional(),
   correctAnswer: z.string().optional(),
   marks: z.number().min(1, "Marks must be at least 1"),
+}).refine((data) => {
+  if (data.type === "multiple_choice") {
+    // For multiple choice, require at least 2 options and a correct answer
+    return data.options && 
+           data.options.filter(opt => opt.trim().length > 0).length >= 2 &&
+           data.correctAnswer && data.correctAnswer.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "Multiple choice questions require at least 2 options and a correct answer",
+  path: ["options"]
 });
 
 type ExamFormValues = z.infer<typeof examFormSchema>;
@@ -38,7 +49,7 @@ type QuestionFormValues = z.infer<typeof questionFormSchema>;
 interface Question {
   id: string;
   question: string;
-  type: "multiple_choice" | "short_answer" | "essay" | "true_false";
+  type: "multiple_choice" | "written";
   options?: string[];
   correctAnswer?: string;
   marks: number;
@@ -145,12 +156,27 @@ export default function PaperCreationPage() {
   const createQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues) => {
       if (!examId) throw new Error("Exam ID is required");
-      return apiRequest("POST", `/api/questions`, {
-        ...data,
+      
+      // Map frontend data to backend expected format
+      const payload: any = {
+        type: data.type === "multiple_choice" ? "mcq" : data.type,
+        questionText: data.question,
+        marks: data.marks,
         paperId: `paper_${examId}_new`,
         examId: examId,
         orderIndex: questions.length,
-      });
+      };
+
+      // Add options for multiple choice questions
+      if (data.type === "multiple_choice" && data.options) {
+        payload.optionA = data.options[0] || "";
+        payload.optionB = data.options[1] || "";
+        payload.optionC = data.options[2] || "";
+        payload.optionD = data.options[3] || "";
+        payload.correctAnswer = data.correctAnswer;
+      }
+
+      return apiRequest("POST", `/api/questions`, payload);
     },
     onSuccess: () => {
       toast({ title: "Question created successfully" });
@@ -170,11 +196,25 @@ export default function PaperCreationPage() {
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { id: string }) => {
-      return apiRequest("PUT", `/api/questions/${data.id}`, {
-        ...data,
+      // Map frontend data to backend expected format
+      const payload: any = {
+        type: data.type === "multiple_choice" ? "mcq" : data.type,
+        questionText: data.question,
+        marks: data.marks,
         paperId: `paper_${examId}_new`,
         examId: examId,
-      });
+      };
+
+      // Add options for multiple choice questions
+      if (data.type === "multiple_choice" && data.options) {
+        payload.optionA = data.options[0] || "";
+        payload.optionB = data.options[1] || "";
+        payload.optionC = data.options[2] || "";
+        payload.optionD = data.options[3] || "";
+        payload.correctAnswer = data.correctAnswer;
+      }
+
+      return apiRequest("PUT", `/api/questions/${data.id}`, payload);
     },
     onSuccess: () => {
       toast({ title: "Question updated successfully" });
@@ -507,9 +547,7 @@ export default function PaperCreationPage() {
                                   </FormControl>
                                   <SelectContent>
                                     <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                    <SelectItem value="short_answer">Short Answer</SelectItem>
-                                    <SelectItem value="essay">Essay</SelectItem>
-                                    <SelectItem value="true_false">True/False</SelectItem>
+                                    <SelectItem value="written">Written</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -590,29 +628,7 @@ export default function PaperCreationPage() {
                           />
                         )}
 
-                        {questionForm.watch("type") === "true_false" && (
-                          <FormField
-                            control={questionForm.control}
-                            name="correctAnswer"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Correct Answer</FormLabel>
-                                <Select onValueChange={field.onChange} value={field.value}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select correct answer" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    <SelectItem value="True">True</SelectItem>
-                                    <SelectItem value="False">False</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        )}
+
 
                         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                           <Button 
