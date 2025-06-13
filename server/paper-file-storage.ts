@@ -50,9 +50,7 @@ export class PaperFileStorage {
   private bucketInitialized = false;
   private db = getDb();
   private examNameCache = new Map<number, string>();
-  private paperCache = new Map<number, PaperData>();
-  private questionCache = new Map<string, QuestionData[]>();
-  private cacheTimeout = 30000; // 30 seconds cache
+  // Removed paper caching to ensure real-time updates from storage
 
   constructor() {
     // Initialize bucket asynchronously without blocking constructor
@@ -136,10 +134,10 @@ export class PaperFileStorage {
       // Cache the result
       this.examNameCache.set(examId, examName);
       
-      // Clear cache after timeout
+      // Clear cache after 5 minutes
       setTimeout(() => {
         this.examNameCache.delete(examId);
-      }, this.cacheTimeout);
+      }, 300000);
       
       return examName;
     } catch (error) {
@@ -156,17 +154,8 @@ export class PaperFileStorage {
   }
 
   async getPaperByExamId(examId: number): Promise<PaperData | null> {
-    // Check cache first for fast retrieval
-    if (this.paperCache.has(examId)) {
-      const cachedPaper = this.paperCache.get(examId)!;
-      console.log('Using cached paper:', {
-        id: cachedPaper.id,
-        examId: cachedPaper.examId,
-        title: cachedPaper.title,
-        questionsCount: cachedPaper.questions.length
-      });
-      return cachedPaper;
-    }
+    // Always fetch fresh data from storage to ensure real-time updates
+    // Remove caching to prevent stale data issues
 
     try {
       await this.ensureBucketExists();
@@ -190,15 +179,7 @@ export class PaperFileStorage {
       const text = await data.text();
       const paperData: PaperData = JSON.parse(text);
       
-      // Cache the result for faster subsequent access
-      this.paperCache.set(examId, paperData);
-      
-      // Clear cache after timeout
-      setTimeout(() => {
-        this.paperCache.delete(examId);
-      }, this.cacheTimeout);
-      
-      console.log('Successfully loaded and cached paper:', {
+      console.log('Successfully loaded fresh paper from storage:', {
         id: paperData.id,
         examId: paperData.examId,
         title: paperData.title,

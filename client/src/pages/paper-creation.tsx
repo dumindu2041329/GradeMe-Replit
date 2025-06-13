@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -70,6 +70,7 @@ export default function PaperCreationPage() {
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [addAnother, setAddAnother] = useState(false);
 
   // Fetch exam data
   const { data: exam, isLoading: examLoading } = useQuery({
@@ -82,26 +83,45 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch questions from JSON file
-  const { data: paperData, isLoading: questionsLoading } = useQuery({
+  // Fetch questions from JSON file - always get fresh data
+  const { data: paperData, isLoading: questionsLoading, refetch: refetchPaper } = useQuery({
     queryKey: ['paper', examId],
     queryFn: async () => {
       if (!examId) return null;
-      const response = await apiRequest('GET', `/api/papers/${examId}`);
+      const response = await apiRequest('GET', `/api/papers/${examId}?_t=${Date.now()}`);
       return response;
     },
     enabled: !!examId,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true, // Refetch when user returns to the page
+    refetchOnMount: true, // Always refetch on component mount
   });
 
   // Local state for immediate frontend display
   const [localQuestions, setLocalQuestions] = useState<Question[]>([]);
 
-  // Update local questions when paper data loads
+  // Update local questions when paper data loads or changes
   useEffect(() => {
     if (paperData?.questions) {
       setLocalQuestions(paperData.questions);
+    } else {
+      setLocalQuestions([]);
     }
   }, [paperData]);
+
+  // Refetch paper data when returning to the page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && examId) {
+        refetchPaper();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [examId, refetchPaper]);
 
   const questions = localQuestions;
 
@@ -171,71 +191,130 @@ export default function PaperCreationPage() {
         id: `question_${examId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         question: data.question,
         type: data.type,
-        options: data.type === "multiple_choice" ? data.options : undefined,
+        options: data.type === "multiple_choice" ? data.options?.filter(opt => opt.trim() !== "") : undefined,
         correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
         marks: data.marks,
         orderIndex: questions.length,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      
+      // Immediately update local state for instant UI feedback
+      setLocalQuestions(prev => [...prev, newQuestion]);
+      
+      // Handle dialog closing based on "Add Another" option
+      if (!addAnother) {
+        setIsQuestionDialogOpen(false);
+      }
+      
+      questionForm.reset({
+        question: "",
+        type: data.type, // Keep the same question type for faster entry
+        options: ["", "", "", ""],
+        correctAnswer: "",
+        marks: data.marks, // Keep the same marks for consistency
+      });
+      setEditingQuestion(null);
+      
       return newQuestion;
     },
     onSuccess: (newQuestion: Question) => {
-      toast({ title: "Question added successfully" });
-      setLocalQuestions(prev => [...prev, newQuestion]);
-      setIsQuestionDialogOpen(false);
-      questionForm.reset();
-      setEditingQuestion(null);
+      toast({ 
+        title: "Question added",
+        description: `${addAnother ? 'Ready for next question' : 'Question added successfully'}`,
+      });
+      
+      // Focus back to question input for faster entry
+      if (addAnother) {
+        setTimeout(() => {
+          const questionInput = document.querySelector('textarea[placeholder="Enter question"]') as HTMLTextAreaElement;
+          questionInput?.focus();
+        }, 100);
+      }
     },
     onError: (error: any) => {
+      // Revert the optimistic update on error
+      setLocalQuestions(prev => prev.slice(0, -1));
       toast({
         title: "Error adding question",
         description: error.message,
         variant: "destructive",
       });
+      setIsQuestionDialogOpen(true); // Reopen dialog for retry
     },
   });
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { id: string }) => {
+      const originalQuestion = questions.find(q => q.id === data.id);
       const updatedQuestion: Question = {
         id: data.id,
         question: data.question,
         type: data.type,
-        options: data.type === "multiple_choice" ? data.options : undefined,
+        options: data.type === "multiple_choice" ? data.options?.filter(opt => opt.trim() !== "") : undefined,
         correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
         marks: data.marks,
-        orderIndex: questions.findIndex(q => q.id === data.id),
-        createdAt: questions.find(q => q.id === data.id)?.createdAt || new Date().toISOString(),
+        orderIndex: originalQuestion?.orderIndex || 0,
+        createdAt: originalQuestion?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      return updatedQuestion;
-    },
-    onSuccess: (updatedQuestion: Question) => {
-      toast({ title: "Question updated successfully" });
+      
+      // Immediately update local state for instant UI feedback
       setLocalQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q));
       setIsQuestionDialogOpen(false);
-      questionForm.reset();
+      questionForm.reset({
+        question: "",
+        type: "multiple_choice",
+        options: ["", "", "", ""],
+        correctAnswer: "",
+        marks: 1,
+      });
       setEditingQuestion(null);
+      
+      return { updatedQuestion, originalQuestion };
     },
-    onError: (error: any) => {
+    onSuccess: ({ updatedQuestion }) => {
+      toast({ 
+        title: "Question updated",
+        description: `Question "${updatedQuestion.question.substring(0, 50)}${updatedQuestion.question.length > 50 ? '...' : ''}" updated successfully`,
+      });
+    },
+    onError: (error: any, variables) => {
+      // Revert the optimistic update on error
+      const originalQuestion = questions.find(q => q.id === variables.id);
+      if (originalQuestion) {
+        setLocalQuestions(prev => prev.map(q => q.id === variables.id ? originalQuestion : q));
+      }
       toast({
         title: "Error updating question",
         description: error.message,
         variant: "destructive",
       });
+      setIsQuestionDialogOpen(true); // Reopen dialog for retry
     },
   });
 
   const deleteQuestionMutation = useMutation({
     mutationFn: async (questionId: string) => {
-      return questionId;
-    },
-    onSuccess: (questionId: string) => {
-      toast({ title: "Question deleted successfully" });
+      const questionToDelete = questions.find(q => q.id === questionId);
+      
+      // Immediately update local state for instant UI feedback
       setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
+      
+      return { questionId, deletedQuestion: questionToDelete };
     },
-    onError: (error: any) => {
+    onSuccess: ({ deletedQuestion }) => {
+      toast({ 
+        title: "Question deleted",
+        description: `Question "${deletedQuestion?.question.substring(0, 50)}${deletedQuestion?.question && deletedQuestion.question.length > 50 ? '...' : ''}" deleted successfully`,
+      });
+    },
+    onError: (error: any, questionId) => {
+      // Revert the optimistic update on error
+      const questionToRestore = questions.find(q => q.id === questionId);
+      if (questionToRestore) {
+        setLocalQuestions(prev => [...prev, questionToRestore].sort((a, b) => a.orderIndex - b.orderIndex));
+      }
       toast({
         title: "Error deleting question",
         description: error.message,
@@ -243,6 +322,24 @@ export default function PaperCreationPage() {
       });
     },
   });
+
+  // Keyboard shortcuts for faster question creation
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.ctrlKey && event.key === 'Enter' && isQuestionDialogOpen) {
+      event.preventDefault();
+      questionForm.handleSubmit(handleQuestionSubmit)();
+    }
+    if (event.key === 'Escape' && isQuestionDialogOpen) {
+      event.preventDefault();
+      setIsQuestionDialogOpen(false);
+      setAddAnother(false);
+    }
+  }, [isQuestionDialogOpen, questionForm]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Handlers
   const handleExamSubmit = (data: ExamFormValues) => {
@@ -622,11 +719,30 @@ export default function PaperCreationPage() {
 
 
 
+                        {/* Add Another Checkbox for faster question creation */}
+                        {!editingQuestion && (
+                          <div className="flex items-center space-x-2 pt-2 border-t">
+                            <input
+                              type="checkbox"
+                              id="addAnother"
+                              checked={addAnother}
+                              onChange={(e) => setAddAnother(e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="addAnother" className="text-sm text-muted-foreground">
+                              Keep dialog open to add more questions quickly
+                            </label>
+                          </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                           <Button 
                             type="button" 
                             variant="outline" 
-                            onClick={() => setIsQuestionDialogOpen(false)}
+                            onClick={() => {
+                              setIsQuestionDialogOpen(false);
+                              setAddAnother(false);
+                            }}
                             className="order-2 sm:order-1"
                           >
                             Cancel
@@ -637,6 +753,9 @@ export default function PaperCreationPage() {
                             className="order-1 sm:order-2"
                           >
                             {editingQuestion ? "Update Question" : "Add Question"}
+                            {!editingQuestion && (
+                              <span className="ml-2 text-xs opacity-70">(Ctrl+Enter)</span>
+                            )}
                           </Button>
                         </div>
                       </form>
