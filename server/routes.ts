@@ -3,12 +3,11 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { getDb, isDbConnected } from "./db-connection";
 import { desc, eq, and } from "drizzle-orm";
-import { exams, users, students, results, examPapers, questions, type User, type Student, type Exam, type Result, type ExamPaper, type Question } from "@shared/schema";
+import { exams, users, students, results, type User, type Student, type Exam, type Result } from "@shared/schema";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from "./supabase-middleware";
 import { paperFileStorage } from "./paper-file-storage";
-import { questionFileStorage } from "./question-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
 import { registerProfileRoutes } from "./profile-routes";
 // Performance optimization imports removed during migration

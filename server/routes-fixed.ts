@@ -8,7 +8,7 @@ import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from "./supabase-middleware";
 import { paperFileStorage } from "./paper-file-storage";
-import { questionFileStorage } from "./question-file-storage";
+
 
 declare module "express-session" {
   interface SessionData {

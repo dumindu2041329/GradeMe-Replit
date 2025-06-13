@@ -43,6 +43,7 @@ export class PaperFileStorage {
   private db = getDb();
   private examNameCache = new Map<number, string>();
   private paperCache = new Map<number, PaperData>();
+  private questionCache = new Map<string, QuestionData[]>();
   private cacheTimeout = 30000; // 30 seconds cache
 
   constructor() {
@@ -449,6 +450,85 @@ export class PaperFileStorage {
       console.error('Error getting all papers:', error);
       return [];
     }
+  }
+
+  // Methods for handling questions (consolidated from QuestionFileStorage)
+  async getQuestionsByExamId(examId: number): Promise<QuestionData[]> {
+    try {
+      const paper = await this.getPaperByExamId(examId);
+      return paper?.questions || [];
+    } catch (error) {
+      console.error('Error getting questions by exam ID:', error);
+      return [];
+    }
+  }
+
+  async saveQuestions(examId: number, questions: QuestionData[]): Promise<boolean> {
+    try {
+      const existingPaper = await this.getPaperByExamId(examId);
+      
+      if (!existingPaper) {
+        console.error('Paper not found for exam ID:', examId);
+        return false;
+      }
+      
+      const updatedPaper: Omit<PaperData, 'id' | 'examId' | 'createdAt' | 'updatedAt' | 'metadata'> = {
+        ...existingPaper,
+        questions,
+        totalQuestions: questions.length,
+        totalMarks: questions.reduce((sum, q) => sum + q.marks, 0)
+      };
+      
+      const savedPaper = await this.savePaper(examId, updatedPaper);
+      return !!savedPaper;
+    } catch (error) {
+      console.error('Error saving questions:', error);
+      return false;
+    }
+  }
+
+  async deleteAllQuestions(examId: number): Promise<boolean> {
+    try {
+      const existingPaper = await this.getPaperByExamId(examId);
+      
+      if (!existingPaper) {
+        console.error('Paper not found for exam ID:', examId);
+        return false;
+      }
+      
+      const updatedPaper: Omit<PaperData, 'id' | 'examId' | 'createdAt' | 'updatedAt' | 'metadata'> = {
+        ...existingPaper,
+        questions: [],
+        totalQuestions: 0,
+        totalMarks: 0
+      };
+      
+      const savedPaper = await this.savePaper(examId, updatedPaper);
+      return !!savedPaper;
+    } catch (error) {
+      console.error('Error deleting all questions:', error);
+      return false;
+    }
+  }
+
+  async getAllQuestionsByExamId(examId: number): Promise<{ examId: number; questions: QuestionData[]; paperTitle?: string }[]> {
+    try {
+      const paper = await this.getPaperByExamId(examId);
+      if (!paper) return [];
+      
+      return [{
+        examId: paper.examId,
+        questions: paper.questions,
+        paperTitle: paper.title
+      }];
+    } catch (error) {
+      console.error('Error getting all questions by exam ID:', error);
+      return [];
+    }
+  }
+
+  async deleteAllQuestionsForExam(examId: number): Promise<boolean> {
+    return this.deleteAllQuestions(examId);
   }
 }
 
