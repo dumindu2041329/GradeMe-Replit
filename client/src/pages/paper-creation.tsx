@@ -431,12 +431,10 @@ export default function PaperCreationPage() {
                     <p className="text-sm">{exam.subject}</p>
                   </div>
                 </div>
-                {exam.description && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Description</label>
-                    <p className="text-sm">{exam.description}</p>
-                  </div>
-                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Description</label>
+                  <p className="text-sm">{exam.description || "No description provided"}</p>
+                </div>
               </div>
             )}
           </CardContent>
