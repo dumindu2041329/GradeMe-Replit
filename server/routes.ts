@@ -675,20 +675,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/papers", requireAdmin, async (req: Request, res: Response) => {
     try {
+      const examId = parseInt(req.body.examId);
+      
+      // Get full exam details from database for comprehensive JSON
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+
+      // Prepare complete paper data with all exam information and questions
       const paperData = {
-        ...req.body,
-        examId: parseInt(req.body.examId),
-        totalQuestions: parseInt(req.body.totalQuestions) || 0,
-        totalMarks: parseInt(req.body.totalMarks) || 0
+        title: req.body.title || exam.name,
+        instructions: req.body.instructions || exam.description || "Read all questions carefully before answering.",
+        totalQuestions: req.body.totalQuestions || 0,
+        totalMarks: req.body.totalMarks || 0,
+        questions: req.body.questions || [],
+        examDetails: {
+          name: exam.name,
+          subject: exam.subject,
+          date: exam.date.toISOString(),
+          duration: exam.duration,
+          status: exam.status,
+          description: exam.description
+        }
       };
       
-      const paper = await paperFileStorage.savePaper(parseInt(req.body.examId), {
-        title: req.body.title || "",
-        instructions: req.body.instructions || "",
-        totalQuestions: 0,
-        totalMarks: 0,
-        questions: []
-      });
+      const paper = await paperFileStorage.savePaper(examId, paperData);
       res.status(201).json(paper);
     } catch (error) {
       console.error("Error creating paper:", error);

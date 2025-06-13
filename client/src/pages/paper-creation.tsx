@@ -82,9 +82,28 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Local state for questions (frontend-only)
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [questionsLoading, setQuestionsLoading] = useState(false);
+  // Fetch questions from JSON file
+  const { data: paperData, isLoading: questionsLoading } = useQuery({
+    queryKey: ['paper', examId],
+    queryFn: async () => {
+      if (!examId) return null;
+      const response = await apiRequest('GET', `/api/papers/${examId}`);
+      return response;
+    },
+    enabled: !!examId,
+  });
+
+  // Local state for immediate frontend display
+  const [localQuestions, setLocalQuestions] = useState<Question[]>([]);
+
+  // Update local questions when paper data loads
+  useEffect(() => {
+    if (paperData?.questions) {
+      setLocalQuestions(paperData.questions);
+    }
+  }, [paperData]);
+
+  const questions = localQuestions;
 
   // Forms
   const examForm = useForm<ExamFormValues>({
@@ -148,9 +167,6 @@ export default function PaperCreationPage() {
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues) => {
-      if (!examId) throw new Error("Exam ID is required");
-      
-      // Create question locally - no backend API call
       const newQuestion: Question = {
         id: `question_${examId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         question: data.question,
@@ -162,19 +178,18 @@ export default function PaperCreationPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
       return newQuestion;
     },
     onSuccess: (newQuestion: Question) => {
-      toast({ title: "Question created successfully" });
-      setQuestions(prev => [...prev, newQuestion]);
+      toast({ title: "Question added successfully" });
+      setLocalQuestions(prev => [...prev, newQuestion]);
       setIsQuestionDialogOpen(false);
       questionForm.reset();
       setEditingQuestion(null);
     },
     onError: (error: any) => {
       toast({
-        title: "Error creating question",
+        title: "Error adding question",
         description: error.message,
         variant: "destructive",
       });
@@ -183,7 +198,6 @@ export default function PaperCreationPage() {
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { id: string }) => {
-      // Update question locally - no backend API call
       const updatedQuestion: Question = {
         id: data.id,
         question: data.question,
@@ -195,12 +209,11 @@ export default function PaperCreationPage() {
         createdAt: questions.find(q => q.id === data.id)?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
       return updatedQuestion;
     },
     onSuccess: (updatedQuestion: Question) => {
       toast({ title: "Question updated successfully" });
-      setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q));
+      setLocalQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q));
       setIsQuestionDialogOpen(false);
       questionForm.reset();
       setEditingQuestion(null);
@@ -216,12 +229,11 @@ export default function PaperCreationPage() {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: async (questionId: string) => {
-      // Delete question locally - no backend API call
       return questionId;
     },
     onSuccess: (questionId: string) => {
       toast({ title: "Question deleted successfully" });
-      setQuestions(prev => prev.filter(q => q.id !== questionId));
+      setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
     },
     onError: (error: any) => {
       toast({
@@ -732,11 +744,43 @@ export default function PaperCreationPage() {
               <Button 
                 size="lg" 
                 className="min-w-[200px]"
-                onClick={() => {
-                  toast({ 
-                    title: "Paper saved successfully",
-                    description: `Paper created with ${questions.length} questions and ${questions.reduce((sum, q) => sum + q.marks, 0)} total marks.`
-                  });
+                onClick={async () => {
+                  try {
+                    if (!exam || !examId) {
+                      toast({
+                        title: "Error",
+                        description: "No exam selected",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+
+                    // Save paper with all local questions to JSON file in Supabase bucket
+                    const paperData = {
+                      examId: examId,
+                      title: exam.name,
+                      instructions: exam.description || "",
+                      totalQuestions: localQuestions.length,
+                      totalMarks: localQuestions.reduce((sum, q) => sum + q.marks, 0),
+                      questions: localQuestions
+                    };
+
+                    const response = await apiRequest('POST', '/api/papers', paperData);
+                    
+                    if (response) {
+                      toast({ 
+                        title: "Paper saved successfully",
+                        description: `Paper created with ${questions.length} questions and ${questions.reduce((sum, q) => sum + q.marks, 0)} total marks.`
+                      });
+                    }
+                  } catch (error) {
+                    console.error('Error saving paper:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to save paper. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
                 }}
               >
                 <Plus className="h-5 w-5 mr-2" />

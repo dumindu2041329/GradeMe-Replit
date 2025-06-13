@@ -35,6 +35,14 @@ export interface PaperData {
     lastUpdated: string;
     version: string;
   };
+  examDetails?: {
+    name: string;
+    subject: string;
+    date: string;
+    duration: number;
+    status: string;
+    description: string | null;
+  };
 }
 
 export class PaperFileStorage {
