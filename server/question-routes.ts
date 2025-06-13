@@ -100,7 +100,7 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
         question: req.body.questionText || req.body.question,
         marks: parseInt(req.body.marks),
         orderIndex: parseInt(req.body.orderIndex) || 0,
-        options: (questionType === 'multiple_choice' && req.body.type === 'mcq') ? [
+        options: (questionType === 'multiple_choice') ? [
           req.body.optionA,
           req.body.optionB,
           req.body.optionC,
@@ -108,6 +108,8 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
         ].filter(Boolean) : undefined,
         correctAnswer: req.body.correctAnswer || req.body.expectedAnswer || null
       };
+
+      console.log('Creating question with data:', questionData);
       
       const question = await paperFileStorage.addQuestion(examId, questionData);
       

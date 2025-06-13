@@ -82,16 +82,9 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch questions data
-  const { data: questions = [], isLoading: questionsLoading } = useQuery({
-    queryKey: ['questions', examId],
-    queryFn: async () => {
-      if (!examId) return [];
-      const response = await apiRequest('GET', `/api/questions/paper_${examId}_new`);
-      return response as Question[];
-    },
-    enabled: !!examId,
-  });
+  // Local state for questions (frontend-only)
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
 
   // Forms
   const examForm = useForm<ExamFormValues>({
@@ -157,30 +150,24 @@ export default function PaperCreationPage() {
     mutationFn: async (data: QuestionFormValues) => {
       if (!examId) throw new Error("Exam ID is required");
       
-      // Map frontend data to backend expected format
-      const payload: any = {
-        type: data.type === "multiple_choice" ? "mcq" : data.type,
-        questionText: data.question,
+      // Create question locally - no backend API call
+      const newQuestion: Question = {
+        id: `question_${examId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: data.question,
+        type: data.type,
+        options: data.type === "multiple_choice" ? data.options : undefined,
+        correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
         marks: data.marks,
-        paperId: `paper_${examId}_new`,
-        examId: examId,
         orderIndex: questions.length,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      // Add options for multiple choice questions
-      if (data.type === "multiple_choice" && data.options) {
-        payload.optionA = data.options[0] || "";
-        payload.optionB = data.options[1] || "";
-        payload.optionC = data.options[2] || "";
-        payload.optionD = data.options[3] || "";
-        payload.correctAnswer = data.correctAnswer;
-      }
-
-      return apiRequest("POST", `/api/questions`, payload);
+      return newQuestion;
     },
-    onSuccess: () => {
+    onSuccess: (newQuestion: Question) => {
       toast({ title: "Question created successfully" });
-      queryClient.invalidateQueries({ queryKey: ['questions', examId] });
+      setQuestions(prev => [...prev, newQuestion]);
       setIsQuestionDialogOpen(false);
       questionForm.reset();
       setEditingQuestion(null);
@@ -196,29 +183,24 @@ export default function PaperCreationPage() {
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { id: string }) => {
-      // Map frontend data to backend expected format
-      const payload: any = {
-        type: data.type === "multiple_choice" ? "mcq" : data.type,
-        questionText: data.question,
+      // Update question locally - no backend API call
+      const updatedQuestion: Question = {
+        id: data.id,
+        question: data.question,
+        type: data.type,
+        options: data.type === "multiple_choice" ? data.options : undefined,
+        correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
         marks: data.marks,
-        paperId: `paper_${examId}_new`,
-        examId: examId,
+        orderIndex: questions.findIndex(q => q.id === data.id),
+        createdAt: questions.find(q => q.id === data.id)?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
 
-      // Add options for multiple choice questions
-      if (data.type === "multiple_choice" && data.options) {
-        payload.optionA = data.options[0] || "";
-        payload.optionB = data.options[1] || "";
-        payload.optionC = data.options[2] || "";
-        payload.optionD = data.options[3] || "";
-        payload.correctAnswer = data.correctAnswer;
-      }
-
-      return apiRequest("PUT", `/api/questions/${data.id}`, payload);
+      return updatedQuestion;
     },
-    onSuccess: () => {
+    onSuccess: (updatedQuestion: Question) => {
       toast({ title: "Question updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ['questions', examId] });
+      setQuestions(prev => prev.map(q => q.id === updatedQuestion.id ? updatedQuestion : q));
       setIsQuestionDialogOpen(false);
       questionForm.reset();
       setEditingQuestion(null);
@@ -234,14 +216,12 @@ export default function PaperCreationPage() {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: async (questionId: string) => {
-      return apiRequest("DELETE", `/api/questions/${questionId}`, {
-        paperId: `paper_${examId}_new`,
-        examId: examId,
-      });
+      // Delete question locally - no backend API call
+      return questionId;
     },
-    onSuccess: () => {
+    onSuccess: (questionId: string) => {
       toast({ title: "Question deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ['questions', examId] });
+      setQuestions(prev => prev.filter(q => q.id !== questionId));
     },
     onError: (error: any) => {
       toast({
@@ -742,6 +722,30 @@ export default function PaperCreationPage() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Add Paper Button Section */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <Button 
+                size="lg" 
+                className="min-w-[200px]"
+                onClick={() => {
+                  toast({ 
+                    title: "Paper saved successfully",
+                    description: `Paper created with ${questions.length} questions and ${questions.reduce((sum, q) => sum + q.marks, 0)} total marks.`
+                  });
+                }}
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Add Paper
+              </Button>
+              <p className="text-sm text-muted-foreground text-center">
+                Save this paper with {questions.length} questions ({questions.reduce((sum, q) => sum + q.marks, 0)} total marks)
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

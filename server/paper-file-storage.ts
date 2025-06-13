@@ -285,11 +285,28 @@ export class PaperFileStorage {
     try {
       console.log('Adding question to examId:', examId, 'questionData:', questionData);
       
-      const existingPaper = await this.getPaperByExamId(examId);
+      let existingPaper = await this.getPaperByExamId(examId);
       
       if (!existingPaper) {
-        console.error('Paper not found for exam ID:', examId);
-        return null;
+        console.log('Paper not found for exam ID:', examId, 'creating new paper...');
+        
+        // Create a new paper for this exam
+        const examName = await this.getExamName(examId);
+        const newPaper = await this.savePaper(examId, {
+          title: `${examName} Question Paper`,
+          instructions: "Please read all questions carefully before answering.",
+          totalQuestions: 0,
+          totalMarks: 0,
+          questions: []
+        });
+        
+        if (!newPaper) {
+          console.error('Failed to create new paper for exam ID:', examId);
+          return null;
+        }
+        
+        existingPaper = newPaper;
+        console.log('Created new paper:', existingPaper.id);
       }
       
       console.log('Existing paper found:', existingPaper.id, 'current questions:', existingPaper.questions.length);
