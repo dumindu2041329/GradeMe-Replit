@@ -311,22 +311,24 @@ export default function PaperCreationPage() {
 
   return (
     <AppShell title="Paper Creation">
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Paper Creation</h1>
-            <p className="text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Paper Creation</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
               Manage exam details and questions for {exam.name}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Badge variant={exam.status === "active" ? "default" : "secondary"}>
               {exam.status}
             </Badge>
             <Button 
               variant="outline" 
               onClick={() => setLocation("/exams")}
+              size="sm"
+              className="whitespace-nowrap"
             >
               Back to Exams
             </Button>
@@ -336,7 +338,7 @@ export default function PaperCreationPage() {
         {/* Exam Details Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Exam Information
@@ -345,6 +347,7 @@ export default function PaperCreationPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsEditingExam(!isEditingExam)}
+                className="self-start sm:self-auto"
               >
                 <Edit2 className="h-4 w-4 mr-2" />
                 {isEditingExam ? "Cancel" : "Edit"}
@@ -402,17 +405,19 @@ export default function PaperCreationPage() {
                     )}
                   />
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={() => setIsEditingExam(false)}
+                      className="order-2 sm:order-1"
                     >
                       Cancel
                     </Button>
                     <Button 
                       type="submit" 
                       disabled={updateExamMutation.isPending}
+                      className="order-1 sm:order-2"
                     >
                       {updateExamMutation.isPending ? "Saving..." : "Save Changes"}
                     </Button>
@@ -443,16 +448,16 @@ export default function PaperCreationPage() {
         {/* Questions Section */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="space-y-4">
               <CardTitle>Questions ({questions.length})</CardTitle>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1 sm:max-w-xs">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 text-muted-foreground transform -translate-y-1/2" />
                   <Input
                     placeholder="Search questions..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8 w-64"
+                    className="pl-10 w-full"
                   />
                 </div>
                 <Dialog open={isQuestionDialogOpen} onOpenChange={setIsQuestionDialogOpen}>
@@ -460,12 +465,12 @@ export default function PaperCreationPage() {
                     <Button onClick={() => {
                       setEditingQuestion(null);
                       questionForm.reset();
-                    }}>
+                    }} className="whitespace-nowrap w-full sm:w-auto">
                       <PlusCircle className="h-4 w-4 mr-2" />
                       Add Question
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto w-[calc(100vw-2rem)] sm:w-full">
                     <DialogHeader>
                       <DialogTitle>
                         {editingQuestion ? "Edit Question" : "Add New Question"}
@@ -480,14 +485,14 @@ export default function PaperCreationPage() {
                             <FormItem>
                               <FormLabel>Question</FormLabel>
                               <FormControl>
-                                <Textarea placeholder="Enter question" {...field} />
+                                <Textarea placeholder="Enter question" {...field} className="min-h-[80px]" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                             control={questionForm.control}
                             name="type"
@@ -556,33 +561,72 @@ export default function PaperCreationPage() {
                           </div>
                         )}
 
-                        {(questionForm.watch("type") === "multiple_choice" || questionForm.watch("type") === "true_false") && (
+                        {questionForm.watch("type") === "multiple_choice" && (
                           <FormField
                             control={questionForm.control}
                             name="correctAnswer"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Correct Answer</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Enter correct answer" {...field} />
-                                </FormControl>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select correct answer" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {questionForm.watch("options")?.map((option, index) => (
+                                      option && (
+                                        <SelectItem key={index} value={option}>
+                                          {String.fromCharCode(65 + index)}. {option}
+                                        </SelectItem>
+                                      )
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
                         )}
 
-                        <div className="flex justify-end gap-2">
+                        {questionForm.watch("type") === "true_false" && (
+                          <FormField
+                            control={questionForm.control}
+                            name="correctAnswer"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Correct Answer</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select correct answer" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="True">True</SelectItem>
+                                    <SelectItem value="False">False</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                           <Button 
                             type="button" 
                             variant="outline" 
                             onClick={() => setIsQuestionDialogOpen(false)}
+                            className="order-2 sm:order-1"
                           >
                             Cancel
                           </Button>
                           <Button 
                             type="submit" 
                             disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending}
+                            className="order-1 sm:order-2"
                           >
                             {editingQuestion ? "Update Question" : "Add Question"}
                           </Button>
@@ -612,60 +656,63 @@ export default function PaperCreationPage() {
                 {filteredQuestions.map((question, index) => (
                   <Card key={question.id} className="border-l-4 border-l-blue-500">
                     <CardContent className="pt-6">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="outline">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <Badge variant="outline" className="text-xs">
                               {question.type.replace("_", " ")}
                             </Badge>
-                            <Badge variant="secondary">
+                            <Badge variant="secondary" className="text-xs">
                               {question.marks} marks
                             </Badge>
                           </div>
-                          <h4 className="font-medium mb-2">
+                          <h4 className="font-medium mb-2 break-words">
                             Q{index + 1}. {question.question}
                           </h4>
                           {question.options && question.options.length > 0 && (
                             <div className="space-y-1 text-sm text-muted-foreground">
                               {question.options.map((option, optIndex) => (
-                                <div key={optIndex}>
+                                <div key={optIndex} className="break-words">
                                   {String.fromCharCode(65 + optIndex)}. {option}
                                 </div>
                               ))}
                             </div>
                           )}
                           {question.correctAnswer && (
-                            <p className="text-sm text-green-600 mt-2">
+                            <p className="text-sm text-green-600 mt-2 break-words">
                               <strong>Answer:</strong> {question.correctAnswer}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex w-full sm:w-auto gap-2 mt-3 sm:mt-0">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleEditQuestion(question)}
+                            className="flex-1 sm:flex-initial min-h-[40px]"
                           >
-                            <Edit2 className="h-4 w-4" />
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
+                              <Button variant="outline" size="sm" className="flex-1 sm:flex-initial min-h-[40px]">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
                               </Button>
                             </AlertDialogTrigger>
-                            <AlertDialogContent>
+                            <AlertDialogContent className="max-w-md mx-4">
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Delete Question</AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Are you sure you want to delete this question? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
+                                <AlertDialogCancel className="order-2 sm:order-1">Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDeleteQuestion(question.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90 order-1 sm:order-2"
                                 >
                                   Delete
                                 </AlertDialogAction>
