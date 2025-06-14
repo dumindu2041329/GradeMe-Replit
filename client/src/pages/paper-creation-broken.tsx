@@ -107,14 +107,18 @@ export default function PaperCreationPage() {
   // Update local questions when paper data loads or changes with conflict resolution
   useEffect(() => {
     if (paperData?.questions) {
-      // Always update questions when paperData changes (manual refresh or auto-refresh)
-      setLocalQuestions(paperData.questions);
-      setLastSyncTime(Date.now());
-      console.log('✓ Questions synchronized from server:', paperData.questions.length, 'questions');
+      // Smart merge: only update if server data is newer or if we have no local data
+      const serverTimestamp = paperData.metadata?.lastUpdated ? new Date(paperData.metadata.lastUpdated).getTime() : 0;
+      
+      if (serverTimestamp > lastSyncTime || localQuestions.length === 0) {
+        setLocalQuestions(paperData.questions);
+        setLastSyncTime(Date.now());
+        console.log('✓ Questions synchronized from server:', paperData.questions.length, 'questions');
+      }
     } else if (localQuestions.length === 0) {
       setLocalQuestions([]);
     }
-  }, [paperData]);
+  }, [paperData, lastSyncTime, localQuestions.length]);
 
   // Enhanced visibility and focus handling for real-time updates
   useEffect(() => {
@@ -343,15 +347,15 @@ export default function PaperCreationPage() {
       // Immediately update local state for instant UI feedback
       setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
       
-      return { questionId, questionToDelete };
+      return { questionId, deletedQuestion: questionToDelete };
     },
-    onSuccess: ({ questionToDelete }) => {
+    onSuccess: ({ deletedQuestion }) => {
       toast({ 
         title: "Question deleted",
-        description: `Question "${questionToDelete?.question.substring(0, 50)}${questionToDelete?.question.length! > 50 ? '...' : ''}" deleted successfully`,
+        description: `Question "${deletedQuestion?.question.substring(0, 50)}${deletedQuestion?.question && deletedQuestion.question.length > 50 ? '...' : ''}" deleted successfully`,
       });
     },
-    onError: (error: any, questionId: string) => {
+    onError: (error: any, questionId) => {
       // Revert the optimistic update on error
       const questionToRestore = questions.find(q => q.id === questionId);
       if (questionToRestore) {
@@ -364,6 +368,24 @@ export default function PaperCreationPage() {
       });
     },
   });
+
+  // Keyboard shortcuts for faster question creation
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.ctrlKey && event.key === 'Enter' && isQuestionDialogOpen) {
+      event.preventDefault();
+      questionForm.handleSubmit(handleQuestionSubmit)();
+    }
+    if (event.key === 'Escape' && isQuestionDialogOpen) {
+      event.preventDefault();
+      setIsQuestionDialogOpen(false);
+      setAddAnother(false);
+    }
+  }, [isQuestionDialogOpen, questionForm]);
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   // Handlers
   const handleExamSubmit = (data: ExamFormValues) => {
@@ -502,19 +524,22 @@ export default function PaperCreationPage() {
                 <FileText className="h-5 w-5" />
                 Exam Information
               </CardTitle>
-              {!isEditingExam && (
-                <Button variant="outline" size="sm" onClick={() => setIsEditingExam(true)}>
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  Edit Details
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditingExam(!isEditingExam)}
+                className="self-start sm:self-auto"
+              >
+                <Edit2 className="h-4 w-4 mr-2" />
+                {isEditingExam ? "Cancel" : "Edit"}
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
             {isEditingExam ? (
               <Form {...examForm}>
                 <form onSubmit={examForm.handleSubmit(handleExamSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={examForm.control}
                       name="name"
@@ -528,6 +553,7 @@ export default function PaperCreationPage() {
                         </FormItem>
                       )}
                     />
+
                     <FormField
                       control={examForm.control}
                       name="subject"
@@ -542,66 +568,7 @@ export default function PaperCreationPage() {
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <FormField
-                      control={examForm.control}
-                      name="duration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration (minutes)</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="Enter duration" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={examForm.control}
-                      name="totalMarks"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Marks</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="Enter total marks" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={examForm.control}
-                      name="status"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Status</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="upcoming">Upcoming</SelectItem>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+
                   <FormField
                     control={examForm.control}
                     name="description"
@@ -609,23 +576,29 @@ export default function PaperCreationPage() {
                       <FormItem>
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Enter exam description" {...field} />
+                          <Textarea 
+                            placeholder="Enter exam description" 
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="flex justify-end gap-2">
+
+                  <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                     <Button 
                       type="button" 
                       variant="outline" 
                       onClick={() => setIsEditingExam(false)}
+                      className="order-2 sm:order-1"
                     >
                       Cancel
                     </Button>
                     <Button 
                       type="submit" 
                       disabled={updateExamMutation.isPending}
+                      className="order-1 sm:order-2"
                     >
                       {updateExamMutation.isPending ? "Saving..." : "Save Changes"}
                     </Button>
@@ -633,26 +606,16 @@ export default function PaperCreationPage() {
                 </form>
               </Form>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Subject</label>
-                  <p className="text-sm">{exam.subject}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Duration</label>
-                  <p className="text-sm">{exam.duration} minutes</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Total Marks</label>
-                  <p className="text-sm">{exam.totalMarks}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date</label>
-                  <p className="text-sm">{new Date(exam.date).toLocaleDateString()}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Status</label>
-                  <p className="text-sm capitalize">{exam.status}</p>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Name</label>
+                    <p className="text-sm">{exam.name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Subject</label>
+                    <p className="text-sm">{exam.subject}</p>
+                  </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Description</label>
@@ -681,39 +644,12 @@ export default function PaperCreationPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={async () => {
-                      try {
-                        // Force invalidate the query cache to ensure fresh data
-                        await queryClient.invalidateQueries({ queryKey: ['paper', examId] });
-                        
-                        // Manually refetch with a fresh timestamp to bypass any server caching
-                        const freshData = await refetchPaper();
-                        
-                        // Force immediate update of local questions state
-                        if (freshData.data?.questions) {
-                          setLocalQuestions(freshData.data.questions);
-                          setLastSyncTime(Date.now());
-                        }
-                        
-                        toast({
-                          title: "Questions refreshed",
-                          description: freshData.data?.questions ? 
-                            `Loaded ${freshData.data.questions.length} questions from storage` : 
-                            "No questions found in storage",
-                        });
-                        
-                        console.log('🔄 Manual refresh completed:', {
-                          questionsCount: freshData.data?.questions?.length || 0,
-                          timestamp: new Date().toISOString()
-                        });
-                      } catch (error) {
-                        console.error('Error during manual refresh:', error);
-                        toast({
-                          title: "Refresh failed",
-                          description: "Could not load latest questions. Please try again.",
-                          variant: "destructive",
-                        });
-                      }
+                    onClick={() => {
+                      refetchPaper();
+                      toast({
+                        title: "Refreshing questions",
+                        description: "Getting latest questions from storage...",
+                      });
                     }}
                     disabled={questionsLoading}
                     className="whitespace-nowrap"
@@ -739,158 +675,160 @@ export default function PaperCreationPage() {
                       </DialogHeader>
                       <Form {...questionForm}>
                         <form onSubmit={questionForm.handleSubmit(handleQuestionSubmit)} className="space-y-4">
+                        <FormField
+                          control={questionForm.control}
+                          name="question"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Question</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Enter question" {...field} className="min-h-[80px]" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <FormField
                             control={questionForm.control}
-                            name="question"
+                            name="type"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Question</FormLabel>
-                                <FormControl>
-                                  <Textarea placeholder="Enter question" {...field} className="min-h-[80px]" />
-                                </FormControl>
+                                <FormLabel>Question Type</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select type" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
+                                    <SelectItem value="written">Written</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
                           />
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <FormField
-                              control={questionForm.control}
-                              name="type"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Question Type</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
+                          <FormField
+                            control={questionForm.control}
+                            name="marks"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Marks</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    type="number" 
+                                    placeholder="Enter marks" 
+                                    {...field}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        {questionForm.watch("type") === "multiple_choice" && (
+                          <div className="space-y-2">
+                            <FormLabel>Options</FormLabel>
+                            {[0, 1, 2, 3].map((index) => (
+                              <FormField
+                                key={index}
+                                control={questionForm.control}
+                                name={`options.${index}`}
+                                render={({ field }) => (
+                                  <FormItem>
                                     <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select type" />
-                                      </SelectTrigger>
+                                      <Input 
+                                        placeholder={`Option ${String.fromCharCode(65 + index)}`} 
+                                        {...field} 
+                                      />
                                     </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="multiple_choice">Multiple Choice</SelectItem>
-                                      <SelectItem value="written">Written</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={questionForm.control}
-                              name="marks"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Marks</FormLabel>
-                                  <FormControl>
-                                    <Input 
-                                      type="number" 
-                                      placeholder="Enter marks" 
-                                      {...field}
-                                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-
-                          {questionForm.watch("type") === "multiple_choice" && (
-                            <div className="space-y-2">
-                              <FormLabel>Options</FormLabel>
-                              {[0, 1, 2, 3].map((index) => (
-                                <FormField
-                                  key={index}
-                                  control={questionForm.control}
-                                  name={`options.${index}`}
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input 
-                                          placeholder={`Option ${String.fromCharCode(65 + index)}`} 
-                                          {...field} 
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              ))}
-                            </div>
-                          )}
-
-                          {questionForm.watch("type") === "multiple_choice" && (
-                            <FormField
-                              control={questionForm.control}
-                              name="correctAnswer"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Correct Answer</FormLabel>
-                                  <Select onValueChange={field.onChange} value={field.value}>
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select correct answer" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {questionForm.watch("options")?.map((option, index) => (
-                                        option && (
-                                          <SelectItem key={index} value={option}>
-                                            {String.fromCharCode(65 + index)}. {option}
-                                          </SelectItem>
-                                        )
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
-
-                          {/* Add Another Checkbox for faster question creation */}
-                          {!editingQuestion && (
-                            <div className="flex items-center space-x-2 pt-2 border-t">
-                              <input
-                                type="checkbox"
-                                id="addAnother"
-                                checked={addAnother}
-                                onChange={(e) => setAddAnother(e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
                               />
-                              <label htmlFor="addAnother" className="text-sm text-muted-foreground">
-                                Keep dialog open to add more questions quickly
-                              </label>
-                            </div>
-                          )}
-
-                          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              onClick={() => {
-                                setIsQuestionDialogOpen(false);
-                                setAddAnother(false);
-                              }}
-                              className="order-2 sm:order-1"
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              type="submit"
-                              disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending}
-                              className="order-1 sm:order-2"
-                            >
-                              {editingQuestion ? "Update Question" : "Add Question"}
-                              {!editingQuestion && (
-                                <span className="ml-2 text-xs opacity-70">(Ctrl+Enter)</span>
-                              )}
-                            </Button>
+                            ))}
                           </div>
-                        </form>
-                      </Form>
-                    </DialogContent>
+                        )}
+
+                        {questionForm.watch("type") === "multiple_choice" && (
+                          <FormField
+                            control={questionForm.control}
+                            name="correctAnswer"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Correct Answer</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select correct answer" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {questionForm.watch("options")?.map((option, index) => (
+                                      option && (
+                                        <SelectItem key={index} value={option}>
+                                          {String.fromCharCode(65 + index)}. {option}
+                                        </SelectItem>
+                                      )
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+
+
+
+                        {/* Add Another Checkbox for faster question creation */}
+                        {!editingQuestion && (
+                          <div className="flex items-center space-x-2 pt-2 border-t">
+                            <input
+                              type="checkbox"
+                              id="addAnother"
+                              checked={addAnother}
+                              onChange={(e) => setAddAnother(e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label htmlFor="addAnother" className="text-sm text-muted-foreground">
+                              Keep dialog open to add more questions quickly
+                            </label>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => {
+                              setIsQuestionDialogOpen(false);
+                              setAddAnother(false);
+                            }}
+                            className="order-2 sm:order-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit" 
+                            disabled={createQuestionMutation.isPending || updateQuestionMutation.isPending}
+                            className="order-1 sm:order-2"
+                          >
+                            {editingQuestion ? "Update Question" : "Add Question"}
+                            {!editingQuestion && (
+                              <span className="ml-2 text-xs opacity-70">(Ctrl+Enter)</span>
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
                   </Dialog>
                 </div>
               </div>
@@ -913,18 +851,18 @@ export default function PaperCreationPage() {
               <div className="space-y-4">
                 {filteredQuestions.map((question, index) => (
                   <Card key={question.id} className="border-l-4 border-l-blue-500">
-                    <CardContent className="pt-4 pb-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                        <div className="flex-1 space-y-2 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <Badge variant="outline" className="text-xs">
-                              {question.type === "multiple_choice" ? "Multiple Choice" : "Written"}
+                              {question.type.replace("_", " ")}
                             </Badge>
                             <Badge variant="secondary" className="text-xs">
-                              {question.marks} {question.marks === 1 ? "mark" : "marks"}
+                              {question.marks} marks
                             </Badge>
                           </div>
-                          <h4 className="text-sm font-medium break-words">
+                          <h4 className="font-medium mb-2 break-words">
                             Q{index + 1}. {question.question}
                           </h4>
                           {question.options && question.options.length > 0 && (
@@ -1032,13 +970,12 @@ export default function PaperCreationPage() {
                     });
                   }
                 }}
-                disabled={localQuestions.length === 0}
               >
-                <FileText className="h-5 w-5 mr-2" />
-                Save Paper ({localQuestions.length} questions)
+                <Plus className="h-5 w-5 mr-2" />
+                Add Paper
               </Button>
               <p className="text-sm text-muted-foreground text-center">
-                Save all questions to create the final exam paper
+                Save this paper with {questions.length} questions ({questions.reduce((sum, q) => sum + q.marks, 0)} total marks)
               </p>
             </div>
           </CardContent>
