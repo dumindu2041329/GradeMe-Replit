@@ -125,6 +125,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 15, 2025. **Fixed question options bug** - Backend now properly handles options array format from frontend, ensuring multiple choice options are saved correctly
 - June 15, 2025. **Fixed question deletion and update** - Both operations now properly call backend API to persist changes to Supabase storage
 - June 15, 2025. **Removed Save Paper button** - Eliminated unnecessary manual save step as questions are automatically saved to storage
+- June 15, 2025. **Migration completed from Replit Agent to Replit environment** - Successfully migrated project with all functionality intact
+- June 15, 2025. **Fixed exam deletion bug** - Resolved 404 error issue where exams were being deleted successfully but returning incorrect status
 
 ## User Preferences
 

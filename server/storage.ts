@@ -145,17 +145,27 @@ export class SupabaseStorage implements IStorage {
 
   async deleteExam(id: number): Promise<boolean> {
     try {
-      // First delete the associated paper from Supabase storage
-      await paperFileStorage.deletePaper(id);
+      // First check if the exam exists
+      const existingExam = await this.getExam(id);
+      if (!existingExam) {
+        return false;
+      }
       
-      // Then delete the exam record from the database
-      const result = await this.db.delete(exams).where(eq(exams.id, id));
-      return Array.isArray(result) ? result.length > 0 : false;
+      // Delete the exam record from the database first
+      await this.db.delete(exams).where(eq(exams.id, id));
+      
+      // Then delete the associated paper from Supabase storage
+      // This can fail without affecting the main deletion
+      try {
+        await paperFileStorage.deletePaper(id);
+      } catch (paperError) {
+        console.log(`Paper deletion failed for exam ${id}, but exam was deleted successfully:`, paperError);
+      }
+      
+      return true; // Exam was successfully deleted
     } catch (error) {
-      console.error(`Error deleting exam ${id} and its paper:`, error);
-      // Still try to delete the exam record even if paper deletion fails
-      const result = await this.db.delete(exams).where(eq(exams.id, id));
-      return Array.isArray(result) ? result.length > 0 : false;
+      console.error(`Error deleting exam ${id}:`, error);
+      return false;
     }
   }
 
