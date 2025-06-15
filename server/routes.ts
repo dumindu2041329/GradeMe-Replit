@@ -403,11 +403,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Class is required" });
       }
       
+      // Hash the password before storing
+      const hashedPassword = await bcrypt.hash(req.body.password.trim(), 10);
+      
       // Prepare student data with proper defaults
       const studentData = {
         name: req.body.name.trim(),
         email: req.body.email.trim(),
-        password: req.body.password.trim(),
+        password: hashedPassword,
         class: req.body.class.trim(),
         phone: req.body.phone || null,
         address: req.body.address || null,
@@ -448,12 +451,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.enrollmentDate !== undefined) updateData.enrollmentDate = req.body.enrollmentDate ? new Date(req.body.enrollmentDate) : null;
       if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null;
       
-      // Handle password separately
+      // Handle password separately with hashing
       if (req.body.password !== undefined) {
         if (req.body.password.trim() === '') {
           return res.status(400).json({ message: "Password cannot be empty" });
         }
-        updateData.password = req.body.password.trim();
+        updateData.password = await bcrypt.hash(req.body.password.trim(), 10);
       }
       
       console.log("Processed update data:", updateData);

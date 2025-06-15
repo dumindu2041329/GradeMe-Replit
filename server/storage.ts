@@ -93,26 +93,101 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createStudent(studentData: any): Promise<Student> {
-    const result = await this.db.insert(students).values(studentData).returning();
-    return result[0];
+    // First create the student record
+    const studentResult = await this.db.insert(students).values(studentData).returning();
+    const newStudent = studentResult[0];
+    
+    // Then create a corresponding user record for login
+    const userData = {
+      name: studentData.name,
+      email: studentData.email,
+      password: studentData.password, // Password should already be hashed at this point
+      role: 'student' as const,
+      studentId: newStudent.id,
+      emailNotifications: true,
+      smsNotifications: false,
+      emailExamResults: true,
+      emailUpcomingExams: true,
+      smsExamResults: false,
+      smsUpcomingExams: false,
+      profileImage: null
+    };
+    
+    try {
+      await this.db.insert(users).values(userData);
+    } catch (error) {
+      console.error('Failed to create user record for student:', error);
+      // If user creation fails, we should still return the student
+      // but log the error for investigation
+    }
+    
+    return newStudent;
   }
 
   async updateStudent(id: number, studentData: Partial<any>): Promise<Student | undefined> {
     const updateData = { ...studentData, updatedAt: new Date() };
     const result = await this.db.update(students).set(updateData).where(eq(students.id, id)).returning();
-    return result[0];
+    const updatedStudent = result[0];
+    
+    if (updatedStudent) {
+      // Also update the corresponding user record if it exists
+      const userUpdateData: any = {};
+      if (studentData.name) userUpdateData.name = studentData.name;
+      if (studentData.email) userUpdateData.email = studentData.email;
+      if (studentData.password) userUpdateData.password = studentData.password;
+      
+      if (Object.keys(userUpdateData).length > 0) {
+        try {
+          await this.db.update(users)
+            .set({ ...userUpdateData, updatedAt: new Date() })
+            .where(eq(users.studentId, id));
+        } catch (error) {
+          console.error('Failed to update user record for student:', error);
+          // Continue even if user update fails
+        }
+      }
+    }
+    
+    return updatedStudent;
   }
 
   async deleteStudent(id: number): Promise<boolean> {
-    const result = await this.db.delete(students).where(eq(students.id, id));
-    return Array.isArray(result) ? result.length > 0 : false;
+    try {
+      // First check if the student exists
+      const existingStudent = await this.getStudent(id);
+      if (!existingStudent) {
+        return false;
+      }
+      
+      // Delete the corresponding user record first
+      try {
+        await this.db.delete(users).where(eq(users.studentId, id));
+      } catch (error) {
+        console.log(`User record deletion failed for student ${id}, but continuing with student deletion:`, error);
+      }
+      
+      // Then delete the student record
+      await this.db.delete(students).where(eq(students.id, id));
+      return true; // If no error is thrown, deletion was successful
+    } catch (error) {
+      console.error(`Error deleting student ${id}:`, error);
+      return false;
+    }
   }
 
   async authenticateStudent(email: string, password: string): Promise<Student | null> {
     const student = await this.getStudentByEmail(email);
-    if (!student || student.password !== password) {
+    if (!student) {
       return null;
     }
+    
+    // Use bcrypt to compare the password
+    const bcrypt = await import('bcrypt');
+    const isValid = await bcrypt.compare(password, student.password);
+    if (!isValid) {
+      return null;
+    }
+    
     return student;
   }
 

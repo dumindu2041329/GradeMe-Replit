@@ -631,6 +631,10 @@ export default function PaperCreationPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">Exam Name</label>
+                  <p className="text-sm">{exam.name}</p>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">Subject</label>
                   <p className="text-sm">{exam.subject}</p>
                 </div>

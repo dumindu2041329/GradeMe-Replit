@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { setupVite, serveStatic, log } from "./vite";
 import { registerRoutes } from "./routes";
 import { setupInitialData } from "./setup-database";
+import { migrateStudentsToUsers } from "./migrate-students";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -47,6 +48,9 @@ app.use((req, res, next) => {
 (async () => {
   // Setup initial database data
   await setupInitialData();
+  
+  // Migrate existing students to have user records
+  await migrateStudentsToUsers();
 
   // Setup session middleware
   app.use(session({
