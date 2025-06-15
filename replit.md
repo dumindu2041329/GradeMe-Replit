@@ -116,6 +116,12 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 13, 2025. Removed Supabase storage dependency for question management - questions now managed frontend-only
 - June 13, 2025. Added "Add Paper" button below questions section
 - June 13, 2025. Enhanced paper creation with real-time question synchronization - automatic polling every 5 seconds, smart conflict resolution, visual sync indicators
+- June 15, 2025. **Migration completed from Replit Agent to Replit environment**
+- June 15, 2025. **Fixed question addition issue** - Questions now properly call API and refresh frontend
+- June 15, 2025. **Fixed exam deletion errors** - Enhanced paper deletion to handle non-existent files gracefully
+- June 15, 2025. **Improved error handling** - Better Supabase storage error management for missing paper files
+- June 15, 2025. **Optimized question addition performance** - Implemented optimistic UI updates and streamlined backend processing
+- June 15, 2025. **Removed automatic refresh timing** - Questions section now refreshes only on user actions, eliminating constant polling
 
 ## User Preferences
 

@@ -83,7 +83,7 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch questions from JSON file - always get fresh data with automatic polling
+  // Fetch questions from JSON file - manual refresh only
   const { data: paperData, isLoading: questionsLoading, refetch: refetchPaper } = useQuery({
     queryKey: ['paper', examId],
     queryFn: async () => {
@@ -92,11 +92,9 @@ export default function PaperCreationPage() {
       return response;
     },
     enabled: !!examId,
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true, // Refetch when user returns to the page
-    refetchOnMount: true, // Always refetch on component mount
-    refetchInterval: 5000, // Auto-refresh every 5 seconds for real-time updates
-    refetchIntervalInBackground: false, // Only poll when tab is active
+    staleTime: 30000, // Cache for 30 seconds
+    refetchOnWindowFocus: false, // Don't refetch when user returns to the page
+    refetchOnMount: true, // Fetch on component mount only
   });
 
   // Local state for immediate frontend display with smart sync
@@ -116,54 +114,9 @@ export default function PaperCreationPage() {
     }
   }, [paperData]);
 
-  // Enhanced visibility and focus handling for real-time updates
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && examId) {
-        setIsPollingEnabled(true);
-        refetchPaper();
-        console.log('🔄 Page visible - refreshing questions');
-      } else {
-        setIsPollingEnabled(false);
-      }
-    };
+  // Removed automatic refresh on visibility/focus changes
 
-    const handleFocus = () => {
-      if (examId) {
-        setIsPollingEnabled(true);
-        refetchPaper();
-        console.log('🔄 Window focused - refreshing questions');
-      }
-    };
-
-    const handleBlur = () => {
-      setIsPollingEnabled(false);
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [examId, refetchPaper]);
-
-  // Periodic background sync for consistency
-  useEffect(() => {
-    if (!examId || !isPollingEnabled) return;
-
-    const syncInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        refetchPaper();
-        console.log('⏰ Periodic sync - refreshing questions');
-      }
-    }, 10000); // Every 10 seconds when active
-
-    return () => clearInterval(syncInterval);
-  }, [examId, refetchPaper, isPollingEnabled]);
+  // Removed automatic periodic sync - questions now refresh only on user actions
 
   const questions = localQuestions;
 
@@ -229,8 +182,11 @@ export default function PaperCreationPage() {
 
   const createQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues) => {
-      const newQuestion: Question = {
-        id: `question_${examId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      if (!examId) throw new Error("Exam ID is required");
+      
+      // Create optimistic question for instant UI feedback
+      const optimisticQuestion: Question = {
+        id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         question: data.question,
         type: data.type,
         options: data.type === "multiple_choice" ? data.options?.filter(opt => opt.trim() !== "") : undefined,
@@ -241,24 +197,45 @@ export default function PaperCreationPage() {
         updatedAt: new Date().toISOString()
       };
       
-      // Immediately update local state for instant UI feedback
-      setLocalQuestions(prev => [...prev, newQuestion]);
+      // Immediately update UI
+      setLocalQuestions(prev => [...prev, optimisticQuestion]);
       
-      // Handle dialog closing based on "Add Another" option
+      // Handle dialog closing and form reset immediately for better UX
       if (!addAnother) {
         setIsQuestionDialogOpen(false);
       }
       
       questionForm.reset({
         question: "",
-        type: data.type, // Keep the same question type for faster entry
+        type: data.type,
         options: ["", "", "", ""],
         correctAnswer: "",
-        marks: data.marks, // Keep the same marks for consistency
+        marks: data.marks,
       });
       setEditingQuestion(null);
       
-      return newQuestion;
+      // Call API in background
+      const questionData = {
+        examId,
+        question: data.question,
+        type: data.type,
+        options: data.type === "multiple_choice" ? data.options?.filter(opt => opt.trim() !== "") : undefined,
+        correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
+        marks: data.marks,
+        orderIndex: questions.length,
+      };
+      
+      const response = await apiRequest("POST", "/api/questions", questionData);
+      
+      // Replace optimistic question with real one
+      setLocalQuestions(prev => 
+        prev.map(q => q.id === optimisticQuestion.id ? { ...response, ...questionData } : q)
+      );
+      
+      // Invalidate queries to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['papers', examId] });
+      
+      return response;
     },
     onSuccess: (newQuestion: Question) => {
       toast({ 

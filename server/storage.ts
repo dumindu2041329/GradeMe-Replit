@@ -4,6 +4,7 @@ import { eq, desc } from 'drizzle-orm';
 import postgres from 'postgres';
 import { users, students, exams, results } from '../shared/schema.js';
 import { getDb } from './db-connection.js';
+import { paperFileStorage } from './paper-file-storage.js';
 
 export interface IStorage {
   // User operations
@@ -143,8 +144,19 @@ export class SupabaseStorage implements IStorage {
   }
 
   async deleteExam(id: number): Promise<boolean> {
-    const result = await this.db.delete(exams).where(eq(exams.id, id));
-    return Array.isArray(result) ? result.length > 0 : false;
+    try {
+      // First delete the associated paper from Supabase storage
+      await paperFileStorage.deletePaper(id);
+      
+      // Then delete the exam record from the database
+      const result = await this.db.delete(exams).where(eq(exams.id, id));
+      return Array.isArray(result) ? result.length > 0 : false;
+    } catch (error) {
+      console.error(`Error deleting exam ${id} and its paper:`, error);
+      // Still try to delete the exam record even if paper deletion fails
+      const result = await this.db.delete(exams).where(eq(exams.id, id));
+      return Array.isArray(result) ? result.length > 0 : false;
+    }
   }
 
   // Result operations

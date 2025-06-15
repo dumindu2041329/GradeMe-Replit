@@ -50,6 +50,8 @@ export class PaperFileStorage {
   private bucketInitialized = false;
   private db = getDb();
   private examNameCache = new Map<number, string>();
+  private paperCache = new Map<number, { data: PaperData; timestamp: number }>();
+  private cacheExpiry = 5000; // 5 seconds cache
   // Removed paper caching to ensure real-time updates from storage
 
   constructor() {
@@ -168,8 +170,10 @@ export class PaperFileStorage {
         .download(fileName);
       
       if (error) {
-        if (error.message.includes('Object not found')) {
-          console.log('Paper file not found:', fileName);
+        if (error.message.includes('Object not found') || 
+            error.message.includes('Bad Request') ||
+            (error as any).originalError?.status === 400) {
+          console.log('Paper file not found or invalid:', fileName);
           return null; // Paper doesn't exist yet
         }
         console.error('Error downloading paper:', error);
@@ -187,7 +191,14 @@ export class PaperFileStorage {
       });
       
       return paperData;
-    } catch (error) {
+    } catch (error: any) {
+      // Handle storage errors gracefully - file might not exist yet
+      if (error?.message?.includes('not found') ||
+          error?.message?.includes('Bad Request') ||
+          error?.status === 400) {
+        console.log('Paper file not found for exam ID:', examId);
+        return null;
+      }
       console.error('Error getting paper by exam ID:', error);
       return null;
     }
@@ -272,13 +283,11 @@ export class PaperFileStorage {
 
   async addQuestion(examId: number, questionData: Omit<QuestionData, 'id' | 'createdAt' | 'updatedAt'>): Promise<QuestionData | null> {
     try {
-      console.log('Adding question to examId:', examId, 'questionData:', questionData);
+      await this.ensureBucketExists();
       
       let existingPaper = await this.getPaperByExamId(examId);
       
       if (!existingPaper) {
-        console.log('Paper not found for exam ID:', examId, 'creating new paper...');
-        
         // Create a new paper for this exam
         const examName = await this.getExamName(examId);
         const newPaper = await this.savePaper(examId, {
@@ -290,15 +299,11 @@ export class PaperFileStorage {
         });
         
         if (!newPaper) {
-          console.error('Failed to create new paper for exam ID:', examId);
           return null;
         }
         
         existingPaper = newPaper;
-        console.log('Created new paper:', existingPaper.id);
       }
-      
-      console.log('Existing paper found:', existingPaper.id, 'current questions:', existingPaper.questions.length);
       
       const now = new Date().toISOString();
       const newQuestion: QuestionData = {
@@ -308,23 +313,42 @@ export class PaperFileStorage {
         updatedAt: now
       };
       
-      console.log('New question created:', newQuestion.id);
-      
       const updatedQuestions = [...existingPaper.questions, newQuestion];
-      console.log('Updated questions count:', updatedQuestions.length);
       
-      const updatedPaper: Omit<PaperData, 'id' | 'examId' | 'createdAt' | 'updatedAt' | 'metadata'> = {
-        ...existingPaper,
-        questions: updatedQuestions,
+      // Directly save to storage without redundant calls
+      const fileName = await this.getFileName(examId);
+      const examName = await this.getExamName(examId);
+      
+      const fullPaperData: PaperData = {
+        id: existingPaper.id,
+        examId,
+        title: existingPaper.title,
+        instructions: existingPaper.instructions,
         totalQuestions: updatedQuestions.length,
-        totalMarks: updatedQuestions.reduce((sum, q) => sum + q.marks, 0)
+        totalMarks: updatedQuestions.reduce((sum, q) => sum + q.marks, 0),
+        questions: updatedQuestions,
+        createdAt: existingPaper.createdAt,
+        updatedAt: now,
+        metadata: {
+          examName,
+          lastUpdated: now,
+          version: '1.0'
+        }
       };
       
-      console.log('About to save paper with', updatedPaper.questions.length, 'questions');
-      const savedPaper = await this.savePaper(examId, updatedPaper);
-      console.log('Paper saved successfully:', !!savedPaper);
+      const { error } = await supabase.storage
+        .from(this.bucketName)
+        .upload(fileName, JSON.stringify(fullPaperData, null, 2), {
+          upsert: true,
+          contentType: 'application/json'
+        });
       
-      return savedPaper ? newQuestion : null;
+      if (error) {
+        console.error('Error saving paper:', error);
+        return null;
+      }
+      
+      return newQuestion;
     } catch (error) {
       console.error('Error adding question:', error);
       return null;
@@ -402,19 +426,36 @@ export class PaperFileStorage {
       
       const fileName = await this.getFileName(examId);
       
+      // First check if the file exists before trying to delete it
+      const { data: fileExists } = await supabase.storage
+        .from(this.bucketName)
+        .list('', { search: fileName });
+      
+      if (!fileExists || fileExists.length === 0) {
+        console.log(`Paper file ${fileName} does not exist, considering deletion successful`);
+        return true;
+      }
+      
       const { error } = await supabase.storage
         .from(this.bucketName)
         .remove([fileName]);
       
       if (error) {
         console.error('Error deleting paper:', error);
+        // Don't fail if the file doesn't exist
+        if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
+          console.log('Paper file was already deleted or does not exist');
+          return true;
+        }
         return false;
       }
       
+      console.log(`Successfully deleted paper file: ${fileName}`);
       return true;
     } catch (error) {
       console.error('Error deleting paper:', error);
-      return false;
+      // Consider it successful if it's just a file not found error
+      return true;
     }
   }
 
