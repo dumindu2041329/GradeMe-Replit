@@ -122,6 +122,9 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 15, 2025. **Improved error handling** - Better Supabase storage error management for missing paper files
 - June 15, 2025. **Optimized question addition performance** - Implemented optimistic UI updates and streamlined backend processing
 - June 15, 2025. **Removed automatic refresh timing** - Questions section now refreshes only on user actions, eliminating constant polling
+- June 15, 2025. **Fixed question options bug** - Backend now properly handles options array format from frontend, ensuring multiple choice options are saved correctly
+- June 15, 2025. **Fixed question deletion and update** - Both operations now properly call backend API to persist changes to Supabase storage
+- June 15, 2025. **Removed Save Paper button** - Eliminated unnecessary manual save step as questions are automatically saved to storage
 
 ## User Preferences
 

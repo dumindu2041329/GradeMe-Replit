@@ -100,12 +100,11 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
         question: req.body.questionText || req.body.question,
         marks: parseInt(req.body.marks),
         orderIndex: parseInt(req.body.orderIndex) || 0,
-        options: (questionType === 'multiple_choice') ? [
-          req.body.optionA,
-          req.body.optionB,
-          req.body.optionC,
-          req.body.optionD
-        ].filter(Boolean) : undefined,
+        options: (questionType === 'multiple_choice') ? (
+          // Handle both array format (new) and individual fields format (legacy)
+          req.body.options ? req.body.options.filter((opt: string) => opt && opt.trim() !== "") : 
+          [req.body.optionA, req.body.optionB, req.body.optionC, req.body.optionD].filter(Boolean)
+        ) : undefined,
         correctAnswer: req.body.correctAnswer || req.body.expectedAnswer || null
       };
 
@@ -163,13 +162,10 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
       if (req.body.type) {
         updateData.type = req.body.type;
       }
-      if (req.body.type === 'multiple_choice' && (req.body.optionA || req.body.optionB || req.body.optionC || req.body.optionD)) {
-        updateData.options = [
-          req.body.optionA,
-          req.body.optionB,
-          req.body.optionC,
-          req.body.optionD
-        ].filter(Boolean);
+      if (req.body.type === 'multiple_choice' && (req.body.options || req.body.optionA || req.body.optionB || req.body.optionC || req.body.optionD)) {
+        updateData.options = req.body.options ? 
+          req.body.options.filter((opt: string) => opt && opt.trim() !== "") :
+          [req.body.optionA, req.body.optionB, req.body.optionC, req.body.optionD].filter(Boolean);
       }
       if (req.body.correctAnswer !== undefined || req.body.expectedAnswer !== undefined) {
         updateData.correctAnswer = req.body.correctAnswer || req.body.expectedAnswer;

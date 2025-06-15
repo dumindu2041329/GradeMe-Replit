@@ -265,6 +265,8 @@ export default function PaperCreationPage() {
 
   const updateQuestionMutation = useMutation({
     mutationFn: async (data: QuestionFormValues & { id: string }) => {
+      if (!examId) throw new Error("Exam ID is required");
+      
       const originalQuestion = questions.find(q => q.id === data.id);
       const updatedQuestion: Question = {
         id: data.id,
@@ -290,7 +292,19 @@ export default function PaperCreationPage() {
       });
       setEditingQuestion(null);
       
-      return { updatedQuestion, originalQuestion };
+      // Call API to persist changes
+      const updateData = {
+        examId,
+        question: data.question,
+        type: data.type,
+        options: data.type === "multiple_choice" ? data.options?.filter(opt => opt.trim() !== "") : undefined,
+        correctAnswer: data.type === "multiple_choice" ? data.correctAnswer : undefined,
+        marks: data.marks,
+      };
+      
+      const response = await apiRequest("PUT", `/api/questions/${data.id}`, updateData);
+      
+      return { updatedQuestion, originalQuestion, response };
     },
     onSuccess: ({ updatedQuestion }) => {
       toast({ 
@@ -315,10 +329,15 @@ export default function PaperCreationPage() {
 
   const deleteQuestionMutation = useMutation({
     mutationFn: async (questionId: string) => {
+      if (!examId) throw new Error("Exam ID is required");
+      
       const questionToDelete = questions.find(q => q.id === questionId);
       
       // Immediately update local state for instant UI feedback
       setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
+      
+      // Call API to persist deletion
+      await apiRequest("DELETE", `/api/questions/${questionId}?examId=${examId}`);
       
       return { questionId, questionToDelete };
     },
@@ -964,62 +983,7 @@ export default function PaperCreationPage() {
           </CardContent>
         </Card>
 
-        {/* Add Paper Button Section */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <Button 
-                size="lg" 
-                className="min-w-[200px]"
-                onClick={async () => {
-                  try {
-                    if (!exam || !examId) {
-                      toast({
-                        title: "Error",
-                        description: "No exam selected",
-                        variant: "destructive",
-                      });
-                      return;
-                    }
 
-                    // Save paper with all local questions to JSON file in Supabase bucket
-                    const paperData = {
-                      examId: examId,
-                      title: exam.name,
-                      instructions: exam.description || "",
-                      totalQuestions: localQuestions.length,
-                      totalMarks: localQuestions.reduce((sum, q) => sum + q.marks, 0),
-                      questions: localQuestions
-                    };
-
-                    const response = await apiRequest('POST', '/api/papers', paperData);
-                    
-                    if (response) {
-                      toast({ 
-                        title: "Paper saved successfully",
-                        description: `Paper created with ${questions.length} questions and ${questions.reduce((sum, q) => sum + q.marks, 0)} total marks.`
-                      });
-                    }
-                  } catch (error) {
-                    console.error('Error saving paper:', error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to save paper. Please try again.",
-                      variant: "destructive",
-                    });
-                  }
-                }}
-                disabled={localQuestions.length === 0}
-              >
-                <FileText className="h-5 w-5 mr-2" />
-                Save Paper ({localQuestions.length} questions)
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Save all questions to create the final exam paper
-              </p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </AppShell>
   );
