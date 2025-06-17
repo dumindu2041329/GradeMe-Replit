@@ -540,12 +540,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/exams", requireAdmin, async (req: Request, res: Response) => {
     try {
-      // Convert date string to Date object
+      // Convert date string to Date object and force status to "upcoming" for new exams
       const examData = {
         ...req.body,
         date: new Date(req.body.date),
         duration: parseInt(req.body.duration),
-        totalMarks: parseInt(req.body.totalMarks)
+        totalMarks: parseInt(req.body.totalMarks),
+        status: "upcoming"
       };
       
       const exam = await storage.createExam(examData);
@@ -804,6 +805,197 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update paper" });
     }
   });
+
+  // User profile update endpoint
+  app.put("/api/users/profile", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      console.log("Updating user profile:", req.body);
+      
+      // Prepare update data
+      let updateData: any = {};
+      
+      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
+      if (req.body.email !== undefined) updateData.email = req.body.email.trim();
+      
+      // Validate required fields
+      if (updateData.name && updateData.name === '') {
+        return res.status(400).json({ error: 'Name cannot be empty' });
+      }
+      
+      if (updateData.email && updateData.email === '') {
+        return res.status(400).json({ error: 'Email cannot be empty' });
+      }
+
+      const updatedUser = await storage.updateUser(user.id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update session data
+      req.session.user = { ...req.session.user, ...updateData };
+
+      res.json({
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        profileImage: updatedUser.profileImage,
+        role: updatedUser.role
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  // Student profile update endpoint  
+  app.put("/api/students/profile", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user || !user.studentId) {
+        return res.status(401).json({ error: 'Student not authenticated' });
+      }
+
+      console.log("Updating student profile:", req.body);
+      
+      // Prepare update data
+      let updateData: any = {};
+      
+      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
+      if (req.body.email !== undefined) updateData.email = req.body.email.trim();
+      if (req.body.phone !== undefined) updateData.phone = req.body.phone || null;
+      if (req.body.address !== undefined) updateData.address = req.body.address || null;
+      if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
+      if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
+      
+      // Validate required fields
+      if (updateData.name && updateData.name === '') {
+        return res.status(400).json({ error: 'Name cannot be empty' });
+      }
+      
+      if (updateData.email && updateData.email === '') {
+        return res.status(400).json({ error: 'Email cannot be empty' });
+      }
+
+      const updatedStudent = await storage.updateStudent(user.studentId, updateData);
+      if (!updatedStudent) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      // Update session data
+      if (req.session.user) {
+        req.session.user = { ...req.session.user, name: updatedStudent.name, email: updatedStudent.email };
+      }
+
+      res.json({
+        id: updatedStudent.id,
+        name: updatedStudent.name,
+        email: updatedStudent.email,
+        profileImage: updatedStudent.profileImage,
+        phone: updatedStudent.phone,
+        address: updatedStudent.address,
+        guardianName: updatedStudent.guardianName,
+        guardianPhone: updatedStudent.guardianPhone
+      });
+    } catch (error) {
+      console.error("Error updating student profile:", error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  // Password change endpoint
+  app.post("/api/users/change-password", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+      }
+
+      // Get the full user record with password for verification
+      const fullUser = await storage.getUserByEmail(user.email);
+      if (!fullUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, fullUser.password);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password
+      const updatedUser = await storage.updateUser(user.id, { password: hashedNewPassword });
+      if (!updatedUser) {
+        return res.status(500).json({ error: 'Failed to update password' });
+      }
+
+      res.json({ message: 'Password updated successfully' });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ error: 'Failed to update password' });
+    }
+  });
+
+  // Notification settings update endpoint
+  app.put("/api/users/notifications", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      console.log("Updating user notifications:", req.body);
+      
+      // Prepare notification update data
+      const updateData: any = {};
+      
+      if (req.body.emailNotifications !== undefined) updateData.emailNotifications = req.body.emailNotifications;
+      if (req.body.smsNotifications !== undefined) updateData.smsNotifications = req.body.smsNotifications;
+      if (req.body.emailExamResults !== undefined) updateData.emailExamResults = req.body.emailExamResults;
+      if (req.body.emailUpcomingExams !== undefined) updateData.emailUpcomingExams = req.body.emailUpcomingExams;
+      if (req.body.smsExamResults !== undefined) updateData.smsExamResults = req.body.smsExamResults;
+      if (req.body.smsUpcomingExams !== undefined) updateData.smsUpcomingExams = req.body.smsUpcomingExams;
+
+      const updatedUser = await storage.updateUser(user.id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update session data
+      req.session.user = { ...req.session.user, ...updateData };
+
+      res.json({
+        emailNotifications: updatedUser.emailNotifications,
+        smsNotifications: updatedUser.smsNotifications,
+        emailExamResults: updatedUser.emailExamResults,
+        emailUpcomingExams: updatedUser.emailUpcomingExams,
+        smsExamResults: updatedUser.smsExamResults,
+        smsUpcomingExams: updatedUser.smsUpcomingExams
+      });
+    } catch (error) {
+      console.error("Error updating user notifications:", error);
+      res.status(500).json({ error: 'Failed to update notifications' });
+    }
+  });
+
+
 
   // Register question routes with WebSocket broadcast function
   registerQuestionRoutes(app, requireAdmin, broadcastUpdate);

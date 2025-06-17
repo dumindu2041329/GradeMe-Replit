@@ -132,6 +132,9 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 17, 2025. **Migration to Replit environment completed** - Successfully migrated from Replit Agent with all functionality intact
 - June 17, 2025. **Fixed authentication cross-validation** - Added proper role-based access control preventing students from using admin login and vice versa
 - June 17, 2025. **Added profile image popup functionality** - Admin profile images are now clickable and display full-size popup with automatic circular cropping
+- June 17, 2025. **Completed profile management system** - Fixed profile update functionality by adding missing API endpoints for user profile updates, student profile updates, notification settings, and password changes
+- June 17, 2025. **Enhanced security** - Added proper password validation and bcrypt hashing for password changes with current password verification
+- June 17, 2025. **Enforced exam status workflow** - New exams automatically have "upcoming" status, admin can only change status when editing existing exams
 
 ## User Preferences
 
