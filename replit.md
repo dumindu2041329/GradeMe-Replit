@@ -136,6 +136,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 17, 2025. **Enhanced security** - Added proper password validation and bcrypt hashing for password changes with current password verification
 - June 17, 2025. **Enforced exam status workflow** - New exams automatically have "upcoming" status, admin can only change status when editing existing exams
 - June 17, 2025. **Protected completed exams** - Completed exams cannot be accessed or modified through paper creation page, with both frontend and backend access control
+- June 17, 2025. **Added exam start and end time fields** - Enhanced exam table with start time and end time columns, updated database schema and UI forms
+- June 17, 2025. **Implemented exam status protection** - Active exams cannot be changed back to upcoming status when students are taking them, with backend validation and frontend UI restrictions
 
 ## User Preferences
 

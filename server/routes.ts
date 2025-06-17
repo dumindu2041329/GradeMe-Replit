@@ -544,6 +544,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const examData = {
         ...req.body,
         date: new Date(req.body.date),
+        startTime: req.body.startTime ? new Date(req.body.startTime) : null,
+        endTime: req.body.endTime ? new Date(req.body.endTime) : null,
         duration: parseInt(req.body.duration),
         totalMarks: parseInt(req.body.totalMarks),
         status: "upcoming"
@@ -560,10 +562,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/exams/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get current exam to check status
+      const currentExam = await storage.getExam(id);
+      if (!currentExam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      // Prevent changing active exams back to upcoming status when students are taking them
+      if (currentExam.status === "active" && req.body.status === "upcoming") {
+        return res.status(400).json({ 
+          message: "Cannot change active exam back to upcoming status while students are taking it" 
+        });
+      }
+      
       // Convert date string to Date object and ensure numbers are integers
       const examData = {
         ...req.body,
         ...(req.body.date && { date: new Date(req.body.date) }),
+        ...(req.body.startTime && { startTime: new Date(req.body.startTime) }),
+        ...(req.body.endTime && { endTime: new Date(req.body.endTime) }),
         ...(req.body.duration && { duration: parseInt(req.body.duration) }),
         ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
       };
