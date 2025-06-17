@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,6 +58,23 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+
+  // Auto-calculate end time when start time or duration changes
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if ((name === "startTime" || name === "duration") && value.startTime && value.duration) {
+        const startTime = new Date(value.startTime);
+        const duration = Number(value.duration);
+        
+        if (!isNaN(startTime.getTime()) && duration > 0) {
+          const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
+          form.setValue("endTime", endTime, { shouldValidate: true });
+        }
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const onSubmit = async (data: ExamFormValues) => {
     try {
@@ -177,7 +194,22 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
                   <FormItem>
                     <FormLabel>Duration (minutes)</FormLabel>
                     <FormControl>
-                      <Input type="number" min={1} {...field} />
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        {...field}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          field.onChange(value);
+                          
+                          // Trigger end time calculation
+                          const startTime = form.getValues("startTime");
+                          if (startTime && value > 0) {
+                            const endTime = new Date(startTime.getTime() + value * 60 * 1000);
+                            form.setValue("endTime", endTime, { shouldValidate: true });
+                          }
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -268,7 +300,18 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
                         <Calendar
                           mode="single"
                           selected={field.value || undefined}
-                          onSelect={field.onChange}
+                          onSelect={(date) => {
+                            field.onChange(date);
+                            
+                            // Auto-calculate end time when start time changes
+                            if (date) {
+                              const duration = form.getValues("duration");
+                              if (duration && duration > 0) {
+                                const endTime = new Date(date.getTime() + duration * 60 * 1000);
+                                form.setValue("endTime", endTime, { shouldValidate: true });
+                              }
+                            }
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

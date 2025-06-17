@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { PlusCircle, Search, Pencil, Trash2, Users } from "lucide-react";
+import { PlusCircle, Search, Pencil, Trash2, Users, Eye, EyeOff } from "lucide-react";
 
 // Define Student interface
 interface Student {
@@ -89,6 +89,8 @@ export default function Students() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -413,7 +415,31 @@ export default function Students() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••" type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type={showCreatePassword ? "text" : "password"} 
+                          placeholder="••••••" 
+                          className="pr-12" 
+                          {...field} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-white/10 focus:bg-white/10"
+                          onClick={() => setShowCreatePassword(!showCreatePassword)}
+                          tabIndex={-1}
+                        >
+                          {showCreatePassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+                          )}
+                          <span className="sr-only">
+                            {showCreatePassword ? "Hide password" : "Show password"}
+                          </span>
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -512,7 +538,31 @@ export default function Students() {
                   <FormItem>
                     <FormLabel>Password (leave blank to keep current)</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••" type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          type={showEditPassword ? "text" : "password"} 
+                          placeholder="••••••" 
+                          className="pr-12" 
+                          {...field} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-white/10 focus:bg-white/10"
+                          onClick={() => setShowEditPassword(!showEditPassword)}
+                          tabIndex={-1}
+                        >
+                          {showEditPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground" aria-hidden="true" />
+                          )}
+                          <span className="sr-only">
+                            {showEditPassword ? "Hide password" : "Show password"}
+                          </span>
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

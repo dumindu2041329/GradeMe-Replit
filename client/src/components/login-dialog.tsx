@@ -180,21 +180,21 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
                           <Input 
                             type={showPassword ? "text" : "password"} 
                             placeholder="••••••••" 
-                            className="glass-input pr-10" 
+                            className="glass-input pr-12" 
                             {...field} 
                           />
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-white/10 focus:bg-white/10"
                             onClick={() => setShowPassword(!showPassword)}
                             tabIndex={-1}
                           >
                             {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                              <EyeOff className="h-4 w-4 text-white/70 hover:text-white" aria-hidden="true" />
                             ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                              <Eye className="h-4 w-4 text-white/70 hover:text-white" aria-hidden="true" />
                             )}
                             <span className="sr-only">
                               {showPassword ? "Hide password" : "Show password"}
