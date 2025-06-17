@@ -195,36 +195,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password }: LoginCredentials = req.body;
       
+      // First check admin users table
       const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      if (user) {
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+          return res.status(401).json({ message: "Invalid credentials" });
+        }
+
+        // Only allow admin users to login through admin endpoint
+        if (user.role !== 'admin') {
+          return res.status(403).json({ message: "Access denied. Please use student login." });
+        }
+
+        req.session.user = {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          isAdmin: user.role === 'admin',
+          profileImage: user.profileImage,
+          studentId: user.studentId,
+          emailNotifications: user.emailNotifications,
+          smsNotifications: user.smsNotifications,
+          emailExamResults: user.emailExamResults,
+          emailUpcomingExams: user.emailUpcomingExams,
+          smsExamResults: user.smsExamResults,
+          smsUpcomingExams: user.smsUpcomingExams,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        };
+
+        const { password: _, ...userWithoutPassword } = user;
+        return res.json(req.session.user);
       }
 
-      const isValid = await bcrypt.compare(password, user.password);
-      if (!isValid) {
-        return res.status(401).json({ message: "Invalid credentials" });
+      // If not found in users table, check if it's a student trying to use admin login
+      const student = await storage.getStudentByEmail(email);
+      if (student) {
+        return res.status(403).json({ message: "Access denied. Please use student login." });
       }
 
-      req.session.user = {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isAdmin: user.role === 'admin',
-        profileImage: user.profileImage,
-        studentId: user.studentId,
-        emailNotifications: user.emailNotifications,
-        smsNotifications: user.smsNotifications,
-        emailExamResults: user.emailExamResults,
-        emailUpcomingExams: user.emailUpcomingExams,
-        smsExamResults: user.smsExamResults,
-        smsUpcomingExams: user.smsUpcomingExams,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      };
-
-      const { password: _, ...userWithoutPassword } = user;
-      res.json(req.session.user);
+      // Neither admin nor student found
+      return res.status(401).json({ message: "Invalid credentials" });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
@@ -235,8 +248,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { email, password }: LoginCredentials = req.body;
       
+      // First check if this email belongs to an admin user
+      const adminUser = await storage.getUserByEmail(email);
+      if (adminUser && adminUser.role === 'admin') {
+        return res.status(403).json({ message: "Access denied. Please use admin login." });
+      }
+      
+      // Authenticate the student
       const student = await storage.authenticateStudent(email, password);
       if (!student) {
+        // Check if email exists in admin table but not in students table
+        if (adminUser) {
+          return res.status(403).json({ message: "Access denied. Please use admin login." });
+        }
         return res.status(401).json({ message: "Invalid credentials" });
       }
 

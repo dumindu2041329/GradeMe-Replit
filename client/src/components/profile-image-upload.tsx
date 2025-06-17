@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Camera, Trash2, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { resizeImageForProfile, validateImageFile, blobToBase64 } from '@/utils/image-utils';
 
 interface ProfileImageUploadProps {
   userType: 'admin' | 'student';
@@ -27,39 +28,53 @@ export function ProfileImageUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(currentImageUrl || null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    // Validate file using utility function
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
       toast({
-        title: "Invalid file type",
-        description: "Please select an image file (JPEG, PNG, WebP, or GIF)",
+        title: "Invalid file",
+        description: validation.error,
         variant: "destructive",
       });
       return;
     }
 
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
+    setIsUploading(true);
+
+    try {
+      // Resize image for optimal circular display
+      const resizedBlob = await resizeImageForProfile(file, {
+        width: 200,
+        height: 200,
+        quality: 0.85,
+        cropToCircle: true
+      });
+
+      // Convert to base64 for preview
+      const base64Preview = await blobToBase64(resizedBlob);
+      setImagePreview(base64Preview);
+
+      // Create a new file from the resized blob
+      const resizedFile = new File([resizedBlob], file.name, {
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+
+      // Upload the resized file
+      await uploadImage(resizedFile);
+    } catch (error) {
+      console.error('Error processing image:', error);
       toast({
-        title: "File too large",
-        description: "Image must be smaller than 5MB",
+        title: "Image processing failed",
+        description: "Unable to process the selected image. Please try a different image.",
         variant: "destructive",
       });
-      return;
+      setIsUploading(false);
     }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload the file
-    uploadImage(file);
   };
 
   const uploadImage = async (file: File) => {

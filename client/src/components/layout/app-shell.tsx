@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
+import { ProfileImagePopup } from "@/components/profile-image-popup";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -118,14 +119,22 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
             </h1>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8 bg-primary">
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
+          <div className="flex items-center gap-2">
+            {/* Profile Image Popup */}
+            <ProfileImagePopup 
+              imageUrl={user?.profileImage}
+              userName={user?.name}
+              userRole="admin"
+              size="md"
+            />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Menu className="h-4 w-4" />
+                  <span className="sr-only">Account menu</span>
+                </Button>
+              </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
@@ -153,6 +162,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </header>
         
         <main className="flex-1 overflow-y-auto p-6 main-content">

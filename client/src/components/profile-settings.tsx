@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { ArrowUpFromLine } from 'lucide-react';
+import { resizeImageForProfile, validateImageFile, blobToBase64 } from '@/utils/image-utils';
 
 import {
   Card,
