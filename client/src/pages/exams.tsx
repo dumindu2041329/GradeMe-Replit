@@ -157,9 +157,10 @@ export default function Exams() {
             variant="ghost" 
             size="icon" 
             onClick={() => navigate(`/exams/${exam.id}/paper`)}
-            title="Create Question Paper"
+            title={exam.status === "completed" ? "Cannot edit completed exams" : "Create Question Paper"}
+            disabled={exam.status === "completed"}
           >
-            <FileText className="h-4 w-4 text-green-500" />
+            <FileText className={`h-4 w-4 ${exam.status === "completed" ? "text-gray-400" : "text-green-500"}`} />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => handleEditExam(exam)}>
             <Pencil className="h-4 w-4 text-blue-500" />

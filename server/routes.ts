@@ -752,6 +752,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "examId is required" });
       }
 
+      // Check if exam is completed and block modifications
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+      
+      if (exam.status === "completed") {
+        return res.status(403).json({ message: "Cannot modify papers for completed exams" });
+      }
+
       console.log('Updating paper with questions:', req.body.questions?.length || 0);
 
       // If questions are provided, save the complete paper with questions

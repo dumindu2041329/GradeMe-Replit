@@ -458,6 +458,32 @@ export default function PaperCreationPage() {
     );
   }
 
+  // Block access if exam status is completed
+  if (exam.status === "completed") {
+    return (
+      <AppShell title="Paper Creation">
+        <div className="container mx-auto py-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold text-foreground">Access Restricted</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Cannot modify papers for completed exams. This exam has already been completed and can no longer be edited.
+                </p>
+                <div className="mt-6">
+                  <Button onClick={() => setLocation("/exams")}>
+                    Back to Exams
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell title="Paper Creation">
       <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">

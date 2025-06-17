@@ -1,5 +1,6 @@
 import { Request, Response, Express } from 'express';
 import { paperFileStorage } from './paper-file-storage.js';
+import { storage } from './storage.js';
 
 export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcastUpdate?: (type: string, data: any) => void) {
   // Get questions for a specific paper - using file storage
