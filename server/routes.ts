@@ -335,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const educators = educatorsCount.length;
       
       // Get completed exams count
-      const completedExamsCount = await db.select().from(results);
+      const completedExamsCount = await db.select().from(exams).where(eq(exams.status, 'completed'));
       const examsCompleted = completedExamsCount.length;
       
       // Calculate uptime (assume 99% for now, could be enhanced with actual monitoring)
