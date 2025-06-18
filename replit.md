@@ -139,6 +139,11 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 17, 2025. **Added exam start and end time fields** - Enhanced exam table with start time and end time columns, updated database schema and UI forms
 - June 17, 2025. **Implemented exam status protection** - Active exams cannot be changed back to upcoming status when students are taking them, with backend validation and frontend UI restrictions
 - June 17, 2025. **Fixed completed exams statistics** - Landing page now displays actual count of completed exams from database instead of showing 0
+- June 18, 2025. **Migration to Replit environment completed** - Successfully migrated from Replit Agent with all functionality intact
+- June 18, 2025. **Removed End Time field** - Simplified exam form by removing End Time field from exam creation/editing interface
+- June 18, 2025. **Improved Start Time picker** - Changed from date-time calendar to proper time-only input for better user experience
+- June 18, 2025. **Enhanced time picker UI** - Created decorative time picker with popup interface, separate hour/minute dropdowns, and utility buttons
+- June 18, 2025. **Improved cursor styling** - Updated text cursor and selection colors to match primary theme colors for consistent visual experience
 
 ## User Preferences
 

@@ -275,6 +275,30 @@
     z-index: -1;
   }
   
+  /* Custom cursor and text selection styles */
+  * {
+    caret-color: hsl(var(--primary));
+  }
+  
+  input, textarea {
+    caret-color: hsl(var(--primary));
+  }
+  
+  input:focus, textarea:focus {
+    caret-color: hsl(var(--primary));
+    outline-color: hsl(var(--ring));
+  }
+  
+  ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary-foreground));
+  }
+  
+  ::-moz-selection {
+    background-color: hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary-foreground));
+  }
+
   /* Page transition animations - optimized for speed */
   /* Apply consistent background to all key elements to prevent white flashes */
   html, body, #root, .page-container, .route-content {

@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -21,7 +21,6 @@ import { useLocation } from "wouter";
 const formSchema = insertExamSchema.extend({
   date: z.date(),
   startTime: z.date().optional().nullable(),
-  endTime: z.date().optional().nullable(),
   subject: z.string().min(2, "Subject must be at least 2 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   duration: z.coerce.number().min(1, "Duration must be at least 1 minute"),
@@ -48,7 +47,6 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
     subject: exam?.subject || "",
     date: exam?.date ? new Date(exam.date) : new Date(),
     startTime: exam?.startTime ? new Date(exam.startTime) : null,
-    endTime: exam?.endTime ? new Date(exam.endTime) : null,
     duration: exam?.duration || 60,
     totalMarks: exam?.totalMarks || 100,
     status: exam?.status || "upcoming",
@@ -69,7 +67,6 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
         ...data,
         date: data.date.toISOString(),
         startTime: data.startTime ? data.startTime.toISOString() : null,
-        endTime: data.endTime ? data.endTime.toISOString() : null,
       };
       
       if (mode === "create") {
@@ -264,85 +261,110 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
               )}
             />
             
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Time</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Time</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "HH:mm")
+                          ) : (
+                            <span>Pick start time</span>
+                          )}
+                          <ClockIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-4" align="start">
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-sm font-medium">Hour</label>
+                              <Select
+                                value={field.value ? format(field.value, "HH") : ""}
+                                onValueChange={(hour) => {
+                                  const currentMinute = field.value ? format(field.value, "mm") : "00";
+                                  const date = new Date();
+                                  date.setHours(parseInt(hour), parseInt(currentMinute), 0, 0);
+                                  field.onChange(date);
+                                }}
+                              >
+                                <SelectTrigger className="w-20">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 24 }, (_, i) => (
+                                    <SelectItem key={i} value={i.toString().padStart(2, '0')}>
+                                      {i.toString().padStart(2, '0')}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <label className="text-sm font-medium">Minute</label>
+                              <Select
+                                value={field.value ? format(field.value, "mm") : ""}
+                                onValueChange={(minute) => {
+                                  const currentHour = field.value ? format(field.value, "HH") : "00";
+                                  const date = new Date();
+                                  date.setHours(parseInt(currentHour), parseInt(minute), 0, 0);
+                                  field.onChange(date);
+                                }}
+                              >
+                                <SelectTrigger className="w-20">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {Array.from({ length: 60 }, (_, i) => (
+                                    <SelectItem key={i} value={i.toString().padStart(2, '0')}>
+                                      {i.toString().padStart(2, '0')}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex justify-between">
                           <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => field.onChange(null)}
                           >
-                            {field.value ? (
-                              format(field.value, "PPpp")
-                            ) : (
-                              <span>Pick start time</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            Clear
                           </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value || undefined}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="endTime"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Time</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
                           <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                              const now = new Date();
+                              field.onChange(now);
+                            }}
                           >
-                            {field.value ? (
-                              format(field.value, "PPpp")
-                            ) : (
-                              <span>Pick end time</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            Now
                           </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value || undefined}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             {mode === "edit" && (
               <FormField
