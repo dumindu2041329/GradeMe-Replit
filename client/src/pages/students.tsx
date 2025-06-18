@@ -41,9 +41,16 @@ import {
   FormLabel, 
   FormMessage 
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { PlusCircle, Search, Pencil, Trash2, Users } from "lucide-react";
+import { PlusCircle, Search, Pencil, Trash2, Users, Eye, EyeOff } from "lucide-react";
 
 // Define Student interface
 interface Student {
@@ -64,6 +71,16 @@ const createFormSchema = z.object({
   enrollmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
     message: "Please enter a valid date",
   })
+}).refine(data => {
+  const name = data.name.toLowerCase().trim();
+  const emailLocal = data.email.toLowerCase().split('@')[0]; // Get part before @
+  const emailFull = data.email.toLowerCase().trim();
+  
+  // Check if name matches email (full or local part)
+  return name !== emailFull && name !== emailLocal;
+}, {
+  message: "Name cannot be the same as email address",
+  path: ["email"]
 });
 
 // Form schema for edit student (password optional)
@@ -77,6 +94,16 @@ const editFormSchema = z.object({
   enrollmentDate: z.string().refine(date => !isNaN(Date.parse(date)), {
     message: "Please enter a valid date",
   })
+}).refine(data => {
+  const name = data.name.toLowerCase().trim();
+  const emailLocal = data.email.toLowerCase().split('@')[0]; // Get part before @
+  const emailFull = data.email.toLowerCase().trim();
+  
+  // Check if name matches email (full or local part)
+  return name !== emailFull && name !== emailLocal;
+}, {
+  message: "Name cannot be the same as email address",
+  path: ["email"]
 });
 
 type CreateStudentFormValues = z.infer<typeof createFormSchema>;
@@ -89,6 +116,8 @@ export default function Students() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -124,8 +153,8 @@ export default function Students() {
       console.log("Created student:", newStudent);
       
       toast({
-        title: "Success",
-        description: `Student "${newStudent.name}" created successfully`,
+        title: "Student Created Successfully",
+        description: `${newStudent.name} has been added to the system and can now access their student account.`,
       });
       
       // Force refresh to get the latest data
@@ -135,11 +164,31 @@ export default function Students() {
       // Reset the form and close the modal
       createForm.reset();
       setIsCreateModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating student:", error);
+      
+      // Handle specific error responses from the server
+      let errorTitle = "Failed to Create Student";
+      let errorMessage = "Unable to create the student account. Please try again.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        
+        // Customize titles based on error type
+        if (errorMessage.includes("email address already exists")) {
+          errorTitle = "Email Already in Use";
+          errorMessage = "This email address is already registered. Please use a different email address.";
+        } else if (errorMessage.includes("Name cannot be the same")) {
+          errorTitle = "Invalid Name/Email";
+          errorMessage = "Student name cannot be the same as the email address. Please choose a different name.";
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to create student",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -163,8 +212,8 @@ export default function Students() {
       console.log("Updated student:", updatedStudent);
       
       toast({
-        title: "Success",
-        description: `Student "${updatedStudent.name}" updated successfully`,
+        title: "Student Updated Successfully",
+        description: `${updatedStudent.name}'s information has been updated in the system.`,
       });
       
       // Force refresh to get the latest data
@@ -173,11 +222,31 @@ export default function Students() {
       
       setIsEditModalOpen(false);
       setSelectedStudent(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating student:", error);
+      
+      // Handle specific error responses from the server
+      let errorTitle = "Failed to Update Student";
+      let errorMessage = "Unable to update the student information. Please try again.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+        
+        // Customize titles based on error type
+        if (errorMessage.includes("email address already exists")) {
+          errorTitle = "Email Already in Use";
+          errorMessage = "This email address is already registered by another student. Please use a different email address.";
+        } else if (errorMessage.includes("Name cannot be the same")) {
+          errorTitle = "Invalid Name/Email";
+          errorMessage = "Student name cannot be the same as the email address. Please choose a different name.";
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to update student",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -196,8 +265,8 @@ export default function Students() {
       
       if (result.success) {
         toast({
-          title: "Success",
-          description: `Student "${selectedStudent.name}" deleted successfully`,
+          title: "Student Removed Successfully",
+          description: `${selectedStudent.name} has been permanently removed from the system.`,
         });
         
         // Force refresh to get the latest data
@@ -207,11 +276,21 @@ export default function Students() {
       
       setIsDeleteDialogOpen(false);
       setSelectedStudent(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting student:", error);
+      
+      let errorTitle = "Failed to Delete Student";
+      let errorMessage = "Unable to remove the student from the system. Please try again.";
+      
+      if (error?.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to delete student",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -398,9 +477,28 @@ export default function Students() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Class</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10A" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a grade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Grade 1">Grade 1</SelectItem>
+                        <SelectItem value="Grade 2">Grade 2</SelectItem>
+                        <SelectItem value="Grade 3">Grade 3</SelectItem>
+                        <SelectItem value="Grade 4">Grade 4</SelectItem>
+                        <SelectItem value="Grade 5">Grade 5</SelectItem>
+                        <SelectItem value="Grade 6">Grade 6</SelectItem>
+                        <SelectItem value="Grade 7">Grade 7</SelectItem>
+                        <SelectItem value="Grade 8">Grade 8</SelectItem>
+                        <SelectItem value="Grade 9">Grade 9</SelectItem>
+                        <SelectItem value="Grade 10">Grade 10</SelectItem>
+                        <SelectItem value="Grade 11">Grade 11</SelectItem>
+                        <SelectItem value="Grade 12">Grade 12</SelectItem>
+                        <SelectItem value="Grade 13">Grade 13</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -413,7 +511,26 @@ export default function Students() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••" type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          placeholder="••••••" 
+                          type={showCreatePassword ? "text" : "password"} 
+                          {...field} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowCreatePassword(!showCreatePassword)}
+                        >
+                          {showCreatePassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -497,9 +614,28 @@ export default function Students() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Class</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10A" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a grade" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Grade 1">Grade 1</SelectItem>
+                        <SelectItem value="Grade 2">Grade 2</SelectItem>
+                        <SelectItem value="Grade 3">Grade 3</SelectItem>
+                        <SelectItem value="Grade 4">Grade 4</SelectItem>
+                        <SelectItem value="Grade 5">Grade 5</SelectItem>
+                        <SelectItem value="Grade 6">Grade 6</SelectItem>
+                        <SelectItem value="Grade 7">Grade 7</SelectItem>
+                        <SelectItem value="Grade 8">Grade 8</SelectItem>
+                        <SelectItem value="Grade 9">Grade 9</SelectItem>
+                        <SelectItem value="Grade 10">Grade 10</SelectItem>
+                        <SelectItem value="Grade 11">Grade 11</SelectItem>
+                        <SelectItem value="Grade 12">Grade 12</SelectItem>
+                        <SelectItem value="Grade 13">Grade 13</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -512,7 +648,26 @@ export default function Students() {
                   <FormItem>
                     <FormLabel>Password (leave blank to keep current)</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••" type="password" {...field} />
+                      <div className="relative">
+                        <Input 
+                          placeholder="••••••" 
+                          type={showEditPassword ? "text" : "password"} 
+                          {...field} 
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowEditPassword(!showEditPassword)}
+                        >
+                          {showEditPassword ? (
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

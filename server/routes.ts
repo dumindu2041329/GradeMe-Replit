@@ -451,7 +451,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(student);
     } catch (error) {
       console.error("Error creating student:", error);
-      res.status(500).json({ message: "Failed to create student", error: error instanceof Error ? error.message : String(error) });
+      
+      // Handle specific database constraint errors
+      if (error && typeof error === 'object' && 'cause' in error) {
+        const cause = error.cause as any;
+        if (cause?.code === '23505') {
+          if (cause.constraint_name === 'students_email_unique') {
+            return res.status(400).json({ 
+              message: "A student with this email address already exists. Please use a different email address.",
+              field: "email"
+            });
+          }
+        }
+      }
+      
+      res.status(500).json({ 
+        message: "Failed to create student", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
