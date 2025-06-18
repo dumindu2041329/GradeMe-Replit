@@ -161,9 +161,35 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Subject</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Mathematics" {...field} />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a subject" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Mathematics">Mathematics</SelectItem>
+                      <SelectItem value="Physics">Physics</SelectItem>
+                      <SelectItem value="Chemistry">Chemistry</SelectItem>
+                      <SelectItem value="Biology">Biology</SelectItem>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="History">History</SelectItem>
+                      <SelectItem value="Geography">Geography</SelectItem>
+                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Economics">Economics</SelectItem>
+                      <SelectItem value="Psychology">Psychology</SelectItem>
+                      <SelectItem value="Philosophy">Philosophy</SelectItem>
+                      <SelectItem value="Sociology">Sociology</SelectItem>
+                      <SelectItem value="Political Science">Political Science</SelectItem>
+                      <SelectItem value="Art">Art</SelectItem>
+                      <SelectItem value="Music">Music</SelectItem>
+                      <SelectItem value="Physical Education">Physical Education</SelectItem>
+                      <SelectItem value="French">French</SelectItem>
+                      <SelectItem value="Spanish">Spanish</SelectItem>
+                      <SelectItem value="Statistics">Statistics</SelectItem>
+                      <SelectItem value="Environmental Science">Environmental Science</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

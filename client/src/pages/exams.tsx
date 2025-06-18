@@ -125,11 +125,7 @@ export default function Exams() {
       accessorKey: "startTime" as keyof Exam,
       cell: (exam: Exam) => exam.startTime ? format(new Date(exam.startTime), "MMM dd, HH:mm") : "Not set",
     },
-    {
-      header: "End Time",
-      accessorKey: "endTime" as keyof Exam,
-      cell: (exam: Exam) => exam.endTime ? format(new Date(exam.endTime), "MMM dd, HH:mm") : "Not set",
-    },
+
     {
       header: "Duration",
       accessorKey: "duration" as keyof Exam,
