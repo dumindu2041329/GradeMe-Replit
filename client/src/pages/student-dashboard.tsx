@@ -11,39 +11,16 @@ import { StudentHeader } from "@/components/layout/student-header";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Line, LineChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import { StudentDashboardData, Exam, ResultWithDetails } from "@shared/schema";
 
-interface DashboardData {
-  totalExams: number;
-  averageScore: number;
-  bestRank: number;
-  availableExams: Array<{
-    id: number;
-    name: string;
-    subject: string;
-    date: string;
-    duration: number;
-    totalMarks: number;
-  }>;
-  examHistory: Array<{
-    id: number;
-    exam: {
-      name: string;
-      totalMarks: number;
-    };
-    submittedAt: string;
-    percentage: number;
-    score: number;
-    rank: number;
-    totalParticipants: number;
-  }>;
-}
+
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
   // Fetch student dashboard data
-  const { data: dashboardData, isLoading } = useQuery<DashboardData>({
+  const { data: dashboardData, isLoading } = useQuery<StudentDashboardData>({
     queryKey: ["/api/student/dashboard", user?.studentId],
     enabled: !!user?.studentId,
   });
@@ -251,6 +228,78 @@ export default function StudentDashboard() {
           </Card>
         </div>
         
+        {/* Active Exams Section */}
+        <div className="mb-8">
+          <Card className="border-green-500/20 dark:border-green-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                <BookOpen className="h-5 w-5" />
+                Active Exams
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!dashboardData?.activeExams || dashboardData.activeExams.length === 0 ? (
+                <div className="text-center py-8">
+                  <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No active exams at the moment.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Active exams will appear here when available.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {dashboardData.activeExams.map((exam) => {
+                    const examDate = new Date(exam.date);
+                    
+                    return (
+                      <div 
+                        key={exam.id} 
+                        className="p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950/30 hover:border-green-300 dark:hover:border-green-700 transition-colors relative overflow-hidden group"
+                      >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500 to-green-600"></div>
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold text-lg text-green-800 dark:text-green-200">{exam.name}</h3>
+                              <Badge variant="default" className="bg-green-600 text-white text-xs">
+                                Active
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-green-700 dark:text-green-300 font-medium">{exam.subject}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>{examDate.toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span>{exam.duration} minutes</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-muted-foreground" />
+                              <span>{exam.totalMarks} marks</span>
+                            </div>
+                          </div>
+                          
+                          <Button 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white" 
+                            onClick={() => navigate(`/student/exam/${exam.id}`)}
+                          >
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            Start Exam
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Upcoming Exams with Enhanced Design */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
@@ -299,14 +348,9 @@ export default function StudentDashboard() {
                               </div>
                               <p className="text-sm text-muted-foreground font-medium">{exam.subject}</p>
                             </div>
-                            <Button 
-                              className="flex items-center gap-2 group-hover:scale-105 transition-transform" 
-                              onClick={() => navigate(`/student/exam/${exam.id}`)}
-                            >
-                              <BookOpen className="h-4 w-4" />
-                              Start Exam 
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
+                            <div className="text-sm text-muted-foreground">
+                              Scheduled
+                            </div>
                           </div>
                           
                           <div className="grid grid-cols-3 gap-4 text-sm">

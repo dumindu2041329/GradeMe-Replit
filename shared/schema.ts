@@ -93,6 +93,7 @@ export type StudentDashboardData = {
   averageScore: number;
   bestRank: number;
   availableExams: Exam[];
+  activeExams: Exam[];
   examHistory: ResultWithDetails[];
 };
 
