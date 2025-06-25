@@ -548,6 +548,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!exam) {
         return res.status(404).json({ message: "Exam not found" });
       }
+
+      // For students taking active exams, include questions
+      const user = req.session?.user;
+      
+      if (user?.role === "student" && exam.status === "active") {
+        try {
+          const paper = await paperFileStorage.getPaperByExamId(id);
+          
+          if (paper && paper.questions.length > 0) {
+            // Add questions to exam response for students
+            const examWithQuestions = {
+              ...exam,
+              questions: paper.questions.map(q => ({
+                id: q.id,
+                question: q.question,
+                type: q.type,
+                options: q.options,
+                marks: q.marks,
+                orderIndex: q.orderIndex
+                // Don't include correctAnswer for students
+              }))
+            };
+            return res.json(examWithQuestions);
+          }
+        } catch (error) {
+          console.error("Error fetching questions for student:", error);
+          // Continue with basic exam data if questions can't be loaded
+        }
+      }
+
       res.json(exam);
     } catch (error) {
       console.error("Error fetching exam:", error);
@@ -646,6 +676,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting exam:", error);
       res.status(500).json({ message: "Failed to delete exam" });
+    }
+  });
+
+  // Manual sync route for exam total marks (admin only)
+  app.post("/api/admin/sync-exam-marks/:examId?", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { forceExamMarkSync, syncAllExamMarks } = await import('./sync-exam-marks.js');
+      
+      const examId = req.params.examId;
+      
+      if (examId) {
+        // Sync specific exam
+        const success = await forceExamMarkSync(parseInt(examId));
+        if (success) {
+          res.json({ message: `Exam ${examId} marks synchronized successfully` });
+        } else {
+          res.status(500).json({ message: `Failed to sync exam ${examId} marks` });
+        }
+      } else {
+        // Sync all exams
+        await syncAllExamMarks();
+        res.json({ message: "All exam marks synchronized successfully" });
+      }
+    } catch (error) {
+      console.error("Error syncing exam marks:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Exam submission endpoint - Students only
+  app.post("/api/exams/:id/submit", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.id);
+      const { answers } = req.body;
+      const user = req.session?.user;
+
+      if (!user?.studentId) {
+        return res.status(400).json({ message: "Student ID not found" });
+      }
+
+      // Get exam details
+      const exam = await storage.getExam(examId);
+      if (!exam) {
+        return res.status(404).json({ message: "Exam not found" });
+      }
+
+      if (exam.status !== "active") {
+        return res.status(400).json({ message: "Exam is not currently active" });
+      }
+
+      // Get exam questions from paper storage
+      const paper = await paperFileStorage.getPaperByExamId(examId);
+      if (!paper || !paper.questions.length) {
+        return res.status(404).json({ message: "No questions found for this exam" });
+      }
+
+      // Calculate score
+      let score = 0;
+      let attemptedQuestions = 0;
+      let attemptedMarks = 0;
+
+      for (const question of paper.questions) {
+        const studentAnswer = answers[question.id];
+        if (studentAnswer && studentAnswer.trim()) {
+          attemptedQuestions++;
+          attemptedMarks += question.marks;
+
+          // Check if answer is correct (for multiple choice questions)
+          if (question.type === 'multiple_choice' && question.correctAnswer) {
+            if (studentAnswer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase()) {
+              score += question.marks;
+            }
+          }
+          // For text questions, give full marks (would need manual grading in real scenario)
+          else if (question.type === 'short_answer' || question.type === 'essay') {
+            score += question.marks;
+          }
+        }
+      }
+
+      // Calculate percentage based on attempted questions
+      const percentage = attemptedMarks > 0 ? Math.round((score / attemptedMarks) * 100) : 0;
+
+      // Check if student already has a result for this exam
+      const existingResults = await storage.getResultsByStudentId(user.studentId);
+      const existingResult = existingResults.find(r => r.examId === examId);
+
+      let result;
+      if (existingResult) {
+        // Update existing result
+        result = await storage.updateResult(existingResult.id, {
+          score,
+          percentage,
+          submittedAt: new Date(),
+          answers: JSON.stringify(answers)
+        });
+      } else {
+        // Create new result
+        result = await storage.createResult({
+          studentId: user.studentId,
+          examId,
+          score,
+          percentage,
+          submittedAt: new Date(),
+          answers: JSON.stringify(answers)
+        });
+      }
+
+      // Get updated results to calculate rank
+      const allResults = await storage.getResultsByExamId(examId);
+      const sortedResults = allResults.sort((a, b) => {
+        const aPercentage = typeof a.percentage === 'string' ? parseFloat(a.percentage) : Number(a.percentage || 0);
+        const bPercentage = typeof b.percentage === 'string' ? parseFloat(b.percentage) : Number(b.percentage || 0);
+        return bPercentage - aPercentage;
+      });
+      const studentRank = sortedResults.findIndex(r => r.studentId === user.studentId) + 1;
+
+      res.json({
+        score,
+        attemptedMarks,
+        totalMarks: exam.totalMarks,
+        percentage,
+        rank: studentRank,
+        totalParticipants: allResults.length,
+        submittedAt: result?.submittedAt || new Date()
+      });
+
+    } catch (error) {
+      console.error("Error submitting exam:", error);
+      res.status(500).json({ message: "Failed to submit exam" });
     }
   });
 

@@ -215,12 +215,14 @@ export class PaperFileStorage {
       // Check if paper already exists
       const existingPaper = await this.getPaperByExamId(examId);
       
+      const calculatedTotalMarks = paperData.questions.reduce((sum, q) => sum + q.marks, 0);
+      
       const fullPaperData: PaperData = {
         id: existingPaper?.id || `paper_${examId}_${Date.now()}`,
         examId,
         ...paperData,
         totalQuestions: paperData.questions.length,
-        totalMarks: paperData.questions.reduce((sum, q) => sum + q.marks, 0),
+        totalMarks: calculatedTotalMarks,
         createdAt: existingPaper?.createdAt || now,
         updatedAt: now,
         metadata: {
@@ -243,10 +245,28 @@ export class PaperFileStorage {
         return null;
       }
       
+
+      
       return fullPaperData;
     } catch (error) {
       console.error('Error saving paper:', error);
       return null;
+    }
+  }
+
+  private async syncExamTotalMarks(examId: number, totalMarks: number): Promise<void> {
+    try {
+      const result = await this.db
+        .update(exams)
+        .set({ totalMarks })
+        .where(eq(exams.id, examId))
+        .returning();
+      
+      if (result.length > 0) {
+        console.log(`✓ Synced exam ${examId} total marks to ${totalMarks}`);
+      }
+    } catch (error) {
+      console.error(`Error syncing exam ${examId} total marks:`, error);
     }
   }
 
@@ -347,6 +367,8 @@ export class PaperFileStorage {
         console.error('Error saving paper:', error);
         return null;
       }
+      
+
       
       return newQuestion;
     } catch (error) {

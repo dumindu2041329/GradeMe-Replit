@@ -2,6 +2,29 @@ import { Request, Response, Express } from 'express';
 import { paperFileStorage } from './paper-file-storage.js';
 import { storage } from './storage.js';
 
+// Utility function to sync exam total marks with questions
+async function syncExamTotalMarks(examId: number): Promise<void> {
+  try {
+    // Add delay to ensure all file operations are complete
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Fetch the latest paper data
+    const paper = await paperFileStorage.getPaperByExamId(examId);
+    if (paper && paper.questions && paper.questions.length > 0) {
+      const calculatedTotalMarks = paper.questions.reduce((sum, q) => sum + q.marks, 0);
+      
+      // Update exam using storage interface
+      await storage.updateExam(examId, { totalMarks: calculatedTotalMarks });
+      console.log(`✓ Final sync: exam ${examId} total marks = ${calculatedTotalMarks} (${paper.questions.length} questions)`);
+    } else {
+      console.log(`⚠ No questions found for exam ${examId}, setting total marks to 0`);
+      await storage.updateExam(examId, { totalMarks: 0 });
+    }
+  } catch (error) {
+    console.error(`Error syncing exam ${examId} total marks:`, error);
+  }
+}
+
 export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcastUpdate?: (type: string, data: any) => void) {
   // Get questions for a specific paper - using file storage
   app.get("/api/questions/:paperId", requireAdmin, async (req: Request, res: Response) => {
@@ -117,6 +140,9 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
         return res.status(400).json({ message: "Failed to create question" });
       }
       
+      // Sync exam total marks after adding question
+      await syncExamTotalMarks(examId);
+      
       // Broadcast question creation to connected clients
       if (broadcastUpdate) {
         broadcastUpdate('questions_updated', { examId, paperId: req.body.paperId, action: 'created', question });
@@ -180,6 +206,9 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
         return res.status(404).json({ message: "Question not found" });
       }
       
+      // Sync exam total marks after updating question
+      await syncExamTotalMarks(examId);
+      
       // Broadcast question update to connected clients
       if (broadcastUpdate) {
         broadcastUpdate('questions_updated', { examId, paperId: req.body.paperId, action: 'updated', question });
@@ -224,6 +253,9 @@ export function registerQuestionRoutes(app: Express, requireAdmin: any, broadcas
       if (!success) {
         return res.status(404).json({ message: "Question not found" });
       }
+      
+      // Sync exam total marks after deleting question
+      await syncExamTotalMarks(examId);
       
       // Broadcast question deletion to connected clients
       if (broadcastUpdate) {

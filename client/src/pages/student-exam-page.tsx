@@ -192,10 +192,10 @@ export default function StudentExamPage() {
     
     // Update progress - count the number of questions that have answers
     const answeredQuestions = Object.keys(newAnswers).length;
-    const totalQuestions = exam?.questions.length || 1;
+    const totalQuestions = exam?.questions?.length || 1;
     const progress = Math.round((answeredQuestions / totalQuestions) * 100);
     setCurrentProgress(progress);
-  }, [answers, exam?.questions.length]);
+  }, [answers, exam?.questions?.length]);
   
   if (isLoading) {
     return (
@@ -220,6 +220,20 @@ export default function StudentExamPage() {
   
   // Get exam questions from the API response
   const questions = exam.questions || [];
+  
+  // If exam has no questions, show appropriate message
+  if (!questions.length) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-2xl font-bold mb-4">No Questions Available</h1>
+        <p className="text-muted-foreground mb-4">This exam doesn't have any questions yet. Please contact your instructor.</p>
+        <Button onClick={() => navigate("/student/dashboard")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Return to Dashboard
+        </Button>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-background flex flex-col">

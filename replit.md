@@ -154,6 +154,9 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 25, 2025. **Added start time display to student dashboard** - Enhanced both Active Exams and Upcoming Exams sections to display exam start times alongside date, duration, and marks for better student planning
 - June 25, 2025. **Enhanced start time visibility in Upcoming Exams** - Made start time display more prominent with primary color highlighting and "Time TBA" fallback for better user experience
 - June 25, 2025. **Added Completed Exams section to student dashboard** - Implemented comprehensive Completed Exams section with student scores, performance indicators, and color-coded feedback to help students track their exam history and results
+- June 25, 2025. **Migration to Replit environment completed** - Successfully migrated project from Replit Agent to Replit environment with all functionality intact
+- June 25, 2025. **Enhanced exam-taking functionality** - Added complete exam submission API endpoint with automatic scoring for multiple choice questions, result calculation, and ranking system. Students can now properly take exams through the Start Exam button with timer functionality, progress tracking, and instant results display
+- June 25, 2025. **Fixed total marks synchronization issue completely** - Implemented comprehensive automatic synchronization between exam total marks and sum of individual question marks. Added utility function that updates exam table whenever questions are added, updated, or deleted. Created manual sync API endpoint (/api/admin/sync-exam-marks/:examId) for administrators to fix any discrepancies. System now ensures exam total marks always equal the sum of question marks, preventing scoring calculation errors
 
 ## User Preferences
 
