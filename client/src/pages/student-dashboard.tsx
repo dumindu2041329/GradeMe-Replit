@@ -272,9 +272,15 @@ export default function StudentDashboard() {
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span>{examDate.toLocaleDateString()}</span>
                             </div>
+                            {exam.startTime && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Start: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span>{exam.duration} minutes</span>
+                              <span>Duration: {exam.duration} min</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Target className="h-4 w-4 text-muted-foreground" />
@@ -353,14 +359,23 @@ export default function StudentDashboard() {
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span>{examDate.toLocaleDateString()}</span>
                             </div>
                             <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-primary">
+                                {exam.startTime 
+                                  ? new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                  : 'Time TBA'
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span>{exam.duration} minutes</span>
+                              <span>{exam.duration} min</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Target className="h-4 w-4 text-muted-foreground" />
