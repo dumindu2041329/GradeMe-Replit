@@ -153,6 +153,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 25, 2025. **Enhanced student dashboard with Active Exams section** - Added separate Active Exams section displaying only active exams with Start Exam buttons, while maintaining Upcoming Exams section for upcoming exams without start buttons
 - June 25, 2025. **Added start time display to student dashboard** - Enhanced both Active Exams and Upcoming Exams sections to display exam start times alongside date, duration, and marks for better student planning
 - June 25, 2025. **Enhanced start time visibility in Upcoming Exams** - Made start time display more prominent with primary color highlighting and "Time TBA" fallback for better user experience
+- June 25, 2025. **Added Completed Exams section to student dashboard** - Implemented comprehensive Completed Exams section with student scores, performance indicators, and color-coded feedback to help students track their exam history and results
 
 ## User Preferences
 

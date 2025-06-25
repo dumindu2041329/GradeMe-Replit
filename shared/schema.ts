@@ -94,6 +94,7 @@ export type StudentDashboardData = {
   bestRank: number;
   availableExams: Exam[];
   activeExams: Exam[];
+  completedExams: Exam[];
   examHistory: ResultWithDetails[];
 };
 

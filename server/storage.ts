@@ -363,6 +363,10 @@ export class SupabaseStorage implements IStorage {
       .filter(exam => exam.status === 'active')
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
+    const completedExams = allExams
+      .filter(exam => exam.status === 'completed')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
     const averageScore = studentResults.length > 0
       ? studentResults.reduce((sum, result) => sum + parseFloat(result.percentage), 0) / studentResults.length
       : 0;
@@ -375,6 +379,7 @@ export class SupabaseStorage implements IStorage {
       bestRank,
       availableExams,
       activeExams,
+      completedExams,
       examHistory: studentResults
     };
   }

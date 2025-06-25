@@ -390,6 +390,182 @@ export default function StudentDashboard() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Completed Exams Section */}
+        <div className="mb-8">
+          <Card className="border-blue-500/20 dark:border-blue-500/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                <Award className="h-5 w-5" />
+                Completed Exams
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!dashboardData?.completedExams || dashboardData.completedExams.length === 0 ? (
+                <div className="text-center py-8">
+                  <Award className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No completed exams yet.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Completed exams will appear here after you finish them.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {dashboardData.completedExams.map((exam) => {
+                    const examDate = new Date(exam.date);
+                    const studentResult = dashboardData.examHistory.find(result => result.exam.id === exam.id);
+                    
+                    return (
+                      <div 
+                        key={exam.id} 
+                        className="p-6 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors relative overflow-hidden group"
+                      >
+                        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-blue-600"></div>
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                              <h3 className="font-semibold text-lg text-blue-800 dark:text-blue-200">{exam.name}</h3>
+                              <Badge variant="secondary" className="bg-blue-600 text-white text-xs">
+                                Completed
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">{exam.subject}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>{examDate.toLocaleDateString()}</span>
+                            </div>
+                            {exam.startTime && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span>Started: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-muted-foreground" />
+                              <span>{exam.totalMarks} marks</span>
+                            </div>
+                            {studentResult && (
+                              <div className="flex items-center gap-2">
+                                <BarChart2 className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium">
+                                  Score: {studentResult.score}/{exam.totalMarks} ({studentResult.percentage}%)
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {studentResult && (
+                            <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">Performance</span>
+                                <span className={`font-medium ${
+                                  parseFloat(studentResult.percentage) >= 80 ? 'text-green-600' :
+                                  parseFloat(studentResult.percentage) >= 60 ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {parseFloat(studentResult.percentage) >= 80 ? 'Excellent' :
+                                   parseFloat(studentResult.percentage) >= 60 ? 'Good' : 'Needs Improvement'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Upcoming Exams with Enhanced Design */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="lg:col-span-2">
+            <Card className="border-primary/10 dark:border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Upcoming Exams
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardData?.availableExams?.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">No exams scheduled at the moment.</p>
+                    <p className="text-sm text-muted-foreground mt-2">Check back later for new assignments.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {dashboardData?.availableExams?.map((exam) => {
+                      const examDate = new Date(exam.date);
+                      const isToday = examDate.toDateString() === new Date().toDateString();
+                      const isUpcoming = examDate > new Date();
+                      
+                      return (
+                        <div 
+                          key={exam.id} 
+                          className="p-6 border border-border rounded-lg hover:border-primary/30 transition-colors relative overflow-hidden group"
+                        >
+                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-primary/50"></div>
+                          
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3">
+                                <h3 className="font-semibold text-lg">{exam.name}</h3>
+                                {isToday && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Today
+                                  </Badge>
+                                )}
+                                {isUpcoming && !isToday && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Upcoming
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-sm text-muted-foreground font-medium">{exam.subject}</p>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Scheduled
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>{examDate.toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-primary">
+                                {exam.startTime 
+                                  ? new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                  : 'Time TBA'
+                                }
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span>{exam.duration} min</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-muted-foreground" />
+                              <span>{exam.totalMarks} marks</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Personalized Recommendations */}
           <Card className="border-primary/10 dark:border-primary/20">
@@ -482,7 +658,7 @@ export default function StudentDashboard() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Exam History */}
         <Card className="border-primary/10 dark:border-primary/20">
           <CardHeader>
