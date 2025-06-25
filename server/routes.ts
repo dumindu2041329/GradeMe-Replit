@@ -580,7 +580,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       
-      // Get current exam to check status
+      // Get current exam to check status and name
       const currentExam = await storage.getExam(id);
       if (!currentExam) {
         return res.status(404).json({ message: "Exam not found" });
@@ -593,6 +593,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Check if exam name is changing and handle paper file renaming
+      const isNameChanging = req.body.name && req.body.name !== currentExam.name;
+      
+      console.log(`Exam update debug: Current name: "${currentExam.name}", New name: "${req.body.name}", Name changing: ${isNameChanging}`);
+      
       // Convert date string to Date object and ensure numbers are integers
       const examData = {
         ...req.body,
@@ -603,10 +608,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
       };
       
+      // Update the exam in database first
       const exam = await storage.updateExam(id, examData);
       if (!exam) {
         return res.status(404).json({ message: "Exam not found" });
       }
+      
+      // If exam name changed, rename the paper file
+      if (isNameChanging) {
+        console.log(`Exam name changed from "${currentExam.name}" to "${req.body.name}", renaming paper file`);
+        try {
+          const renameResult = await paperFileStorage.renamePaperFile(id, currentExam.name);
+          console.log('Paper file rename result:', renameResult);
+        } catch (error) {
+          console.error('Error renaming paper file:', error);
+          // Don't fail the exam update if paper rename fails
+        }
+      } else {
+        console.log('No name change detected, skipping paper file rename');
+      }
+      
       res.json(exam);
     } catch (error) {
       console.error("Error updating exam:", error);

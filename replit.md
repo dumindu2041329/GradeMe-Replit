@@ -148,6 +148,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 18, 2025. **Fixed student creation errors** - Resolved database schema mismatch, added validation to prevent duplicate emails and name/email conflicts, improved error handling with specific user-friendly messages
 - June 18, 2025. **Enhanced name/email validation** - Improved validation to prevent name from matching email address or email username part, ensuring true uniqueness between student names and email addresses
 - June 18, 2025. **Improved error messaging system** - Enhanced user experience with specific error titles, clear descriptions, actionable guidance, and professional success messages across all student operations
+- June 25, 2025. **Migration to Replit environment completed** - Successfully migrated project from Replit Agent to Replit environment with all functionality intact and dependencies properly installed
+- June 25, 2025. **Fixed paper file renaming issue** - Added automatic paper file renaming in Supabase storage when exam names are changed, ensuring file names stay synchronized with exam names
 
 ## User Preferences
 

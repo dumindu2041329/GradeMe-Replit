@@ -420,6 +420,71 @@ export class PaperFileStorage {
     }
   }
 
+  async renamePaperFile(examId: number, oldExamName: string): Promise<boolean> {
+    try {
+      await this.ensureBucketExists();
+      
+      // Clear the exam name cache to force refresh
+      this.examNameCache.delete(examId);
+      
+      // Generate old and new file names
+      const sanitizedOldName = oldExamName.replace(/[^a-zA-Z0-9\-_\s]/g, '').replace(/\s+/g, '_');
+      const oldFileName = `exam_${examId}_${sanitizedOldName}_paper.json`;
+      const newFileName = await this.getFileName(examId);
+      
+      // If the file names are the same, no need to rename
+      if (oldFileName === newFileName) {
+        console.log('Paper file names are identical, no rename needed');
+        return true;
+      }
+      
+      console.log(`Renaming paper file from ${oldFileName} to ${newFileName}`);
+      
+      // First, check if the old file exists
+      const { data: oldFileData, error: downloadError } = await supabase.storage
+        .from(this.bucketName)
+        .download(oldFileName);
+      
+      if (downloadError) {
+        if (downloadError.message.includes('Object not found')) {
+          console.log('Old paper file not found, no rename needed');
+          return true;
+        }
+        console.error('Error downloading old paper file:', downloadError);
+        return false;
+      }
+      
+      // Upload the file with the new name
+      const { error: uploadError } = await supabase.storage
+        .from(this.bucketName)
+        .upload(newFileName, oldFileData, {
+          contentType: 'application/json',
+          upsert: true
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading renamed paper file:', uploadError);
+        return false;
+      }
+      
+      // Delete the old file
+      const { error: deleteError } = await supabase.storage
+        .from(this.bucketName)
+        .remove([oldFileName]);
+      
+      if (deleteError) {
+        console.error('Error deleting old paper file:', deleteError);
+        // Don't fail the operation if we can't delete the old file
+      }
+      
+      console.log(`Successfully renamed paper file from ${oldFileName} to ${newFileName}`);
+      return true;
+    } catch (error) {
+      console.error('Error renaming paper file:', error);
+      return false;
+    }
+  }
+
   async deletePaper(examId: number): Promise<boolean> {
     try {
       await this.ensureBucketExists();
