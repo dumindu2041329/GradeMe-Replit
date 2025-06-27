@@ -143,7 +143,6 @@ export class PaperFileStorage {
       
       return examName;
     } catch (error) {
-      console.error('Error fetching exam name:', error);
       return `Exam ${examId}`;
     }
   }
@@ -163,7 +162,6 @@ export class PaperFileStorage {
       await this.ensureBucketExists();
       
       const fileName = await this.getFileName(examId);
-      console.log('Looking for paper file:', fileName);
       
       const { data, error } = await supabase.storage
         .from(this.bucketName)
@@ -173,22 +171,15 @@ export class PaperFileStorage {
         if (error.message.includes('Object not found') || 
             error.message.includes('Bad Request') ||
             (error as any).originalError?.status === 400) {
-          console.log('Paper file not found or invalid:', fileName);
           return null; // Paper doesn't exist yet
         }
-        console.error('Error downloading paper:', error);
         return null;
       }
       
       const text = await data.text();
       const paperData: PaperData = JSON.parse(text);
       
-      console.log('Successfully loaded fresh paper from storage:', {
-        id: paperData.id,
-        examId: paperData.examId,
-        title: paperData.title,
-        questionsCount: paperData.questions.length
-      });
+
       
       return paperData;
     } catch (error: any) {
@@ -196,10 +187,8 @@ export class PaperFileStorage {
       if (error?.message?.includes('not found') ||
           error?.message?.includes('Bad Request') ||
           error?.status === 400) {
-        console.log('Paper file not found for exam ID:', examId);
         return null;
       }
-      console.error('Error getting paper by exam ID:', error);
       return null;
     }
   }

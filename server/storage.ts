@@ -355,16 +355,20 @@ export class SupabaseStorage implements IStorage {
     const allExams = await this.getExams();
     const studentResults = await this.getResultsByStudentId(studentId);
     
+    // Get exam IDs that this student has already completed
+    const completedExamIds = new Set(studentResults.map(result => result.examId));
+    
     const availableExams = allExams
-      .filter(exam => exam.status === 'upcoming')
+      .filter(exam => exam.status === 'upcoming' && !completedExamIds.has(exam.id))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     const activeExams = allExams
-      .filter(exam => exam.status === 'active')
+      .filter(exam => exam.status === 'active' && !completedExamIds.has(exam.id))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
+    // Completed exams include both globally completed exams and exams this student has taken
     const completedExams = allExams
-      .filter(exam => exam.status === 'completed')
+      .filter(exam => exam.status === 'completed' || completedExamIds.has(exam.id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const averageScore = studentResults.length > 0

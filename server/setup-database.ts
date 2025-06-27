@@ -9,9 +9,16 @@ export async function setupInitialData() {
   try {
     // First, ensure the password column exists in the students table
     try {
-      await db.execute(`ALTER TABLE students ADD COLUMN IF NOT EXISTS password TEXT`);
+      await db.execute(`
+        DO $$ 
+        BEGIN 
+          IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='students' AND column_name='password') THEN
+            ALTER TABLE students ADD COLUMN password TEXT;
+          END IF;
+        END $$;
+      `);
     } catch (error) {
-      // Password column might already exist, continuing...
+      // Password column setup failed, continuing...
     }
     
     // Check if admin user already exists

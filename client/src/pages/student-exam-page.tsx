@@ -115,6 +115,8 @@ export default function StudentExamPage() {
     onSuccess: (data) => {
       setExamResult(data);
       setShowResultDialog(true);
+      // Invalidate student dashboard data to refresh exam lists
+      queryClient.invalidateQueries({ queryKey: ["/api/student/dashboard"] });
     },
     onError: (error) => {
       toast({

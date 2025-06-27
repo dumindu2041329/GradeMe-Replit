@@ -162,6 +162,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 27, 2025. **Fixed phantom question creation on page reload** - Resolved frontend issue where reloading the paper creation page would automatically create duplicate questions. Improved question synchronization logic to properly load existing questions from Supabase storage instead of creating new ones, with enhanced data consistency checks and proper server-client state synchronization
 - June 27, 2025. **Implemented manual total marks control** - Removed automatic total marks synchronization as requested by user. System now defaults new exams to 100 total marks and allows administrators to manually control exam total marks through the exam form. Questions can be added without affecting the exam's total marks, giving administrators full control over scoring
 - June 27, 2025. **Fixed duplicate sections in student dashboard** - Removed duplicate "Upcoming Exams" sections from student dashboard to provide cleaner user interface. Dashboard now has proper separation between Active Exams, Completed Exams, and single Upcoming Exams section
+- June 27, 2025. **Fixed student exam completion workflow** - Students who complete exams no longer see those exams in Active Exams section. Completed exams properly move to Completed Exams section with automatic dashboard refresh
+- June 27, 2025. **Cleaned up server console output** - Removed unnecessary database notices and verbose logging to provide cleaner development experience
 
 ## User Preferences
 
