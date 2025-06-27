@@ -215,14 +215,12 @@ export class PaperFileStorage {
       // Check if paper already exists
       const existingPaper = await this.getPaperByExamId(examId);
       
-      const calculatedTotalMarks = paperData.questions.reduce((sum, q) => sum + q.marks, 0);
-      
       const fullPaperData: PaperData = {
         id: existingPaper?.id || `paper_${examId}_${Date.now()}`,
         examId,
         ...paperData,
         totalQuestions: paperData.questions.length,
-        totalMarks: calculatedTotalMarks,
+        totalMarks: paperData.totalMarks, // Use provided total marks, no auto-calculation
         createdAt: existingPaper?.createdAt || now,
         updatedAt: now,
         metadata: {
@@ -245,7 +243,10 @@ export class PaperFileStorage {
         return null;
       }
       
-
+      // Note: No automatic total marks synchronization - admin controls manually
+      
+      // Clear cache to ensure fresh data
+      this.paperCache.delete(examId);
       
       return fullPaperData;
     } catch (error) {
@@ -345,7 +346,7 @@ export class PaperFileStorage {
         title: existingPaper.title,
         instructions: existingPaper.instructions,
         totalQuestions: updatedQuestions.length,
-        totalMarks: updatedQuestions.reduce((sum, q) => sum + q.marks, 0),
+        totalMarks: existingPaper.totalMarks, // Keep existing total marks - no auto-calculation
         questions: updatedQuestions,
         createdAt: existingPaper.createdAt,
         updatedAt: now,
@@ -368,7 +369,10 @@ export class PaperFileStorage {
         return null;
       }
       
-
+      // Note: No automatic total marks synchronization - admin controls manually
+      
+      // Clear cache to ensure fresh data
+      this.paperCache.delete(examId);
       
       return newQuestion;
     } catch (error) {

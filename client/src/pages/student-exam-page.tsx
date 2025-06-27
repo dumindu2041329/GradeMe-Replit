@@ -21,11 +21,12 @@ import {
 
 // Define the structure of an exam question
 interface Question {
-  id: number;
+  id: string;
   question: string;
-  type: 'multiple-choice' | 'text';
+  type: 'multiple_choice' | 'short_answer' | 'essay' | 'true_false';
   options?: string[];
   marks: number;
+  orderIndex: number;
 }
 
 // Define the structure of an exam
@@ -42,7 +43,7 @@ interface Exam {
 interface ExamResult {
   examId: number;
   studentId: number;
-  answers: {[key: number]: string};
+  answers: {[key: string]: string};
   score: number;
   percentage: number;
   rank?: number;
@@ -59,7 +60,7 @@ export default function StudentExamPage() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
-  const [answers, setAnswers] = useState<{[key: number]: string}>({});
+  const [answers, setAnswers] = useState<{[key: string]: string}>({});
   const [currentProgress, setCurrentProgress] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
@@ -95,7 +96,7 @@ export default function StudentExamPage() {
   
   // Submit exam mutation
   const submitExamMutation = useMutation({
-    mutationFn: async (data: {examId: number, answers: {[key: number]: string}}) => {
+    mutationFn: async (data: {examId: number, answers: {[key: string]: string}}) => {
       const response = await fetch(`/api/exams/${data.examId}/submit`, {
         method: 'POST',
         headers: {
@@ -182,7 +183,7 @@ export default function StudentExamPage() {
   }, [navigate]);
   
   // Answer change handler
-  const handleAnswerChange = useCallback((questionId: number, answer: string) => {
+  const handleAnswerChange = useCallback((questionId: string, answer: string) => {
     const newAnswers = {
       ...answers,
       [questionId]: answer
@@ -285,17 +286,17 @@ export default function StudentExamPage() {
         
         {/* Questions */}
         <div className="space-y-8">
-          {questions.map((question) => (
+          {questions.map((question, index) => (
             <Card key={question.id} className="border-primary/10 dark:border-primary/20">
               <CardContent className="pt-6">
                 <div className="flex justify-between mb-4">
-                  <h3 className="text-lg font-medium">Question {question.id}</h3>
+                  <h3 className="text-lg font-medium">Question {index + 1}</h3>
                   <span className="text-sm text-primary">{question.marks} mark{question.marks > 1 ? 's' : ''}</span>
                 </div>
                 
                 <p className="mb-6">{question.question}</p>
                 
-                {question.type === 'multiple-choice' && (
+                {question.type === 'multiple_choice' && (
                   <RadioGroup
                     value={answers[question.id] || ''}
                     onValueChange={(value) => handleAnswerChange(question.id, value)}
@@ -312,12 +313,33 @@ export default function StudentExamPage() {
                   </RadioGroup>
                 )}
                 
-                {question.type === 'text' && (
+                {question.type === 'true_false' && (
+                  <RadioGroup
+                    value={answers[question.id] || ''}
+                    onValueChange={(value) => handleAnswerChange(question.id, value)}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
+                      <RadioGroupItem value="True" id={`true-${question.id}`} />
+                      <Label htmlFor={`true-${question.id}`} className="flex-1 cursor-pointer py-2">
+                        True
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent">
+                      <RadioGroupItem value="False" id={`false-${question.id}`} />
+                      <Label htmlFor={`false-${question.id}`} className="flex-1 cursor-pointer py-2">
+                        False
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                )}
+                
+                {(question.type === 'short_answer' || question.type === 'essay') && (
                   <Textarea
-                    placeholder="Type your answer here..."
+                    placeholder={question.type === 'essay' ? 'Write your detailed answer here...' : 'Type your short answer here...'}
                     value={answers[question.id] || ''}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    className="min-h-[150px]"
+                    className={question.type === 'essay' ? 'min-h-[200px]' : 'min-h-[100px]'}
                   />
                 )}
               </CardContent>

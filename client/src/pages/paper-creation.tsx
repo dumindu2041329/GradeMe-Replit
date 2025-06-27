@@ -101,16 +101,22 @@ export default function PaperCreationPage() {
   const [localQuestions, setLocalQuestions] = useState<Question[]>([]);
   const [lastSyncTime, setLastSyncTime] = useState<number>(Date.now());
   const [isPollingEnabled, setIsPollingEnabled] = useState(true);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   // Update local questions when paper data loads or changes with conflict resolution
   useEffect(() => {
-    if (paperData?.questions) {
-      // Always update questions when paperData changes (manual refresh or auto-refresh)
-      setLocalQuestions(paperData.questions);
-      setLastSyncTime(Date.now());
-      console.log('✓ Questions synchronized from server:', paperData.questions.length, 'questions');
-    } else if (localQuestions.length === 0) {
-      setLocalQuestions([]);
+    if (paperData) {
+      setHasInitiallyLoaded(true);
+      if (paperData.questions && Array.isArray(paperData.questions)) {
+        // Always sync from server data on load/refresh to prevent phantom questions
+        setLocalQuestions(paperData.questions);
+        setLastSyncTime(Date.now());
+        console.log('✓ Questions synchronized from server:', paperData.questions.length, 'questions');
+      } else {
+        // If paperData exists but has no questions, ensure local state is empty
+        setLocalQuestions([]);
+        console.log('✓ No questions found in paper, cleared local state');
+      }
     }
   }, [paperData]);
 
@@ -227,13 +233,14 @@ export default function PaperCreationPage() {
       
       const response = await apiRequest("POST", "/api/questions", questionData);
       
-      // Replace optimistic question with real one
+      // Replace optimistic question with real one from server
       setLocalQuestions(prev => 
-        prev.map(q => q.id === optimisticQuestion.id ? { ...response, ...questionData } : q)
+        prev.map(q => q.id === optimisticQuestion.id ? response : q)
       );
       
-      // Invalidate queries to ensure data consistency
-      queryClient.invalidateQueries({ queryKey: ['papers', examId] });
+      // Invalidate queries and refetch to ensure data consistency
+      await queryClient.invalidateQueries({ queryKey: ['paper', examId] });
+      await refetchPaper();
       
       return response;
     },
@@ -304,6 +311,10 @@ export default function PaperCreationPage() {
       
       const response = await apiRequest("PUT", `/api/questions/${data.id}`, updateData);
       
+      // Refetch paper data to ensure consistency
+      await queryClient.invalidateQueries({ queryKey: ['paper', examId] });
+      await refetchPaper();
+      
       return { updatedQuestion, originalQuestion, response };
     },
     onSuccess: ({ updatedQuestion }) => {
@@ -338,6 +349,10 @@ export default function PaperCreationPage() {
       
       // Call API to persist deletion
       await apiRequest("DELETE", `/api/questions/${questionId}?examId=${examId}`);
+      
+      // Refetch paper data to ensure consistency
+      await queryClient.invalidateQueries({ queryKey: ['paper', examId] });
+      await refetchPaper();
       
       return { questionId, questionToDelete };
     },

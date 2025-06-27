@@ -51,6 +51,8 @@ app.use((req, res, next) => {
   
   // Migrate existing students to have user records
   await migrateStudentsToUsers();
+  
+
 
   // Setup session middleware
   app.use(session({
