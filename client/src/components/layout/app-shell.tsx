@@ -119,10 +119,6 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
               <GraduationCap className="h-6 w-6 text-primary" />
               <span className="text-xl font-semibold text-primary">GradeMe</span>
             </div>
-            
-            <h1 className="text-xl font-semibold">
-              {title}
-            </h1>
           </div>
           
           <div className="flex items-center gap-2">
