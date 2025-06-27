@@ -437,26 +437,6 @@ export function ProfileSettings({
                 <Button type="submit" disabled={profileMutation.isPending}>
                   {profileMutation.isPending ? "Saving..." : "Save Changes"}
                 </Button>
-                
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={() => {
-                    if (userRole === 'student') {
-                      profileForm.reset({
-                        email: ''
-                      });
-                    } else if (userRole === 'admin') {
-                      profileForm.reset({
-                        name: '',
-                        email: ''
-                      });
-                      setImagePreview(null);
-                    }
-                  }}
-                >
-                  Reset
-                </Button>
               </div>
             </form>
           </Form>

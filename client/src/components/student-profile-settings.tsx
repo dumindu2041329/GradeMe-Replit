@@ -622,21 +622,6 @@ export function StudentProfileSettings({
                 </div>
                 
                 <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => {
-                    // Clear form values completely
-                    personalInfoForm.reset({
-                      name: "",
-                      email: "",
-                      phone: "",
-                      address: "",
-                      dateOfBirth: undefined,
-                      class: "",
-                      guardianName: "",
-                      guardianPhone: "",
-                    });
-                  }}>
-                    Reset
-                  </Button>
                   <Button type="submit" disabled={personalInfoMutation.isPending}>
                     {personalInfoMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>

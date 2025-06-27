@@ -745,46 +745,7 @@ export default function StudentProfile() {
                           </div>
                         </div>
                         
-                        <div className="flex flex-col space-y-4 pt-4">
-                          <div className="bg-muted/50 p-4 rounded-md flex flex-col md:flex-row items-center justify-between">
-                            <div className="flex items-center space-x-3 mb-3 md:mb-0">
-                              <div className="bg-primary/10 p-2 rounded-full">
-                                <ArrowUpFromLine className="h-5 w-5 text-primary" />
-                              </div>
-                              <div>
-                                <h4 className="font-medium text-sm">Reset all form data</h4>
-                                <p className="text-muted-foreground text-xs">Clear all fields and start fresh</p>
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="flex items-center space-x-2 bg-background"
-                              onClick={() => {
-                                // Reset form fields to original values using proper reset method
-                                personalInfoForm.reset({
-                                  name: profileData?.name || user?.name || '',
-                                  email: profileData?.email || user?.email || '',
-                                  phone: profileData?.phone || '',
-                                  address: profileData?.address || '',
-                                  dateOfBirth: profileData?.dateOfBirth ? new Date(profileData.dateOfBirth) : null,
-                                  class: profileData?.class || '',
-                                  guardianName: profileData?.guardianName || '',
-                                  guardianPhone: profileData?.guardianPhone || '',
-                                });
-                                
-                                // Show feedback toast
-                                toast({
-                                  title: "Form Reset",
-                                  description: "All form fields have been reset to their original values.",
-                                });
-                              }}
-                            >
-                              <X className="h-4 w-4 mr-1" /> Reset All Fields
-                            </Button>
-                          </div>
-
-                          <div className="flex justify-end space-x-2">
+                        <div className="flex justify-end space-x-2 pt-4">
                             <Button 
                               type="submit" 
                               disabled={personalInfoMutation.isPending}
@@ -792,7 +753,6 @@ export default function StudentProfile() {
                               {personalInfoMutation.isPending ? "Saving..." : "Save Changes"}
                             </Button>
                           </div>
-                        </div>
                       </form>
                     </Form>
                   </CardContent>
@@ -909,23 +869,6 @@ export default function StudentProfile() {
                         <div className="flex flex-row space-x-2">
                           <Button type="submit" disabled={notificationMutation.isPending}>
                             {notificationMutation.isPending ? "Saving..." : "Save Changes"}
-                          </Button>
-                          
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            onClick={() => {
-                              notificationForm.reset({
-                                emailNotifications: user?.emailNotifications || false,
-                                smsNotifications: user?.smsNotifications || false,
-                                emailExamResults: user?.emailExamResults || false,
-                                emailUpcomingExams: user?.emailUpcomingExams || false,
-                                smsExamResults: user?.smsExamResults || false,
-                                smsUpcomingExams: user?.smsUpcomingExams || false,
-                              });
-                            }}
-                          >
-                            Reset
                           </Button>
                         </div>
                       </form>
@@ -1055,20 +998,6 @@ export default function StudentProfile() {
                         <div className="flex flex-row space-x-2">
                           <Button type="submit" disabled={passwordMutation.isPending}>
                             {passwordMutation.isPending ? "Updating..." : "Update Password"}
-                          </Button>
-                          
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            onClick={() => {
-                              passwordForm.reset({
-                                currentPassword: '',
-                                newPassword: '',
-                                confirmPassword: '',
-                              });
-                            }}
-                          >
-                            Reset
                           </Button>
                         </div>
                       </form>

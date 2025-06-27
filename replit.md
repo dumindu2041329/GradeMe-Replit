@@ -170,6 +170,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 27, 2025. **Added GradeMe logo to admin header** - Added GradeMe logo with icon and text to admin header for desktop mode only, with click navigation to admin dashboard. Logo is hidden on mobile to maintain clean hamburger menu interface
 - June 27, 2025. **Removed page title from admin header** - Cleaned up admin header by removing the page title element while keeping GradeMe logo intact for better visual design
 - June 27, 2025. **Implemented Row Level Security (RLS)** - Added comprehensive RLS policies to all database tables (users, students, exams, results) with role-based access control. Admins can manage all data, students can only access their own records, with optimized helper functions for better performance
+- June 27, 2025. **Cleaned up student profile UI** - Removed all Reset buttons from student profile forms (personal information, notification settings, password change) for cleaner interface design
 
 ## User Preferences
 
