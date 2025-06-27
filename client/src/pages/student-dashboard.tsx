@@ -183,11 +183,12 @@ export default function StudentDashboard() {
                   {(() => {
                     const gradeDistribution = dashboardData.examHistory.reduce((acc, exam) => {
                       let grade;
-                      if (exam.percentage >= 90) grade = "A+";
-                      else if (exam.percentage >= 80) grade = "A";
-                      else if (exam.percentage >= 70) grade = "B";
-                      else if (exam.percentage >= 60) grade = "C";
-                      else if (exam.percentage >= 50) grade = "D";
+                      const percentage = parseFloat(exam.percentage);
+                      if (percentage >= 90) grade = "A+";
+                      else if (percentage >= 80) grade = "A";
+                      else if (percentage >= 70) grade = "B";
+                      else if (percentage >= 60) grade = "C";
+                      else if (percentage >= 50) grade = "D";
                       else grade = "F";
                       
                       acc[grade] = (acc[grade] || 0) + 1;
@@ -306,91 +307,7 @@ export default function StudentDashboard() {
           </Card>
         </div>
 
-        {/* Upcoming Exams with Enhanced Design */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
-            <Card className="border-primary/10 dark:border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Upcoming Exams
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dashboardData?.availableExams?.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">No exams scheduled at the moment.</p>
-                    <p className="text-sm text-muted-foreground mt-2">Check back later for new assignments.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {dashboardData?.availableExams?.map((exam) => {
-                      const examDate = new Date(exam.date);
-                      const isToday = examDate.toDateString() === new Date().toDateString();
-                      const isUpcoming = examDate > new Date();
-                      
-                      return (
-                        <div 
-                          key={exam.id} 
-                          className="p-6 border border-border rounded-lg hover:border-primary/30 transition-colors relative overflow-hidden group"
-                        >
-                          <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-primary to-primary/50"></div>
-                          
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-3">
-                                <h3 className="font-semibold text-lg">{exam.name}</h3>
-                                {isToday && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Today
-                                  </Badge>
-                                )}
-                                {isUpcoming && !isToday && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    Upcoming
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground font-medium">{exam.subject}</p>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              Scheduled
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4 text-muted-foreground" />
-                              <span>{examDate.toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-primary" />
-                              <span className="font-medium text-primary">
-                                {exam.startTime 
-                                  ? new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-                                  : 'Time TBA'
-                                }
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-4 w-4 text-muted-foreground" />
-                              <span>{exam.duration} min</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Target className="h-4 w-4 text-muted-foreground" />
-                              <span>{exam.totalMarks} marks</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+
 
         {/* Completed Exams Section */}
         <div className="mb-8">
@@ -681,19 +598,20 @@ export default function StudentDashboard() {
                   {dashboardData?.examHistory?.map((result) => {
                     // Calculate grade based on percentage
                     let grade;
-                    if (result.percentage >= 90) grade = "A+";
-                    else if (result.percentage >= 80) grade = "A";
-                    else if (result.percentage >= 70) grade = "B";
-                    else if (result.percentage >= 60) grade = "C";
-                    else if (result.percentage >= 50) grade = "D";
+                    const percentage = parseFloat(result.percentage.toString());
+                    if (percentage >= 90) grade = "A+";
+                    else if (percentage >= 80) grade = "A";
+                    else if (percentage >= 70) grade = "B";
+                    else if (percentage >= 60) grade = "C";
+                    else if (percentage >= 50) grade = "D";
                     else grade = "F";
                     
                     // Determine progress bar color based on percentage
                     let progressColor;
-                    if (result.percentage >= 80) progressColor = "bg-green-500 dark:bg-green-600";
-                    else if (result.percentage >= 70) progressColor = "bg-blue-500 dark:bg-blue-600";
-                    else if (result.percentage >= 60) progressColor = "bg-amber-500 dark:bg-amber-600";
-                    else if (result.percentage >= 50) progressColor = "bg-orange-500 dark:bg-orange-600";
+                    if (percentage >= 80) progressColor = "bg-green-500 dark:bg-green-600";
+                    else if (percentage >= 70) progressColor = "bg-blue-500 dark:bg-blue-600";
+                    else if (percentage >= 60) progressColor = "bg-amber-500 dark:bg-amber-600";
+                    else if (percentage >= 50) progressColor = "bg-orange-500 dark:bg-orange-600";
                     else progressColor = "bg-red-500 dark:bg-red-600";
                     
                     return (
