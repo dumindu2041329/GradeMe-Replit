@@ -1,6 +1,6 @@
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, User, X, LogOut } from "lucide-react";
+import { Menu, User, X, LogOut, GraduationCap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
@@ -101,7 +101,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
             />
           </SheetContent>
         </Sheet>
-        <header className="h-16 border-b border-border flex items-center justify-between px-6">
+        <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -113,6 +113,12 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
               <Menu className="h-5 w-5 text-foreground" />
               <span className="sr-only">Toggle menu</span>
             </Button>
+            
+            {/* GradeMe Logo - Desktop Only */}
+            <div className="hidden md:flex items-center gap-2 cursor-pointer" onClick={() => navigate('/admin')}>
+              <GraduationCap className="h-6 w-6 text-primary" />
+              <span className="text-xl font-semibold text-primary">GradeMe</span>
+            </div>
             
             <h1 className="text-xl font-semibold">
               {title}
@@ -165,7 +171,7 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
           </div>
         </header>
         
-        <main className="flex-1 overflow-y-auto p-6 main-content">
+        <main className="flex-1 overflow-y-auto p-6 pt-20 main-content">
           <div className="pb-6">
             {children}
           </div>

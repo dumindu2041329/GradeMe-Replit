@@ -39,11 +39,11 @@ export default function StudentDashboard() {
       <StudentHeader />
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto py-8 px-4">
+      <main className="flex-1 container mx-auto py-8 pt-20 px-4">
         <h1 className="text-3xl font-bold mb-8">Student Dashboard</h1>
         
         {/* Enhanced Stats cards with progress indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
             <CardHeader className="pb-2">
