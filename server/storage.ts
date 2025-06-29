@@ -375,6 +375,34 @@ export class SupabaseStorage implements IStorage {
     const allStudents = await this.getStudents();
     const totalStudentCount = allStudents.length;
     
+    // Calculate overall class ranking based on average scores
+    const allStudentAverages = await Promise.all(allStudents.map(async (s) => {
+      const sResults = await this.getResultsByStudentId(s.id);
+      const sAverage = sResults.length > 0
+        ? sResults.reduce((sum, result) => sum + parseFloat(result.percentage), 0) / sResults.length
+        : 0;
+      return {
+        studentId: s.id,
+        average: sAverage,
+        hasResults: sResults.length > 0
+      };
+    }));
+    
+    // Sort by average (descending), but prioritize students with results
+    const sortedAverages = allStudentAverages.sort((a, b) => {
+      // Students with results rank higher than those without
+      if (a.hasResults && !b.hasResults) return -1;
+      if (!a.hasResults && b.hasResults) return 1;
+      // If both have or don't have results, sort by average
+      return b.average - a.average;
+    });
+    
+    // Find this student's overall rank in class
+    const overallRank = sortedAverages.findIndex(s => s.studentId === studentId) + 1;
+    
+    console.log(`Student ${studentId} rank: ${overallRank} of ${totalStudentCount} students`);
+    console.log('Student averages:', sortedAverages);
+    
     // Calculate ranks for each result
     const examHistoryWithRanks = await Promise.all(studentResults.map(async (result) => {
       // Get all results for this exam to calculate rank
@@ -393,7 +421,7 @@ export class SupabaseStorage implements IStorage {
       return {
         ...result,
         rank: studentRank,
-        totalParticipants: totalStudentCount // Use total student count from database
+        totalParticipants: allExamResults.length // Use actual participants count
       };
     }));
     
@@ -401,7 +429,7 @@ export class SupabaseStorage implements IStorage {
       ? studentResults.reduce((sum, result) => sum + parseFloat(result.percentage), 0) / studentResults.length
       : 0;
     
-    // Calculate best rank from all results
+    // Calculate best rank from all exam results
     const bestRank = examHistoryWithRanks.length > 0
       ? Math.min(...examHistoryWithRanks.map(r => r.rank || Infinity))
       : 0;
@@ -410,6 +438,8 @@ export class SupabaseStorage implements IStorage {
       totalExams: studentResults.length,
       averageScore,
       bestRank,
+      overallRank, // New field for overall class ranking
+      totalStudents: totalStudentCount, // Include total students for display
       availableExams,
       activeExams,
       completedExams,

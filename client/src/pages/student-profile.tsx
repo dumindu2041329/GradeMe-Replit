@@ -215,6 +215,8 @@ export default function StudentProfile() {
           ...user,
           profileImage: data.imageUrl,
         });
+        // Update the preview with the actual URL from server
+        setImagePreview(data.imageUrl);
       }
 
       toast({

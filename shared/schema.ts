@@ -92,6 +92,8 @@ export type StudentDashboardData = {
   totalExams: number;
   averageScore: number;
   bestRank: number;
+  overallRank: number;
+  totalStudents: number;
   availableExams: Exam[];
   activeExams: Exam[];
   completedExams: Exam[];

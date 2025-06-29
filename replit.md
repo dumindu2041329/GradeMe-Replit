@@ -183,6 +183,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - December 30, 2024. **Migration from Replit Agent to Replit environment completed** - Successfully migrated the entire GradeMe project with all functionality intact. Server runs cleanly on port 5000, all database connections work properly, and student notification settings can be updated through profile page
 - December 30, 2024. **Fixed rank display in student dashboard** - Updated rank calculation to show student's position among all students in the database, not just those who took the exam. Ranks now display as "X of Y" where Y is the total number of students in the system
 - December 30, 2024. **Fixed student profile image synchronization** - Updated profile image upload and delete functionality to save data to both students and users tables in Supabase, ensuring proper data synchronization across both tables when students update their profile images
+- December 30, 2024. **Fixed profile image preview after re-upload** - Resolved issue where new profile images wouldn't display properly after deletion. Updated frontend to show actual server URL instead of base64 preview after successful upload
+- December 30, 2024. **Enhanced class ranking system** - Updated student dashboard to show overall class rank based on average performance across all students in the system. Ranking now considers students with exam results first, then sorts by average score, providing more accurate class positioning
 
 ## User Preferences
 

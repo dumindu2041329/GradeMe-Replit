@@ -13,18 +13,36 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Responsive
 import { Badge } from "@/components/ui/badge";
 import { StudentDashboardData, Exam, ResultWithDetails } from "@shared/schema";
 import { motion } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   // Fetch student dashboard data
-  const { data: dashboardData, isLoading } = useQuery<StudentDashboardData>({
+  const { data: dashboardData, isLoading, refetch } = useQuery<StudentDashboardData>({
     queryKey: ["/api/student/dashboard", user?.studentId],
     enabled: !!user?.studentId,
   });
+
+  // Log dashboard data when received
+  React.useEffect(() => {
+    if (dashboardData) {
+      console.log('Dashboard data received:', dashboardData);
+      console.log('Overall rank:', dashboardData.overallRank);
+      console.log('Total students:', dashboardData.totalStudents);
+    }
+  }, [dashboardData]);
+
+  // Force refresh on mount to get latest data
+  React.useEffect(() => {
+    if (user?.studentId) {
+      queryClient.invalidateQueries({ queryKey: ["/api/student/dashboard", user.studentId] });
+    }
+  }, [user?.studentId, queryClient]);
 
   if (isLoading) {
     return (
@@ -80,17 +98,19 @@ export default function StudentDashboard() {
           <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-amber-500"></div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Best Rank</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Your Rank in Class</CardTitle>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <div className="bg-amber-100 dark:bg-amber-950/20 p-3 rounded-full">
                 <Award className="h-6 w-6 text-amber-600 dark:text-amber-500" />
               </div>
               <div className="flex flex-col">
-                <span className="text-3xl font-bold">{dashboardData?.bestRank || '-'}</span>
-                {dashboardData?.examHistory && dashboardData.examHistory.length > 0 && dashboardData.examHistory[0].totalParticipants && (
-                  <span className="text-xs text-muted-foreground">of {dashboardData.examHistory[0].totalParticipants}</span>
-                )}
+                <span className="text-3xl font-bold">
+                  {dashboardData?.overallRank ? dashboardData.overallRank : '-'}
+                </span>
+                {dashboardData?.totalStudents ? (
+                  <span className="text-xs text-muted-foreground">of {dashboardData.totalStudents} students</span>
+                ) : null}
               </div>
             </CardContent>
           </Card>
