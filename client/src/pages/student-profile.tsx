@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { StudentHeader } from "@/components/layout/student-header";
@@ -98,6 +98,13 @@ export default function StudentProfile() {
   const [imagePreview, setImagePreview] = useState<string | null>(
     user?.profileImage || null
   );
+
+  // Sync imagePreview with profile data when it loads
+  useEffect(() => {
+    if (profileData?.profileImage !== undefined) {
+      setImagePreview(profileData.profileImage);
+    }
+  }, [profileData?.profileImage]);
 
   // Forms initialization
   const personalInfoForm = useForm<PersonalInfoFormValues>({
@@ -448,15 +455,20 @@ export default function StudentProfile() {
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex flex-col items-center">
-                    <Avatar className="h-24 w-24 mb-4">
-                      {profileData?.profileImage ? (
-                        <AvatarImage src={profileData.profileImage} alt={profileData.name} />
-                      ) : (
-                        <AvatarFallback className="text-2xl">
-                          {profileData?.name?.charAt(0) || 'S'}
+                    {imagePreview ? (
+                      <Avatar className="h-24 w-24 mb-4">
+                        <AvatarImage src={imagePreview} alt={profileData?.name} />
+                        <AvatarFallback className="text-2xl bg-gray-700 text-white">
+                          {profileData?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
                         </AvatarFallback>
-                      )}
-                    </Avatar>
+                      </Avatar>
+                    ) : (
+                      <div className="h-24 w-24 mb-4 rounded-full bg-gray-700 flex items-center justify-center">
+                        <span className="text-2xl text-white font-medium">
+                          {profileData?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
+                        </span>
+                      </div>
+                    )}
                     
                     <h2 className="text-xl font-semibold text-center mb-2">
                       {profileData?.name || user?.name}
@@ -532,15 +544,20 @@ export default function StudentProfile() {
                       <form id="studentPersonalInfoForm" onSubmit={personalInfoForm.handleSubmit(onPersonalInfoSubmit)} className="space-y-6">
                         {/* Profile Image */}
                         <div className="flex flex-col items-center gap-4 mb-6 py-8 bg-gray-900 rounded-lg">
-                          <Avatar className="h-32 w-32">
-                            {imagePreview ? (
+                          {imagePreview ? (
+                            <Avatar className="h-32 w-32">
                               <AvatarImage src={imagePreview} alt="Profile" />
-                            ) : (
                               <AvatarFallback className="text-3xl bg-gray-700 text-white">
-                                {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AU'}
+                                {profileData?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
                               </AvatarFallback>
-                            )}
-                          </Avatar>
+                            </Avatar>
+                          ) : (
+                            <div className="h-32 w-32 rounded-full bg-gray-700 flex items-center justify-center">
+                              <span className="text-3xl text-white font-medium">
+                                {profileData?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
+                              </span>
+                            </div>
+                          )}
                           
                           <div className="flex flex-col items-center gap-3">
                             <div className="flex gap-3">
