@@ -185,6 +185,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - December 30, 2024. **Fixed student profile image synchronization** - Updated profile image upload and delete functionality to save data to both students and users tables in Supabase, ensuring proper data synchronization across both tables when students update their profile images
 - December 30, 2024. **Fixed profile image preview after re-upload** - Resolved issue where new profile images wouldn't display properly after deletion. Updated frontend to show actual server URL instead of base64 preview after successful upload
 - December 30, 2024. **Enhanced class ranking system** - Updated student dashboard to show overall class rank based on average performance across all students in the system. Ranking now considers students with exam results first, then sorts by average score, providing more accurate class positioning
+- December 30, 2024. **Removed admin profile image popup** - Disabled clickable functionality on admin profile image by replacing ProfileImagePopup component with simple Avatar component. Admin profile images are now non-interactive as requested by user
+- December 30, 2024. **Fixed student profile image persistence after logout** - Resolved issue where student profile images weren't displaying after logout/login. Updated student login endpoint to properly query users table for profile image and notification settings using studentId field
 
 ## User Preferences
 

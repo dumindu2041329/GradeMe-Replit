@@ -264,21 +264,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      // Get the corresponding user record to fetch profile image and notification settings
+      const db = getDb();
+      const userRecords = await db.select().from(users).where(eq(users.studentId, student.id)).limit(1);
+      const userRecord = userRecords.length > 0 ? userRecords[0] : null;
+      
       // Create a user session for the student
       req.session.user = {
-        id: student.id,
+        id: userRecord?.id || student.id,
         email: student.email,
         name: student.name,
         role: 'student',
         isAdmin: false,
-        profileImage: null,
+        profileImage: userRecord?.profileImage || student.profileImage || null,
         studentId: student.id,
-        emailNotifications: true,
-        smsNotifications: false,
-        emailExamResults: true,
-        emailUpcomingExams: true,
-        smsExamResults: false,
-        smsUpcomingExams: false,
+        emailNotifications: userRecord?.emailNotifications ?? true,
+        smsNotifications: userRecord?.smsNotifications ?? false,
+        emailExamResults: userRecord?.emailExamResults ?? true,
+        emailUpcomingExams: userRecord?.emailUpcomingExams ?? true,
+        smsExamResults: userRecord?.smsExamResults ?? false,
+        smsUpcomingExams: userRecord?.smsUpcomingExams ?? false,
         createdAt: student.createdAt || new Date(),
         updatedAt: student.updatedAt || new Date()
       };

@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useLocation } from "wouter";
-import { ProfileImagePopup } from "@/components/profile-image-popup";
+import { AvatarImage } from "@/components/ui/avatar";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -122,13 +122,17 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Profile Image Popup */}
-            <ProfileImagePopup 
-              imageUrl={user?.profileImage}
-              userName={user?.name}
-              userRole="admin"
-              size="md"
-            />
+            {/* Profile Image */}
+            <Avatar className="w-10 h-10">
+              <AvatarImage 
+                src={user?.profileImage || undefined} 
+                alt={`${user?.name || 'Admin'} profile`}
+                className="object-cover"
+              />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
