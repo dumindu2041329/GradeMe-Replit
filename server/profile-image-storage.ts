@@ -203,6 +203,16 @@ export class ProfileImageStorage {
         })
         .where(eq(students.id, studentId));
 
+      // Also update the corresponding user record to keep them synchronized
+      // Find the user record that has this student_id
+      await this.db
+        .update(users)
+        .set({ 
+          profileImage: imageUrl,
+          updatedAt: new Date()
+        })
+        .where(eq(users.studentId, studentId));
+
       return { success: true, imageUrl };
 
     } catch (error) {
@@ -269,6 +279,16 @@ export class ProfileImageStorage {
           updatedAt: new Date()
         })
         .where(eq(students.id, studentId));
+
+      // Also update the corresponding user record to keep them synchronized
+      // Find the user record that has this student_id
+      await this.db
+        .update(users)
+        .set({ 
+          profileImage: null,
+          updatedAt: new Date()
+        })
+        .where(eq(users.studentId, studentId));
 
       return true;
     } catch (error) {
