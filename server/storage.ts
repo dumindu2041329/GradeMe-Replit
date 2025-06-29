@@ -371,11 +371,40 @@ export class SupabaseStorage implements IStorage {
       .filter(exam => exam.status === 'completed' || completedExamIds.has(exam.id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
+    // Get total number of students in the system
+    const allStudents = await this.getStudents();
+    const totalStudentCount = allStudents.length;
+    
+    // Calculate ranks for each result
+    const examHistoryWithRanks = await Promise.all(studentResults.map(async (result) => {
+      // Get all results for this exam to calculate rank
+      const allExamResults = await this.getResultsByExamId(result.examId);
+      
+      // Sort by percentage (descending)
+      const sortedResults = allExamResults.sort((a, b) => {
+        const aPercentage = typeof a.percentage === 'string' ? parseFloat(a.percentage) : Number(a.percentage || 0);
+        const bPercentage = typeof b.percentage === 'string' ? parseFloat(b.percentage) : Number(b.percentage || 0);
+        return bPercentage - aPercentage;
+      });
+      
+      // Find this student's rank among those who took the exam
+      const studentRank = sortedResults.findIndex(r => r.studentId === studentId) + 1;
+      
+      return {
+        ...result,
+        rank: studentRank,
+        totalParticipants: totalStudentCount // Use total student count from database
+      };
+    }));
+    
     const averageScore = studentResults.length > 0
       ? studentResults.reduce((sum, result) => sum + parseFloat(result.percentage), 0) / studentResults.length
       : 0;
     
-    const bestRank = 1; // Simplified implementation
+    // Calculate best rank from all results
+    const bestRank = examHistoryWithRanks.length > 0
+      ? Math.min(...examHistoryWithRanks.map(r => r.rank || Infinity))
+      : 0;
     
     return {
       totalExams: studentResults.length,
@@ -384,7 +413,7 @@ export class SupabaseStorage implements IStorage {
       availableExams,
       activeExams,
       completedExams,
-      examHistory: studentResults
+      examHistory: examHistoryWithRanks
     };
   }
 }
