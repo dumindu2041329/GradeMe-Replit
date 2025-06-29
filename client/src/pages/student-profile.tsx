@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowUpFromLine, Calendar, Phone, MapPin, User, Users, X } from 'lucide-react';
+import { ArrowUpFromLine, Calendar, Phone, MapPin, User, Users, X, Upload } from 'lucide-react';
 import {
   Form,
   FormControl,
@@ -153,14 +153,119 @@ export default function StudentProfile() {
   });
 
   // Image upload handler
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a JPEG, PNG, WebP, or GIF image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+
+      const response = await fetch('/api/student/profile/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+      
+      // Update user context with new image URL
+      if (user && data.imageUrl) {
+        setUser({
+          ...user,
+          profileImage: data.imageUrl,
+        });
+      }
+
+      toast({
+        title: "Profile image uploaded",
+        description: "Your profile image has been updated successfully",
+      });
+
+      // Invalidate profile query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+      // Reset preview on error
+      setImagePreview(user?.profileImage || null);
+    }
+  };
+
+  // Handle delete image
+  const handleDeleteImage = async () => {
+    try {
+      const response = await fetch('/api/student/profile/delete-image', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete image');
+      }
+
+      // Clear preview and update user context
+      setImagePreview(null);
+      if (user) {
+        setUser({
+          ...user,
+          profileImage: null,
+        });
+      }
+
+      toast({
+        title: "Profile image deleted",
+        description: "Your profile image has been removed successfully",
+      });
+
+      // Invalidate profile query to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
+      
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete image",
+        variant: "destructive",
+      });
     }
   };
 
@@ -180,7 +285,6 @@ export default function StudentProfile() {
           dateOfBirth: data.dateOfBirth ? data.dateOfBirth.toISOString() : null,
           guardianName: data.guardianName,
           guardianPhone: data.guardianPhone,
-          profileImage: imagePreview,
         }),
       });
       
@@ -427,44 +531,59 @@ export default function StudentProfile() {
                     <Form {...personalInfoForm}>
                       <form id="studentPersonalInfoForm" onSubmit={personalInfoForm.handleSubmit(onPersonalInfoSubmit)} className="space-y-6">
                         {/* Profile Image */}
-                        <div className="flex flex-col items-center gap-4 mb-6">
-                          <div className="relative group">
-                            <Avatar className="h-24 w-24 cursor-pointer">
-                              {imagePreview ? (
-                                <AvatarImage src={imagePreview} alt="Profile" />
-                              ) : (
-                                <AvatarFallback className="text-2xl">
-                                  {user?.name?.charAt(0) || 'U'}{user?.name?.split(' ')[1]?.charAt(0) || ''}
-                                </AvatarFallback>
-                              )}
-                              
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Input
-                                  id="profile-image"
-                                  type="file"
-                                  accept="image/*"
-                                  className="sr-only"
-                                  onChange={handleImageUpload}
-                                />
-                                <label
-                                  htmlFor="profile-image"
-                                  className="cursor-pointer"
-                                >
-                                  <div className="rounded-full p-1 bg-black/30">
-                                    <ArrowUpFromLine className="h-5 w-5 text-white" />
-                                  </div>
-                                </label>
-                              </div>
-                            </Avatar>
-                          </div>
+                        <div className="flex flex-col items-center gap-4 mb-6 py-8 bg-gray-900 rounded-lg">
+                          <Avatar className="h-32 w-32">
+                            {imagePreview ? (
+                              <AvatarImage src={imagePreview} alt="Profile" />
+                            ) : (
+                              <AvatarFallback className="text-3xl bg-gray-700 text-white">
+                                {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'AU'}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
                           
-                          <div className="text-center space-y-1">
-                            <p className="text-sm text-muted-foreground">
-                              Upload a new profile picture
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              JPG, PNG or GIF, max 5MB
-                            </p>
+                          <div className="flex flex-col items-center gap-3">
+                            <div className="flex gap-3">
+                              <Input
+                                id="profile-image-upload"
+                                type="file"
+                                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                                className="sr-only"
+                                onChange={handleImageUpload}
+                              />
+                              <label
+                                htmlFor="profile-image-upload"
+                                className="cursor-pointer"
+                              >
+                                <Button type="button" variant="outline" className="gap-2" asChild>
+                                  <span>
+                                    <Upload className="h-4 w-4" />
+                                    {imagePreview ? 'Change Photo' : 'Upload Photo'}
+                                  </span>
+                                </Button>
+                              </label>
+                              
+                              {imagePreview && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="gap-2 text-red-500 hover:text-red-600 hover:border-red-500"
+                                  onClick={handleDeleteImage}
+                                >
+                                  <X className="h-4 w-4" />
+                                  Delete
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="text-center">
+                              <p className="text-sm text-gray-400">
+                                Upload a profile picture (JPEG, PNG, WebP, or GIF)
+                              </p>
+                              <p className="text-sm text-gray-400">
+                                Maximum file size: 5MB
+                              </p>
+                            </div>
                           </div>
                         </div>
                         
