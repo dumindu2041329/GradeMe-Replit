@@ -189,6 +189,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - December 30, 2024. **Fixed student profile image persistence after logout** - Resolved issue where student profile images weren't displaying after logout/login. Updated student login endpoint to properly query users table for profile image and notification settings using studentId field
 - December 30, 2024. **Removed hamburger menu icon from admin header** - Simplified admin dashboard UI by removing the separate hamburger menu icon next to profile image. Profile image is now directly clickable to show the dropdown menu with hover ring effect
 - December 30, 2024. **Fixed profile image deletion without page reload** - Removed automatic page reload after profile image deletion. The UI now updates immediately to show user initials when image is deleted, providing seamless user experience
+- December 30, 2024. **Implemented automatic exam total marks synchronization** - Added automatic calculation and synchronization of exam total marks based on the sum of all question marks. When questions are added, updated, or deleted, the exam's total marks in the database automatically update to reflect the correct sum. This ensures scoring calculations are always accurate and prevents mismatches between question marks and exam total marks
+- December 30, 2024. **Made exam total marks display read-only** - Updated the exam creation/editing form to display total marks as a read-only field that automatically shows the sum of all question marks. The field updates in real-time as questions are added, modified, or deleted, providing administrators with immediate visual feedback of exam scoring
 
 ## User Preferences
 

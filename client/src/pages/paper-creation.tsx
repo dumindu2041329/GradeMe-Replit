@@ -624,24 +624,15 @@ export default function PaperCreationPage() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={examForm.control}
-                      name="totalMarks"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Marks</FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              placeholder="Enter total marks" 
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <FormItem>
+                      <FormLabel>Total Marks</FormLabel>
+                      <Input 
+                        type="number" 
+                        value={questions.reduce((sum, q) => sum + q.marks, 0)}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </FormItem>
                     <FormField
                       control={examForm.control}
                       name="status"
@@ -711,7 +702,7 @@ export default function PaperCreationPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Total Marks</label>
-                  <p className="text-sm">{exam.totalMarks}</p>
+                  <p className="text-sm">{questions.reduce((sum, q) => sum + q.marks, 0)}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Date</label>

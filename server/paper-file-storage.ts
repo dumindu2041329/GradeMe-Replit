@@ -204,12 +204,15 @@ export class PaperFileStorage {
       // Check if paper already exists
       const existingPaper = await this.getPaperByExamId(examId);
       
+      // Calculate total marks from all questions
+      const calculatedTotalMarks = paperData.questions.reduce((sum, q) => sum + q.marks, 0);
+      
       const fullPaperData: PaperData = {
         id: existingPaper?.id || `paper_${examId}_${Date.now()}`,
         examId,
         ...paperData,
         totalQuestions: paperData.questions.length,
-        totalMarks: paperData.totalMarks, // Use provided total marks, no auto-calculation
+        totalMarks: calculatedTotalMarks, // Auto-calculate total marks
         createdAt: existingPaper?.createdAt || now,
         updatedAt: now,
         metadata: {
@@ -232,7 +235,8 @@ export class PaperFileStorage {
         return null;
       }
       
-      // Note: No automatic total marks synchronization - admin controls manually
+      // Automatically sync total marks to exam table
+      await this.syncExamTotalMarks(examId, calculatedTotalMarks);
       
       // Clear cache to ensure fresh data
       this.paperCache.delete(examId);
@@ -329,13 +333,16 @@ export class PaperFileStorage {
       const fileName = await this.getFileName(examId);
       const examName = await this.getExamName(examId);
       
+      // Calculate total marks from all questions
+      const calculatedTotalMarks = updatedQuestions.reduce((sum, q) => sum + q.marks, 0);
+      
       const fullPaperData: PaperData = {
         id: existingPaper.id,
         examId,
         title: existingPaper.title,
         instructions: existingPaper.instructions,
         totalQuestions: updatedQuestions.length,
-        totalMarks: existingPaper.totalMarks, // Keep existing total marks - no auto-calculation
+        totalMarks: calculatedTotalMarks, // Auto-calculate total marks
         questions: updatedQuestions,
         createdAt: existingPaper.createdAt,
         updatedAt: now,
@@ -358,7 +365,8 @@ export class PaperFileStorage {
         return null;
       }
       
-      // Note: No automatic total marks synchronization - admin controls manually
+      // Automatically sync total marks to exam table
+      await this.syncExamTotalMarks(examId, calculatedTotalMarks);
       
       // Clear cache to ensure fresh data
       this.paperCache.delete(examId);
@@ -402,6 +410,8 @@ export class PaperFileStorage {
       };
       
       const savedPaper = await this.savePaper(examId, updatedPaper);
+      
+      // The savePaper method now handles automatic total marks sync
       return savedPaper ? updatedQuestion : null;
     } catch (error) {
       console.error('Error updating question:', error);
@@ -428,6 +438,8 @@ export class PaperFileStorage {
       };
       
       const savedPaper = await this.savePaper(examId, updatedPaper);
+      
+      // The savePaper method now handles automatic total marks sync
       return !!savedPaper;
     } catch (error) {
       console.error('Error deleting question:', error);
