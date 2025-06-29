@@ -650,94 +650,66 @@ export default function StudentProfile() {
                               )}
                             />
                             
-                            {/* Phone - CLEARABLE */}
+                            {/* Phone */}
                             <FormField
                               control={personalInfoForm.control}
                               name="phone"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Phone Number</FormLabel>
-                                  <div className="flex items-center">
-                                    <FormControl className="flex-1">
-                                      <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                          className="pl-10" 
-                                          value={field.value || ''} 
-                                          onChange={(e) => field.onChange(e.target.value)}
-                                        />
-                                      </div>
-                                    </FormControl>
-                                    {field.value && (
-                                      <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="ml-2" 
-                                        onClick={() => field.onChange(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                        <span className="sr-only">Clear</span>
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input 
+                                        className="pl-10" 
+                                        value={field.value || ''} 
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                      />
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
                             
-                            {/* Date of Birth - CLEARABLE */}
+                            {/* Date of Birth */}
                             <FormField
                               control={personalInfoForm.control}
                               name="dateOfBirth"
                               render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                   <FormLabel>Date of Birth</FormLabel>
-                                  <div className="flex items-center">
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <FormControl className="flex-1">
-                                          <Button
-                                            variant={"outline"}
-                                            className={cn(
-                                              "pl-3 text-left font-normal",
-                                              !field.value && "text-muted-foreground"
-                                            )}
-                                          >
-                                            {field.value ? (
-                                              format(field.value, "PPP")
-                                            ) : (
-                                              <span>Pick a date</span>
-                                            )}
-                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                          </Button>
-                                        </FormControl>
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-auto p-0" align="start">
-                                        <CalendarComponent
-                                          mode="single"
-                                          selected={field.value || undefined}
-                                          onSelect={field.onChange}
-                                          disabled={(date) =>
-                                            date > new Date() || date < new Date("1900-01-01")
-                                          }
-                                          initialFocus
-                                        />
-                                      </PopoverContent>
-                                    </Popover>
-                                    {field.value && (
-                                      <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="ml-2" 
-                                        onClick={() => field.onChange(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                        <span className="sr-only">Clear</span>
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <FormControl>
+                                        <Button
+                                          variant={"outline"}
+                                          className={cn(
+                                            "pl-3 text-left font-normal",
+                                            !field.value && "text-muted-foreground"
+                                          )}
+                                        >
+                                          {field.value ? (
+                                            format(field.value, "PPP")
+                                          ) : (
+                                            <span>Pick a date</span>
+                                          )}
+                                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                        </Button>
+                                      </FormControl>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="start">
+                                      <CalendarComponent
+                                        mode="single"
+                                        selected={field.value || undefined}
+                                        onSelect={field.onChange}
+                                        disabled={(date) =>
+                                          date > new Date() || date < new Date("1900-01-01")
+                                        }
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -768,37 +740,23 @@ export default function StudentProfile() {
                               )}
                             />
                             
-                            {/* Address - CLEARABLE */}
+                            {/* Address */}
                             <FormField
                               control={personalInfoForm.control}
                               name="address"
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Address</FormLabel>
-                                  <div className="flex items-center">
-                                    <FormControl className="flex-1">
-                                      <div className="relative">
-                                        <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                          className="pl-10 min-h-[80px]" 
-                                          value={field.value || ''} 
-                                          onChange={(e) => field.onChange(e.target.value)}
-                                        />
-                                      </div>
-                                    </FormControl>
-                                    {field.value && (
-                                      <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="ml-2" 
-                                        onClick={() => field.onChange(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                        <span className="sr-only">Clear</span>
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                      <Input 
+                                        className="pl-10 min-h-[80px]" 
+                                        value={field.value || ''} 
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                      />
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -814,30 +772,16 @@ export default function StudentProfile() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Guardian Name</FormLabel>
-                                  <div className="flex items-center">
-                                    <FormControl className="flex-1">
-                                      <div className="relative">
-                                        <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                          className="pl-10" 
-                                          value={field.value || ''} 
-                                          onChange={(e) => field.onChange(e.target.value)}
-                                        />
-                                      </div>
-                                    </FormControl>
-                                    {field.value && (
-                                      <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="ml-2" 
-                                        onClick={() => field.onChange(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                        <span className="sr-only">Clear</span>
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input 
+                                        className="pl-10" 
+                                        value={field.value || ''} 
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                      />
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -850,30 +794,16 @@ export default function StudentProfile() {
                               render={({ field }) => (
                                 <FormItem>
                                   <FormLabel>Guardian Phone</FormLabel>
-                                  <div className="flex items-center">
-                                    <FormControl className="flex-1">
-                                      <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input 
-                                          className="pl-10" 
-                                          value={field.value || ''} 
-                                          onChange={(e) => field.onChange(e.target.value)}
-                                        />
-                                      </div>
-                                    </FormControl>
-                                    {field.value && (
-                                      <Button 
-                                        type="button"
-                                        variant="outline" 
-                                        size="sm" 
-                                        className="ml-2" 
-                                        onClick={() => field.onChange(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                        <span className="sr-only">Clear</span>
-                                      </Button>
-                                    )}
-                                  </div>
+                                  <FormControl>
+                                    <div className="relative">
+                                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                      <Input 
+                                        className="pl-10" 
+                                        value={field.value || ''} 
+                                        onChange={(e) => field.onChange(e.target.value)}
+                                      />
+                                    </div>
+                                  </FormControl>
                                   <FormMessage />
                                 </FormItem>
                               )}
@@ -882,6 +812,24 @@ export default function StudentProfile() {
                         </div>
                         
                         <div className="flex justify-end space-x-2 pt-4">
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                personalInfoForm.reset({
+                                  name: profileData?.name || user?.name || '',
+                                  email: profileData?.email || user?.email || '',
+                                  phone: '',
+                                  address: '',
+                                  dateOfBirth: null,
+                                  class: profileData?.class || '',
+                                  guardianName: '',
+                                  guardianPhone: '',
+                                });
+                              }}
+                            >
+                              Reset
+                            </Button>
                             <Button 
                               type="submit" 
                               disabled={personalInfoMutation.isPending}
@@ -1132,6 +1080,22 @@ export default function StudentProfile() {
                         />
 
                         <div className="flex flex-row space-x-2">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              passwordForm.reset({
+                                currentPassword: '',
+                                newPassword: '',
+                                confirmPassword: '',
+                              });
+                              setShowCurrentPassword(false);
+                              setShowNewPassword(false);
+                              setShowConfirmPassword(false);
+                            }}
+                          >
+                            Reset
+                          </Button>
                           <Button type="submit" disabled={passwordMutation.isPending}>
                             {passwordMutation.isPending ? "Updating..." : "Update Password"}
                           </Button>

@@ -178,6 +178,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - June 30, 2025. **Implemented student profile image upload** - Added complete profile image upload functionality with Supabase storage integration, including circular avatar display, file validation (5MB limit, image types only), upload progress feedback, and instant preview
 - June 30, 2025. **Added profile image delete functionality** - Implemented delete button for profile images with proper Supabase storage cleanup, UI updates, and user feedback
 - June 30, 2025. **Fixed profile image deletion display** - Resolved issue where student initials weren't showing immediately after profile image deletion. Replaced Avatar component with custom div to ensure initials display properly without page reload
+- December 30, 2024. **Enhanced student profile form usability** - Removed individual X buttons from form fields and added Reset buttons to clear all inputs in Personal Information and Change Password sections, providing cleaner UI and better user experience
 
 ## User Preferences
 
