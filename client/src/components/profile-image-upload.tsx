@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -27,6 +27,13 @@ export function ProfileImageUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(currentImageUrl || null);
+
+
+
+  // Sync imagePreview with currentImageUrl prop changes
+  useEffect(() => {
+    setImagePreview(currentImageUrl || null);
+  }, [currentImageUrl]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -190,44 +197,55 @@ export function ProfileImageUpload({
     <Card className={`border shadow-sm ${className}`}>
       <CardContent className="p-6">
         <div className="flex flex-col items-center gap-4">
-          {imagePreview ? (
-            // Show image with overlay when image exists
-            <div className="relative group">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={imagePreview} alt={userName || 'Profile'} />
-              </Avatar>
-              
-              {/* Overlay on hover */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                   onClick={triggerFileSelect}>
-                <Camera className="h-6 w-6 text-white" />
+          {(() => {
+            // Determine what to render based on state
+            if (imagePreview) {
+              // Show image with overlay when image exists
+              return (
+                <div className="relative group">
+                  <Avatar className="h-24 w-24">
+                    <AvatarImage src={imagePreview} alt={userName || 'Profile'} />
+                  </Avatar>
+                  
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                       onClick={triggerFileSelect}>
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              );
+            }
+            
+            // No image - check if admin or student
+            if (userType === 'admin') {
+              // Show initials for admin when no image exists
+              const initials = getInitials();
+              return (
+                <div className="relative group">
+                  <div className="h-24 w-24 rounded-full bg-slate-700 flex items-center justify-center">
+                    <span className="text-xl text-white font-semibold">{initials}</span>
+                  </div>
+                  
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                       onClick={triggerFileSelect}>
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              );
+            }
+            
+            // Student upload area
+            return (
+              <div 
+                className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors bg-white"
+                onClick={triggerFileSelect}
+              >
+                <Upload className="h-5 w-5 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500 font-medium">Upload</span>
               </div>
-            </div>
-          ) : userType === 'admin' ? (
-            // Show initials for admin when no image exists (like "JD")
-            <div className="relative group">
-              <Avatar className="h-24 w-24">
-                <AvatarFallback className="text-xl bg-slate-700 text-white">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
-              
-              {/* Overlay on hover */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                   onClick={triggerFileSelect}>
-                <Camera className="h-6 w-6 text-white" />
-              </div>
-            </div>
-          ) : (
-            // Show upload area for students when no image exists
-            <div 
-              className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-full flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition-colors bg-white"
-              onClick={triggerFileSelect}
-            >
-              <Upload className="h-5 w-5 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-500 font-medium">Upload</span>
-            </div>
-          )}
+            );
+          })()}
 
           <div className="flex gap-2">
             <Button
