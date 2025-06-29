@@ -64,7 +64,7 @@ export async function supabaseAuthMiddleware(req: Request, res: Response, next: 
       let user;
       
       if (tokenData.role === 'student') {
-        user = await storage.storage.instance.getStudentByEmail(tokenData.email);
+        user = await storage.storage.getStudentByEmail(tokenData.email);
         if (user) {
           user = {
             ...user,
@@ -73,7 +73,7 @@ export async function supabaseAuthMiddleware(req: Request, res: Response, next: 
           };
         }
       } else {
-        user = await storage.storage.instance.getUserByEmail(tokenData.email);
+        user = await storage.storage.getUserByEmail(tokenData.email);
       }
       
       if (!user) {
@@ -113,6 +113,9 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 // Middleware to require student role
 export function requireStudent(req: Request, res: Response, next: NextFunction) {
   const user = req.user || req.session?.user;
+  
+  console.log('[requireStudent] Checking user:', user);
+  console.log('[requireStudent] User role:', user?.role);
   
   if (!user) {
     return res.status(401).json({ message: 'Not authenticated' });

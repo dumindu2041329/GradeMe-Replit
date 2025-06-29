@@ -472,6 +472,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Student profile update endpoint - MUST be defined before generic ID routes
+  app.put("/api/students/profile", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      console.log("Student profile update - Session user:", user);
+      console.log("Student profile update - User role:", user?.role);
+      if (!user || !user.studentId) {
+        return res.status(401).json({ error: 'Student not authenticated' });
+      }
+
+      console.log("Updating student profile:", req.body);
+      
+      // Prepare update data
+      let updateData: any = {};
+      
+      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
+      if (req.body.email !== undefined) updateData.email = req.body.email.trim();
+      if (req.body.phone !== undefined) updateData.phone = req.body.phone || null;
+      if (req.body.address !== undefined) updateData.address = req.body.address || null;
+      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null;
+      if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
+      if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
+      
+      // Validate required fields
+      if (updateData.name && updateData.name === '') {
+        return res.status(400).json({ error: 'Name cannot be empty' });
+      }
+      
+      if (updateData.email && updateData.email === '') {
+        return res.status(400).json({ error: 'Email cannot be empty' });
+      }
+
+      const updatedStudent = await storage.updateStudent(user.studentId, updateData);
+      if (!updatedStudent) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      // Update session data with new email/name if changed
+      if (updateData.email) {
+        req.session.user!.email = updateData.email;
+      }
+      if (updateData.name) {
+        req.session.user!.name = updateData.name;
+      }
+
+      res.json({ 
+        success: true, 
+        message: 'Profile updated successfully',
+        student: updatedStudent 
+      });
+    } catch (error) {
+      console.error("Error updating student profile:", error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  // Note: This route must be defined AFTER more specific routes like /api/students/profile
   app.put("/api/students/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -704,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Debug error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1142,59 +1199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Student profile update endpoint  
-  app.put("/api/students/profile", requireStudent, async (req: Request, res: Response) => {
-    try {
-      const user = req.session?.user;
-      if (!user || !user.studentId) {
-        return res.status(401).json({ error: 'Student not authenticated' });
-      }
 
-      console.log("Updating student profile:", req.body);
-      
-      // Prepare update data
-      let updateData: any = {};
-      
-      if (req.body.name !== undefined) updateData.name = req.body.name.trim();
-      if (req.body.email !== undefined) updateData.email = req.body.email.trim();
-      if (req.body.phone !== undefined) updateData.phone = req.body.phone || null;
-      if (req.body.address !== undefined) updateData.address = req.body.address || null;
-      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null;
-      if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
-      if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
-      
-      // Validate required fields
-      if (updateData.name && updateData.name === '') {
-        return res.status(400).json({ error: 'Name cannot be empty' });
-      }
-      
-      if (updateData.email && updateData.email === '') {
-        return res.status(400).json({ error: 'Email cannot be empty' });
-      }
-
-      const updatedStudent = await storage.updateStudent(user.studentId, updateData);
-      if (!updatedStudent) {
-        return res.status(404).json({ error: 'Student not found' });
-      }
-
-      // Update session data with new email/name if changed
-      if (updateData.email) {
-        req.session.user!.email = updateData.email;
-      }
-      if (updateData.name) {
-        req.session.user!.name = updateData.name;
-      }
-
-      res.json({ 
-        success: true, 
-        message: 'Profile updated successfully',
-        student: updatedStudent 
-      });
-    } catch (error) {
-      console.error("Error updating student profile:", error);
-      res.status(500).json({ error: 'Failed to update profile' });
-    }
-  });
 
   // Student notification settings endpoint
   app.put("/api/student/notifications", requireStudent, async (req: Request, res: Response) => {
