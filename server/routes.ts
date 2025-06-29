@@ -1205,7 +1205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/student/notifications", requireStudent, async (req: Request, res: Response) => {
     try {
       const user = req.session?.user;
-      if (!user) {
+      if (!user || !user.studentId) {
         return res.status(401).json({ error: 'Student not authenticated' });
       }
 
@@ -1218,11 +1218,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         smsUpcomingExams: req.body.smsUpcomingExams ?? false
       };
 
-      // Update user record (not student record) for notification settings
-      const updatedUser = await storage.updateUser(user.id, updateData);
-      if (!updatedUser) {
-        return res.status(404).json({ error: 'User not found' });
+      // Find the user record by studentId
+      const db = getDb();
+      const userRecords = await db.select().from(users).where(eq(users.studentId, user.studentId)).limit(1);
+      
+      if (userRecords.length === 0) {
+        // Create user record for this student if it doesn't exist
+        const student = await storage.getStudent(user.studentId);
+        if (!student) {
+          return res.status(404).json({ error: 'Student not found' });
+        }
+        
+        const userData = {
+          name: student.name,
+          email: student.email,
+          password: student.password,
+          role: 'student' as const,
+          studentId: student.id,
+          ...updateData
+        };
+        
+        const createdUser = await storage.createUser(userData);
+        
+        // Update session data
+        Object.assign(req.session.user!, updateData);
+        
+        return res.json({ 
+          success: true, 
+          message: 'Notification settings updated successfully' 
+        });
       }
+      
+      // Update existing user record
+      const userRecord = userRecords[0];
+      const updatedUser = await storage.updateUser(userRecord.id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'Failed to update user' });
+      }
+
+      // Update session data
+      Object.assign(req.session.user!, updateData);
 
       // Update session data
       Object.assign(req.session.user!, updateData);
