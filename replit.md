@@ -187,6 +187,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - December 30, 2024. **Enhanced class ranking system** - Updated student dashboard to show overall class rank based on average performance across all students in the system. Ranking now considers students with exam results first, then sorts by average score, providing more accurate class positioning
 - December 30, 2024. **Removed admin profile image popup** - Disabled clickable functionality on admin profile image by replacing ProfileImagePopup component with simple Avatar component. Admin profile images are now non-interactive as requested by user
 - December 30, 2024. **Fixed student profile image persistence after logout** - Resolved issue where student profile images weren't displaying after logout/login. Updated student login endpoint to properly query users table for profile image and notification settings using studentId field
+- December 30, 2024. **Removed hamburger menu icon from admin header** - Simplified admin dashboard UI by removing the separate hamburger menu icon next to profile image. Profile image is now directly clickable to show the dropdown menu with hover ring effect
+- December 30, 2024. **Fixed profile image deletion without page reload** - Removed automatic page reload after profile image deletion. The UI now updates immediately to show user initials when image is deleted, providing seamless user experience
 
 ## User Preferences
 

@@ -122,23 +122,19 @@ export function AppShell({ children, title, sidebar }: AppShellProps) {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Profile Image */}
-            <Avatar className="w-10 h-10">
-              <AvatarImage 
-                src={user?.profileImage || undefined} 
-                alt={`${user?.name || 'Admin'} profile`}
-                className="object-cover"
-              />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <Menu className="h-4 w-4" />
-                  <span className="sr-only">Account menu</span>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:ring-2 hover:ring-primary/20">
+                  <Avatar className="h-10 w-10 cursor-pointer">
+                    <AvatarImage 
+                      src={user?.profileImage || undefined} 
+                      alt={`${user?.name || 'Admin'} profile`}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
               </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>

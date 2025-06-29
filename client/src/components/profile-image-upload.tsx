@@ -157,11 +157,6 @@ export function ProfileImageUpload({
           title: "Success",
           description: "Profile image deleted successfully",
         });
-
-        // Reload the page after successful deletion
-        setTimeout(() => {
-          window.location.reload();
-        }, 200); // Minimal delay for better performance
       } else {
         throw new Error(data.error || 'Failed to delete image');
       }
