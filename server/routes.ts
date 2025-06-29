@@ -1107,6 +1107,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get student profile endpoint
+  app.get("/api/student/profile", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user || !user.studentId) {
+        return res.status(401).json({ error: 'Student not authenticated' });
+      }
+
+      const student = await storage.getStudent(user.studentId);
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      // Return profile data in the expected format
+      const profileData = {
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        class: student.class,
+        enrollmentDate: student.enrollmentDate,
+        phone: student.phone,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        guardianName: student.guardianName,
+        guardianPhone: student.guardianPhone,
+        profileImage: user.profileImage || null
+      };
+
+      res.json(profileData);
+    } catch (error) {
+      console.error("Error fetching student profile:", error);
+      res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+  });
+
   // Student profile update endpoint  
   app.put("/api/students/profile", requireStudent, async (req: Request, res: Response) => {
     try {
@@ -1124,6 +1159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.email !== undefined) updateData.email = req.body.email.trim();
       if (req.body.phone !== undefined) updateData.phone = req.body.phone || null;
       if (req.body.address !== undefined) updateData.address = req.body.address || null;
+      if (req.body.dateOfBirth !== undefined) updateData.dateOfBirth = req.body.dateOfBirth ? new Date(req.body.dateOfBirth) : null;
       if (req.body.guardianName !== undefined) updateData.guardianName = req.body.guardianName || null;
       if (req.body.guardianPhone !== undefined) updateData.guardianPhone = req.body.guardianPhone || null;
       
@@ -1141,24 +1177,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Student not found' });
       }
 
-      // Update session data
-      if (req.session.user) {
-        req.session.user = { ...req.session.user, name: updatedStudent.name, email: updatedStudent.email };
+      // Update session data with new email/name if changed
+      if (updateData.email) {
+        req.session.user!.email = updateData.email;
+      }
+      if (updateData.name) {
+        req.session.user!.name = updateData.name;
       }
 
-      res.json({
-        id: updatedStudent.id,
-        name: updatedStudent.name,
-        email: updatedStudent.email,
-        profileImage: updatedStudent.profileImage,
-        phone: updatedStudent.phone,
-        address: updatedStudent.address,
-        guardianName: updatedStudent.guardianName,
-        guardianPhone: updatedStudent.guardianPhone
+      res.json({ 
+        success: true, 
+        message: 'Profile updated successfully',
+        student: updatedStudent 
       });
     } catch (error) {
       console.error("Error updating student profile:", error);
       res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
+  // Student notification settings endpoint
+  app.put("/api/student/notifications", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Student not authenticated' });
+      }
+
+      const updateData = {
+        emailNotifications: req.body.emailNotifications ?? true,
+        smsNotifications: req.body.smsNotifications ?? false,
+        emailExamResults: req.body.emailExamResults ?? true,
+        emailUpcomingExams: req.body.emailUpcomingExams ?? true,
+        smsExamResults: req.body.smsExamResults ?? false,
+        smsUpcomingExams: req.body.smsUpcomingExams ?? false
+      };
+
+      // Update user record (not student record) for notification settings
+      const updatedUser = await storage.updateUser(user.id, updateData);
+      if (!updatedUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update session data
+      Object.assign(req.session.user!, updateData);
+
+      res.json({ 
+        success: true, 
+        message: 'Notification settings updated successfully' 
+      });
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      res.status(500).json({ error: 'Failed to update notification settings' });
+    }
+  });
+
+  // Student password change endpoint
+  app.post("/api/student/change-password", requireStudent, async (req: Request, res: Response) => {
+    try {
+      const user = req.session?.user;
+      if (!user) {
+        return res.status(401).json({ error: 'Student not authenticated' });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+      }
+
+      // Verify current password
+      const student = await storage.getStudent(user.studentId!);
+      if (!student) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      const isValidPassword = await bcrypt.compare(currentPassword, student.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password and update
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await storage.updateStudent(user.studentId!, { password: hashedPassword });
+
+      res.json({ 
+        success: true, 
+        message: 'Password changed successfully' 
+      });
+    } catch (error) {
+      console.error("Error changing student password:", error);
+      res.status(500).json({ error: 'Failed to change password' });
     }
   });
 

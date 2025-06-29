@@ -167,7 +167,7 @@ export default function StudentProfile() {
   // Personal Info Form mutation
   const personalInfoMutation = useMutation({
     mutationFn: async (data: PersonalInfoFormValues) => {
-      const response = await fetch("/api/student/profile", {
+      const response = await fetch("/api/students/profile", {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -253,8 +253,8 @@ export default function StudentProfile() {
   // Password Form mutation
   const passwordMutation = useMutation({
     mutationFn: async (data: PasswordFormValues) => {
-      const response = await fetch("/api/student/password", {
-        method: 'PUT',
+      const response = await fetch("/api/student/change-password", {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },

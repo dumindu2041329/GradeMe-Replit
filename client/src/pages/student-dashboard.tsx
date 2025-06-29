@@ -12,6 +12,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Line, LineChart } from "recharts";
 import { Badge } from "@/components/ui/badge";
 import { StudentDashboardData, Exam, ResultWithDetails } from "@shared/schema";
+import { motion } from "framer-motion";
 
 
 
@@ -120,113 +121,144 @@ export default function StudentDashboard() {
         {/* Performance Analytics Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Performance Trend Chart */}
-          <Card className="border-primary/10 dark:border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Performance Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {dashboardData?.examHistory && dashboardData.examHistory.length > 0 ? (
-                <ChartContainer
-                  config={{
-                    percentage: {
-                      label: "Score %",
-                      color: "hsl(var(--chart-1))",
-                    },
-                  }}
-                  className="h-[200px]"
-                >
-                  <AreaChart
-                    data={dashboardData.examHistory
-                      .slice()
-                      .reverse()
-                      .map((exam, index) => ({
-                        exam: `Exam ${index + 1}`,
-                        percentage: exam.percentage,
-                        name: exam.exam.name.length > 15 ? exam.exam.name.substring(0, 15) + '...' : exam.exam.name
-                      }))}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Card className="border-primary/10 dark:border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Performance Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardData?.examHistory && dashboardData.examHistory.length > 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="exam" />
-                    <YAxis domain={[0, 100]} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Area
-                      type="monotone"
-                      dataKey="percentage"
-                      stroke="hsl(var(--chart-1))"
-                      fill="hsl(var(--chart-1))"
-                      fillOpacity={0.3}
-                    />
-                  </AreaChart>
-                </ChartContainer>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  No performance data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <ChartContainer
+                      config={{
+                        percentage: {
+                          label: "Score %",
+                          color: "hsl(var(--chart-1))",
+                        },
+                      }}
+                      className="h-[200px]"
+                    >
+                      <AreaChart
+                        data={dashboardData.examHistory
+                          .slice()
+                          .reverse()
+                          .map((exam, index) => ({
+                            exam: `Exam ${index + 1}`,
+                            percentage: exam.percentage,
+                            name: exam.exam.name.length > 15 ? exam.exam.name.substring(0, 15) + '...' : exam.exam.name
+                          }))}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="exam" />
+                        <YAxis domain={[0, 100]} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area
+                          type="monotone"
+                          dataKey="percentage"
+                          stroke="hsl(var(--chart-1))"
+                          fill="hsl(var(--chart-1))"
+                          fillOpacity={0.3}
+                        />
+                      </AreaChart>
+                    </ChartContainer>
+                  </motion.div>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                    No performance data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Grade Distribution */}
-          <Card className="border-primary/10 dark:border-primary/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart2 className="h-5 w-5" />
-                Grade Distribution
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {dashboardData?.examHistory && dashboardData.examHistory.length > 0 ? (
-                <div className="space-y-4">
-                  {(() => {
-                    const gradeDistribution = dashboardData.examHistory.reduce((acc, exam) => {
-                      let grade;
-                      const percentage = parseFloat(exam.percentage);
-                      if (percentage >= 90) grade = "A+";
-                      else if (percentage >= 80) grade = "A";
-                      else if (percentage >= 70) grade = "B";
-                      else if (percentage >= 60) grade = "C";
-                      else if (percentage >= 50) grade = "D";
-                      else grade = "F";
-                      
-                      acc[grade] = (acc[grade] || 0) + 1;
-                      return acc;
-                    }, {} as Record<string, number>);
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="border-primary/10 dark:border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="h-5 w-5" />
+                  Grade Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dashboardData?.examHistory && dashboardData.examHistory.length > 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, delay: 0.6 }}
+                    className="space-y-4"
+                  >
+                    {(() => {
+                      const gradeDistribution = dashboardData.examHistory.reduce((acc, exam) => {
+                        let grade;
+                        const percentage = parseFloat(exam.percentage);
+                        if (percentage >= 90) grade = "A+";
+                        else if (percentage >= 80) grade = "A";
+                        else if (percentage >= 70) grade = "B";
+                        else if (percentage >= 60) grade = "C";
+                        else if (percentage >= 50) grade = "D";
+                        else grade = "F";
+                        
+                        acc[grade] = (acc[grade] || 0) + 1;
+                        return acc;
+                      }, {} as Record<string, number>);
 
-                    const total = dashboardData.examHistory.length;
-                    const grades = ["A+", "A", "B", "C", "D", "F"];
-                    const colors = ["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-orange-500", "bg-red-400", "bg-red-600"];
+                      const total = dashboardData.examHistory.length;
+                      const grades = ["A+", "A", "B", "C", "D", "F"];
+                      const colors = ["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-orange-500", "bg-red-400", "bg-red-600"];
 
-                    return grades.map((grade, index) => {
-                      const count = gradeDistribution[grade] || 0;
-                      const percentage = total > 0 ? (count / total) * 100 : 0;
-                      
-                      return (
-                        <div key={grade} className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="font-medium">Grade {grade}</span>
-                            <span className="text-muted-foreground">{count} ({percentage.toFixed(0)}%)</span>
-                          </div>
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${colors[index]}`}
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground">
-                  No grade data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      return grades.map((grade, index) => {
+                        const count = gradeDistribution[grade] || 0;
+                        const percentage = total > 0 ? (count / total) * 100 : 0;
+                        
+                        return (
+                          <motion.div
+                            key={grade}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
+                            className="space-y-2"
+                          >
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium">Grade {grade}</span>
+                              <span className="text-muted-foreground">{count} ({percentage.toFixed(0)}%)</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 1, delay: 0.8 + index * 0.1, ease: "easeOut" }}
+                                className={`h-2 rounded-full ${colors[index]}`}
+                              />
+                            </div>
+                          </motion.div>
+                        );
+                      });
+                    })()}
+                  </motion.div>
+                ) : (
+                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                    No grade data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
         
         {/* Active Exams Section */}
