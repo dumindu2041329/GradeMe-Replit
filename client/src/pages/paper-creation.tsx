@@ -83,7 +83,7 @@ export default function PaperCreationPage() {
     enabled: !!examId,
   });
 
-  // Fetch questions from JSON file - manual refresh only
+  // Fetch questions from JSON file - refresh on mount and window focus
   const { data: paperData, isLoading: questionsLoading, refetch: refetchPaper } = useQuery({
     queryKey: ['paper', examId],
     queryFn: async () => {
@@ -92,9 +92,11 @@ export default function PaperCreationPage() {
       return response;
     },
     enabled: !!examId,
-    staleTime: 30000, // Cache for 30 seconds
-    refetchOnWindowFocus: false, // Don't refetch when user returns to the page
-    refetchOnMount: true, // Fetch on component mount only
+    staleTime: 0, // No cache - always fetch fresh data
+    gcTime: 0, // Don't keep in cache
+    refetchOnWindowFocus: true, // Refetch when user returns to the page
+    refetchOnMount: 'always', // Always fetch fresh data on component mount
+    refetchInterval: 2000, // Auto-refresh every 2 seconds while on the page
   });
 
   // Local state for immediate frontend display with smart sync
