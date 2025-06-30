@@ -39,10 +39,7 @@ const profileFormSchema = z.object({
 });
 
 const notificationFormSchema = z.object({
-  emailNotifications: z.boolean().default(false),
   smsNotifications: z.boolean().default(false),
-  emailExamResults: z.boolean().default(false),
-  emailUpcomingExams: z.boolean().default(false),
   smsExamResults: z.boolean().default(false),
   smsUpcomingExams: z.boolean().default(false),
 });
@@ -130,10 +127,7 @@ export function ProfileSettings({
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
-      emailNotifications: user?.emailNotifications || false,
       smsNotifications: user?.smsNotifications || false,
-      emailExamResults: user?.emailExamResults || false,
-      emailUpcomingExams: user?.emailUpcomingExams || false,
       smsExamResults: user?.smsExamResults || false,
       smsUpcomingExams: user?.smsUpcomingExams || false,
     },
@@ -236,14 +230,11 @@ export function ProfileSettings({
       const requestBody = userRole === 'student' 
         ? {
             // For student role, send detailed notification preferences
-            emailExamResults: data.emailExamResults,
-            emailUpcomingExams: data.emailUpcomingExams,
             smsExamResults: data.smsExamResults,
             smsUpcomingExams: data.smsUpcomingExams,
           }
         : {
-            // For admin role, just use the basic email/sms flags
-            emailNotifications: data.emailNotifications,
+            // For admin role, just use the basic sms flags
             smsNotifications: data.smsNotifications,
           };
       
@@ -267,10 +258,7 @@ export function ProfileSettings({
       if (user) {
         setUser({
           ...user,
-          emailNotifications: data.emailNotifications,
           smsNotifications: data.smsNotifications,
-          emailExamResults: data.emailExamResults,
-          emailUpcomingExams: data.emailUpcomingExams,
           smsExamResults: data.smsExamResults,
           smsUpcomingExams: data.smsUpcomingExams
         });
@@ -457,51 +445,7 @@ export function ProfileSettings({
               {userRole === 'student' && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">Email Notifications</h4>
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="emailExamResults"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel>Exam Results</FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Receive notifications when exam results are available
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="emailUpcomingExams"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel>Upcoming Exams</FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Receive reminders about upcoming exams
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+
                     
                     <div className="space-y-4">
                       <h4 className="font-medium text-sm">SMS Notifications</h4>
@@ -554,26 +498,7 @@ export function ProfileSettings({
               
               {userRole === 'admin' && (
                 <>
-                  <FormField
-                    control={notificationForm.control}
-                    name="emailNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel>Email Notifications</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Receive system notifications via email
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+
                   
                   <FormField
                     control={notificationForm.control}

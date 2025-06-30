@@ -62,10 +62,7 @@ const personalInfoSchema = z.object({
 });
 
 const notificationFormSchema = z.object({
-  emailNotifications: z.boolean().default(false),
   smsNotifications: z.boolean().default(false),
-  emailExamResults: z.boolean().default(false),
-  emailUpcomingExams: z.boolean().default(false),
   smsExamResults: z.boolean().default(false),
   smsUpcomingExams: z.boolean().default(false),
 });
@@ -172,10 +169,7 @@ export function StudentProfileSettings({
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
-      emailNotifications: user?.emailNotifications || false,
       smsNotifications: user?.smsNotifications || false,
-      emailExamResults: user?.emailExamResults || false,
-      emailUpcomingExams: user?.emailUpcomingExams || false,
       smsExamResults: user?.smsExamResults || false,
       smsUpcomingExams: user?.smsUpcomingExams || false,
     },
@@ -289,10 +283,7 @@ export function StudentProfileSettings({
       if (user) {
         setUser({
           ...user,
-          emailNotifications: data.emailNotifications,
           smsNotifications: data.smsNotifications,
-          emailExamResults: data.emailExamResults,
-          emailUpcomingExams: data.emailUpcomingExams,
           smsExamResults: data.smsExamResults,
           smsUpcomingExams: data.smsUpcomingExams
         });
@@ -646,74 +637,7 @@ export function StudentProfileSettings({
             <Form {...notificationForm}>
               <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">Email Notifications</h4>
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="emailNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              Email Notifications
-                            </FormLabel>
-                            <FormDescription>
-                              Receive all notifications via email
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="emailExamResults"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Exam Results</FormLabel>
-                            <FormDescription>
-                              Receive notifications when exam results are available
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="emailUpcomingExams"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Upcoming Exams</FormLabel>
-                            <FormDescription>
-                              Receive reminders about upcoming exams
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+
                   
                   <div className="space-y-4">
                     <h4 className="font-medium text-sm">SMS Notifications</h4>
