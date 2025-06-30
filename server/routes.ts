@@ -10,6 +10,7 @@ import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from ".
 import { paperFileStorage } from "./paper-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
 import { registerProfileRoutes } from "./profile-routes";
+import { emailService } from "./email-service";
 // Performance optimization imports removed during migration
 
 declare module "express-session" {
@@ -884,6 +885,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const studentRank = sortedResults.findIndex(r => r.studentId === user.studentId) + 1;
 
+      // Send email notification for exam result
+      try {
+        const resultData = {
+          score,
+          rank: studentRank,
+          totalStudents: allResults.length,
+          passed: percentage >= 60 // Assuming 60% is passing grade
+        };
+        
+        await emailService.sendExamResultEmail(user.studentId, examId, resultData);
+      } catch (emailError) {
+        console.error("Failed to send exam result email:", emailError);
+        // Don't fail the exam submission if email fails
+      }
+
       res.json({
         score,
         attemptedMarks,
@@ -1409,6 +1425,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
+  // Email notification routes
+  
+  // Send upcoming exam reminders for a specific exam (Admin only)
+  app.post("/api/email/upcoming-exam/:examId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const emailsSent = await emailService.sendUpcomingExamReminder(examId);
+      
+      res.json({
+        success: true,
+        message: `Sent ${emailsSent} upcoming exam reminder emails`,
+        emailsSent
+      });
+    } catch (error) {
+      console.error("Error sending upcoming exam reminders:", error);
+      res.status(500).json({ error: 'Failed to send email reminders' });
+    }
+  });
+
+  // Send bulk upcoming exam reminders for all upcoming exams (Admin only)
+  app.post("/api/email/upcoming-exams-bulk", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const totalEmailsSent = await emailService.sendBulkUpcomingExamReminders();
+      
+      res.json({
+        success: true,
+        message: `Sent ${totalEmailsSent} upcoming exam reminder emails`,
+        totalEmailsSent
+      });
+    } catch (error) {
+      console.error("Error sending bulk upcoming exam reminders:", error);
+      res.status(500).json({ error: 'Failed to send bulk email reminders' });
+    }
+  });
+
+  // Test email service (Admin only)
+  app.post("/api/email/test", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const isWorking = await emailService.testEmailService();
+      
+      if (isWorking) {
+        res.json({
+          success: true,
+          message: 'Email service is working correctly'
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: 'Email service test failed'
+        });
+      }
+    } catch (error) {
+      console.error("Error testing email service:", error);
+      res.status(500).json({ error: 'Failed to test email service' });
+    }
+  });
 
   // Register question routes with WebSocket broadcast function
   registerQuestionRoutes(app, requireAdmin, broadcastUpdate);

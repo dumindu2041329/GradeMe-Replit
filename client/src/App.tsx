@@ -13,6 +13,7 @@ import Students from "@/pages/students";
 import Results from "@/pages/results";
 import Profile from "@/pages/profile";
 import PaperCreationPage from "@/pages/paper-creation";
+import AdminEmailManagement from "@/pages/admin-email-management";
 
 
 import StudentDashboard from "@/pages/student-dashboard";
@@ -218,6 +219,12 @@ function Router() {
         <Route path="/profile">
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        </Route>
+        
+        <Route path="/email-management">
+          <ProtectedRoute>
+            <AdminEmailManagement />
           </ProtectedRoute>
         </Route>
         

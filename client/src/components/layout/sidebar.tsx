@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NavLink } from "@/components/ui/nav-link";
-import { BookOpen, GraduationCap, Home, BarChart2 } from "lucide-react";
+import { BookOpen, GraduationCap, Home, BarChart2, Mail } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
@@ -35,6 +35,11 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
       name: "Results",
       href: "/results",
       icon: BarChart2,
+    },
+    {
+      name: "Email Management",
+      href: "/email-management",
+      icon: Mail,
     },
   ];
 
