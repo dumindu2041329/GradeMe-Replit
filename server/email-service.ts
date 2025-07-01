@@ -19,11 +19,14 @@ export interface EmailData {
 
 export class EmailService {
   private db = getDb();
-  private fromEmail = 'noreply@grademe.edu'; // You can customize this
+  private fromEmail = process.env.SENDGRID_FROM_EMAIL || 'noreply@grademe.edu';
 
   constructor() {
     if (!SENDGRID_API_KEY) {
       console.warn('SendGrid API key not found. Email notifications will be disabled.');
+    }
+    if (!process.env.SENDGRID_FROM_EMAIL) {
+      console.warn('SENDGRID_FROM_EMAIL not set. Using default: noreply@grademe.edu');
     }
   }
 
@@ -37,8 +40,11 @@ export class EmailService {
       await sgMail.send(emailData);
       console.log('Email sent successfully to:', emailData.to);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to send email:', error);
+      if (error.response) {
+        console.error('SendGrid error details:', JSON.stringify(error.response.body, null, 2));
+      }
       return false;
     }
   }
