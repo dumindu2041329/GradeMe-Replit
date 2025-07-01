@@ -10,6 +10,7 @@ import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from ".
 import { paperFileStorage } from "./paper-file-storage";
 import { registerQuestionRoutes } from "./question-routes";
 import { registerProfileRoutes } from "./profile-routes";
+import { emailService } from "./email-service";
 
 // Performance optimization imports removed during migration
 
@@ -885,7 +886,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const studentRank = sortedResults.findIndex(r => r.studentId === user.studentId) + 1;
 
-
+      // Send automatic email notification for exam results
+      try {
+        await emailService.sendExamResultNotification(user.studentId, examId, score, exam.totalMarks);
+      } catch (emailError) {
+        console.error("Failed to send exam result email:", emailError);
+        // Don't fail the exam submission if email fails
+      }
 
       res.json({
         score,
@@ -1411,6 +1418,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
+
+  // Email notification routes
+  app.post("/api/email/test", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { testEmail } = req.body;
+      if (!testEmail) {
+        return res.status(400).json({ error: 'Test email address is required' });
+      }
+
+      const success = await emailService.testEmailConnection(testEmail);
+      if (success) {
+        res.json({ message: 'Test email sent successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to send test email' });
+      }
+    } catch (error) {
+      console.error("Error sending test email:", error);
+      res.status(500).json({ error: 'Failed to send test email' });
+    }
+  });
+
+  app.post("/api/email/upcoming-exam/:examId", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const examId = parseInt(req.params.examId);
+      const { studentId } = req.body;
+
+      if (studentId) {
+        // Send to specific student
+        const success = await emailService.sendUpcomingExamNotification(studentId, examId);
+        if (success) {
+          res.json({ message: 'Exam reminder sent successfully' });
+        } else {
+          res.status(500).json({ error: 'Failed to send exam reminder' });
+        }
+      } else {
+        // Send to all students
+        const result = await emailService.sendBulkUpcomingExamNotifications(examId);
+        res.json({ 
+          message: `Exam reminders sent to ${result.sent} students`, 
+          sent: result.sent, 
+          failed: result.failed 
+        });
+      }
+    } catch (error) {
+      console.error("Error sending exam reminders:", error);
+      res.status(500).json({ error: 'Failed to send exam reminders' });
+    }
+  });
 
   // Register question routes with WebSocket broadcast function
   registerQuestionRoutes(app, requireAdmin, broadcastUpdate);

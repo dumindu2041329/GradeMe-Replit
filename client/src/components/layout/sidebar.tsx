@@ -36,6 +36,11 @@ export function Sidebar({ className, onItemClick }: SidebarProps = {}) {
       href: "/results",
       icon: BarChart2,
     },
+    {
+      name: "Email Management",
+      href: "/email-management",
+      icon: Mail,
+    },
 
   ];
 
