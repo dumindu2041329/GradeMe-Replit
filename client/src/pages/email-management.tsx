@@ -24,6 +24,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Mail, Send, TestTube, Users, User } from "lucide-react";
+import { AppShell } from "@/components/layout/app-shell";
 
 interface Exam {
   id: number;
@@ -175,13 +176,14 @@ export default function EmailManagementPage() {
   const activeExams = exams.filter(exam => exam.status === "active");
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-2">
-        <Mail className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">Email Management</h1>
-      </div>
+    <AppShell title="Email Management" sidebar="admin">
+      <div className="space-y-6">
+        <div className="flex items-center space-x-2">
+          <Mail className="h-8 w-8 text-primary" />
+          <h1 className="text-3xl font-bold">Email Management</h1>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Test Email Section */}
         <Card>
           <CardHeader>
@@ -358,6 +360,7 @@ export default function EmailManagementPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AppShell>
   );
 }
