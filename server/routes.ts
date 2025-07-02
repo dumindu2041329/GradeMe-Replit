@@ -754,6 +754,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Exam not found" });
       }
       
+      // Prevent editing completed exams
+      if (currentExam.status === "completed") {
+        return res.status(400).json({ 
+          message: "Cannot edit completed exams" 
+        });
+      }
+      
       // Prevent changing active exams back to upcoming status when students are taking them
       if (currentExam.status === "active" && req.body.status === "upcoming") {
         return res.status(400).json({ 

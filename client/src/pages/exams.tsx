@@ -195,8 +195,14 @@ export default function Exams() {
           >
             <FileText className={`h-4 w-4 ${exam.status === "completed" ? "text-gray-400" : "text-green-500"}`} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => handleEditExam(exam)}>
-            <Pencil className="h-4 w-4 text-blue-500" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => handleEditExam(exam)}
+            disabled={exam.status === "completed"}
+            title={exam.status === "completed" ? "Cannot edit completed exams" : "Edit Exam"}
+          >
+            <Pencil className={`h-4 w-4 ${exam.status === "completed" ? "text-gray-400" : "text-blue-500"}`} />
           </Button>
           <Button variant="ghost" size="icon" onClick={() => handleDeleteExam(exam)}>
             <Trash2 className="h-4 w-4 text-red-500" />
