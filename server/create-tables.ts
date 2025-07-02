@@ -37,8 +37,8 @@ export async function createTablesIfNotExist() {
     if (!allTablesExist) {
       console.log('Some tables are missing. Creating tables...');
       
-      // Read and execute the initial migration SQL
-      const migrationPath = path.join(process.cwd(), 'migrations', '0000_supabase_four_tables.sql');
+      // Read and execute the complete database schema migration
+      const migrationPath = path.join(process.cwd(), 'migrations', '0003_complete_database_schema.sql');
       const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
       
       // Split by statement separator and execute each
@@ -51,22 +51,10 @@ export async function createTablesIfNotExist() {
             await db.execute(trimmedStatement);
           } catch (error: any) {
             // Ignore errors for existing objects
-            if (!error.message?.includes('already exists')) {
+            if (!error.message?.includes('already exists') && 
+                !error.message?.includes('duplicate_object')) {
               console.error('Error executing statement:', error.message);
             }
-          }
-        }
-      }
-      
-      // Also run the start_time migration
-      const startTimeMigrationPath = path.join(process.cwd(), 'migrations', '0002_add_exam_start_time.sql');
-      if (fs.existsSync(startTimeMigrationPath)) {
-        const startTimeMigrationSQL = fs.readFileSync(startTimeMigrationPath, 'utf8');
-        try {
-          await db.execute(startTimeMigrationSQL);
-        } catch (error: any) {
-          if (!error.message?.includes('already exists')) {
-            console.error('Error adding start_time column:', error.message);
           }
         }
       }
