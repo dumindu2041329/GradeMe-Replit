@@ -967,6 +967,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the exam submission if email fails
       }
 
+      // Check if all students have completed the exam
+      try {
+        const totalStudents = await storage.getStudents();
+        const examResults = await storage.getResultsByExamId(examId);
+        
+        // If all students have completed the exam, mark it as completed
+        if (examResults.length >= totalStudents.length && exam.status === 'active') {
+          await storage.updateExam(examId, { status: 'completed' });
+          console.log(`Exam ${examId} automatically marked as completed - all students have finished`);
+        }
+      } catch (autoCompleteError) {
+        console.error("Failed to check/update exam completion status:", autoCompleteError);
+        // Don't fail the exam submission if auto-complete check fails
+      }
+
       res.json({
         score,
         attemptedMarks,
