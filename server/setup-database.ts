@@ -36,11 +36,8 @@ export async function setupInitialData() {
         profileImage: null,
         studentId: null,
         emailNotifications: true,
-        smsNotifications: false,
         emailExamResults: true,
-        emailUpcomingExams: true,
-        smsExamResults: false,
-        smsUpcomingExams: false
+        emailUpcomingExams: true
       });
     } else {
       // Update existing admin password to admin123
@@ -87,11 +84,8 @@ export async function setupInitialData() {
         profileImage: null,
         studentId: studentRecord[0].id,
         emailNotifications: true,
-        smsNotifications: false,
         emailExamResults: true,
-        emailUpcomingExams: true,
-        smsExamResults: false,
-        smsUpcomingExams: false
+        emailUpcomingExams: true
       });
     }
   } catch (error) {

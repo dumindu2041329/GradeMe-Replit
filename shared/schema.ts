@@ -18,9 +18,6 @@ export const users = pgTable('users', {
   emailNotifications: boolean('email_notifications').notNull().default(false),
   emailExamResults: boolean('email_exam_results').notNull().default(false),
   emailUpcomingExams: boolean('email_upcoming_exams').notNull().default(false),
-  smsNotifications: boolean('sms_notifications').notNull().default(false),
-  smsExamResults: boolean('sms_exam_results').notNull().default(false),
-  smsUpcomingExams: boolean('sms_upcoming_exams').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

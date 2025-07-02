@@ -141,9 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailNotifications: user.emailNotifications,
         emailExamResults: user.emailExamResults,
         emailUpcomingExams: user.emailUpcomingExams,
-        smsNotifications: user.smsNotifications,
-        smsExamResults: user.smsExamResults,
-        smsUpcomingExams: user.smsUpcomingExams,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -221,9 +218,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           emailNotifications: user.emailNotifications,
           emailExamResults: user.emailExamResults,
           emailUpcomingExams: user.emailUpcomingExams,
-          smsNotifications: user.smsNotifications,
-          smsExamResults: user.smsExamResults,
-          smsUpcomingExams: user.smsUpcomingExams,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         };
@@ -283,9 +277,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailNotifications: userRecord?.emailNotifications ?? false,
         emailExamResults: userRecord?.emailExamResults ?? false,
         emailUpcomingExams: userRecord?.emailUpcomingExams ?? false,
-        smsNotifications: userRecord?.smsNotifications ?? false,
-        smsExamResults: userRecord?.smsExamResults ?? false,
-        smsUpcomingExams: userRecord?.smsUpcomingExams ?? false,
         createdAt: student.createdAt || new Date(),
         updatedAt: student.updatedAt || new Date()
       };
@@ -1225,9 +1216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updateData = {
-        smsNotifications: req.body.smsNotifications ?? false,
-        smsExamResults: req.body.smsExamResults ?? false,
-        smsUpcomingExams: req.body.smsUpcomingExams ?? false
+        emailNotifications: req.body.emailNotifications ?? false,
+        emailExamResults: req.body.emailExamResults ?? false,
+        emailUpcomingExams: req.body.emailUpcomingExams ?? false
       };
 
       // Find the user record by studentId
@@ -1389,9 +1380,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.body.emailNotifications !== undefined) updateData.emailNotifications = req.body.emailNotifications;
       if (req.body.emailExamResults !== undefined) updateData.emailExamResults = req.body.emailExamResults;
       if (req.body.emailUpcomingExams !== undefined) updateData.emailUpcomingExams = req.body.emailUpcomingExams;
-      if (req.body.smsNotifications !== undefined) updateData.smsNotifications = req.body.smsNotifications;
-      if (req.body.smsExamResults !== undefined) updateData.smsExamResults = req.body.smsExamResults;
-      if (req.body.smsUpcomingExams !== undefined) updateData.smsUpcomingExams = req.body.smsUpcomingExams;
 
       const updatedUser = await storage.updateUser(user.id, updateData);
       if (!updatedUser) {
@@ -1404,10 +1392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         emailNotifications: updatedUser.emailNotifications,
         emailExamResults: updatedUser.emailExamResults,
-        emailUpcomingExams: updatedUser.emailUpcomingExams,
-        smsNotifications: updatedUser.smsNotifications,
-        smsExamResults: updatedUser.smsExamResults,
-        smsUpcomingExams: updatedUser.smsUpcomingExams
+        emailUpcomingExams: updatedUser.emailUpcomingExams
       });
     } catch (error) {
       console.error("Error updating user notifications:", error);

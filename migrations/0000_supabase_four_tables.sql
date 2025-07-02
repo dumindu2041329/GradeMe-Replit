@@ -52,11 +52,8 @@ CREATE TABLE "users" (
 	"profile_image" text,
 	"student_id" integer,
 	"email_notifications" boolean DEFAULT true NOT NULL,
-	"sms_notifications" boolean DEFAULT false NOT NULL,
 	"email_exam_results" boolean DEFAULT true NOT NULL,
 	"email_upcoming_exams" boolean DEFAULT true NOT NULL,
-	"sms_exam_results" boolean DEFAULT false NOT NULL,
-	"sms_upcoming_exams" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")

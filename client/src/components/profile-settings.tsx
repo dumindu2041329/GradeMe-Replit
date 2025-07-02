@@ -39,9 +39,9 @@ const profileFormSchema = z.object({
 });
 
 const notificationFormSchema = z.object({
-  smsNotifications: z.boolean().default(false),
-  smsExamResults: z.boolean().default(false),
-  smsUpcomingExams: z.boolean().default(false),
+  emailNotifications: z.boolean().default(false),
+  emailExamResults: z.boolean().default(false),
+  emailUpcomingExams: z.boolean().default(false),
 });
 
 const passwordFormSchema = z.object({
@@ -51,62 +51,30 @@ const passwordFormSchema = z.object({
   newPassword: z.string().min(8, {
     message: 'Password must be at least 8 characters.',
   }),
-  confirmPassword: z.string().min(8, {
-    message: 'Password must be at least 8 characters.',
-  }),
+  confirmPassword: z.string(),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match.',
+  message: "Passwords don't match",
   path: ['confirmPassword'],
 });
 
-// Type definitions
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type NotificationFormValues = z.infer<typeof notificationFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-interface ProfileSettingsProps {
-  userRole: 'admin' | 'student';
-  profileEndpoint?: string;
-  notificationEndpoint?: string;
-  passwordEndpoint?: string;
-}
-
-export function ProfileSettings({
-  userRole,
-  profileEndpoint = '/api/users/profile',
-  notificationEndpoint = '/api/users/notifications',
-  passwordEndpoint = '/api/users/password',
-}: ProfileSettingsProps) {
-  const { toast } = useToast();
+export function ProfileSettings() {
   const { user, setUser } = useAuth();
-  
-  // State for showing/hiding passwords
+  const { toast } = useToast();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
-  // State for profile image previewing
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    user?.profileImage || null
-  );
+  // Determine user role from context
+  const userRole = user?.role || 'student';
   
-  // Define type for student profile data
-  interface StudentProfile {
-    id: number;
-    name: string;
-    email: string;
-    class: string;
-    enrollmentDate: string;
-    password?: string;
-  }
-
-  // For student profile, fetch additional student data
-  const { data: studentProfile, isLoading: isLoadingProfile } = useQuery<StudentProfile>({
-    queryKey: ["/api/student/profile"],
-    enabled: userRole === 'student' && !!user?.studentId,
-  });
-  
-  // Initialize profile form with user data
+  // Initialize profile form
   const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -115,21 +83,13 @@ export function ProfileSettings({
     },
   });
   
-  // Update form values when student profile data is loaded
-  React.useEffect(() => {
-    if (studentProfile && userRole === 'student') {
-      profileForm.setValue('name', studentProfile.name || user?.name || '');
-      profileForm.setValue('email', studentProfile.email || user?.email || '');
-    }
-  }, [studentProfile, user, profileForm, userRole]);
-  
   // Initialize notification form
   const notificationForm = useForm<NotificationFormValues>({
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
-      smsNotifications: user?.smsNotifications || false,
-      smsExamResults: user?.smsExamResults || false,
-      smsUpcomingExams: user?.smsUpcomingExams || false,
+      emailNotifications: user?.emailNotifications || false,
+      emailExamResults: user?.emailExamResults || false,
+      emailUpcomingExams: user?.emailUpcomingExams || false,
     },
   });
   
@@ -143,102 +103,165 @@ export function ProfileSettings({
     },
   });
   
-  // Handle profile image upload
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Preview the image
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImagePreview(e.target.result as string);
-          profileForm.setValue('profileImage', file);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
   // Profile update mutation
   const profileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      // Prepare the request body based on user role
-      const requestBody = userRole === 'admin' 
-        ? {
-            // For admins, allow name and email updates
-            name: data.name,
-            email: data.email,
-            profileImage: imagePreview
-          } 
-        : {
-            // For students, only allow email updates
-            // Name, class, and enrollment date can only be updated by admins
-            name: data.name,  // Include name, even though server might not use it
-            email: data.email,
-            profileImage: imagePreview
-          };
-      
-      console.log('Submitting profile update:', requestBody);
-      
-      // For file uploads, we'll add support later using FormData
-      
-      const response = await fetch(profileEndpoint, {
+      const endpoint = userRole === 'student' ? '/api/students/profile' : '/api/users/profile';
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(data),
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Profile update error:', errorData);
-        throw new Error(errorData.message || 'Failed to update profile');
+        throw new Error('Failed to update profile');
       }
       
       return response.json();
     },
     onSuccess: (data) => {
-      // Update user state with new profile data
-      if (user) {
-        setUser({
-          ...user,
-          name: data.name,
-          email: data.email,
-          profileImage: data.profileImage,
-        });
+      setUser({ ...user!, ...data });
+      toast({
+        title: 'Profile updated successfully',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Failed to update profile',
+        variant: 'destructive',
+      });
+    },
+  });
+  
+  // Handle image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate the file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      toast({
+        title: "Invalid file",
+        description: validation.error,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      
+      // Resize the image
+      const resizedBlob = await resizeImageForProfile(file);
+      const base64 = await blobToBase64(resizedBlob);
+      
+      // Set the preview
+      setUploadedImage(base64);
+      setSelectedFile(new File([resizedBlob], file.name, { type: resizedBlob.type }));
+      
+    } catch (error) {
+      console.error('Error processing image:', error);
+      toast({
+        title: "Error processing image",
+        description: "Please try another image",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+  
+  // Upload profile image mutation
+  const uploadProfileImageMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedFile) throw new Error('No file selected');
+      
+      const formData = new FormData();
+      formData.append('profileImage', selectedFile);
+      
+      const endpoint = userRole === 'student' 
+        ? '/api/student/profile/upload-image' 
+        : '/api/profile/upload-image';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to upload image');
       }
       
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
-      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (user && data.imageUrl) {
+        setUser({ ...user, profileImage: data.imageUrl });
+        setUploadedImage(null);
+        setSelectedFile(null);
+        toast({
+          title: 'Profile image uploaded successfully',
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
-        title: "Update Failed",
-        description: error.message || "There was a problem updating your profile.",
-        variant: "destructive",
+        title: 'Failed to upload image',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
+  });
+  
+  // Delete profile image mutation
+  const deleteProfileImageMutation = useMutation({
+    mutationFn: async () => {
+      const endpoint = userRole === 'student' 
+        ? '/api/student/profile/delete-image' 
+        : '/api/profile/delete-image';
+      
+      const response = await fetch(endpoint, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      if (user) {
+        setUser({ ...user, profileImage: null });
+        toast({
+          title: 'Profile image deleted successfully',
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Failed to delete image',
+        variant: 'destructive',
+      });
+    },
   });
   
   // Notification settings mutation
   const notificationMutation = useMutation({
     mutationFn: async (data: NotificationFormValues) => {
       // Prepare request body based on user role
-      const requestBody = userRole === 'student' 
-        ? {
-            // For student role, send detailed notification preferences
-            smsExamResults: data.smsExamResults,
-            smsUpcomingExams: data.smsUpcomingExams,
-          }
-        : {
-            // For admin role, just use the basic sms flags
-            smsNotifications: data.smsNotifications,
-          };
+      const requestBody = {
+        emailNotifications: data.emailNotifications,
+        emailExamResults: data.emailExamResults,
+        emailUpcomingExams: data.emailUpcomingExams,
+      };
       
-      const response = await fetch(notificationEndpoint, {
+      const endpoint = userRole === 'student' ? '/api/student/notifications' : '/api/users/notifications';
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -247,8 +270,7 @@ export function ProfileSettings({
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update notification settings');
+        throw new Error('Failed to update notification settings');
       }
       
       return response.json();
@@ -258,31 +280,30 @@ export function ProfileSettings({
       if (user) {
         setUser({
           ...user,
-          smsNotifications: data.smsNotifications,
-          smsExamResults: data.smsExamResults,
-          smsUpcomingExams: data.smsUpcomingExams
+          emailNotifications: data.emailNotifications,
+          emailExamResults: data.emailExamResults,
+          emailUpcomingExams: data.emailUpcomingExams
         });
       }
       
       toast({
-        title: "Settings Updated",
-        description: "Your notification settings have been updated successfully.",
+        title: 'Notification settings updated successfully',
       });
     },
-    onError: (error: Error) => {
+    onError: () => {
       toast({
-        title: "Update Failed",
-        description: error.message || "There was a problem updating your notification settings.",
-        variant: "destructive",
+        title: 'Failed to update notification settings',
+        variant: 'destructive',
       });
-    }
+    },
   });
   
-  // Password update mutation
+  // Password change mutation
   const passwordMutation = useMutation({
     mutationFn: async (data: PasswordFormValues) => {
-      const response = await fetch(passwordEndpoint, {
-        method: 'PUT',
+      const endpoint = userRole === 'student' ? '/api/student/change-password' : '/api/users/change-password';
+      const response = await fetch(endpoint, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -293,32 +314,25 @@ export function ProfileSettings({
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update password');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to change password');
       }
       
       return response.json();
     },
     onSuccess: () => {
-      // Clear password form
-      passwordForm.reset({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-      
+      passwordForm.reset();
       toast({
-        title: "Password Updated",
-        description: "Your password has been updated successfully.",
+        title: 'Password changed successfully',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Update Failed",
-        description: error.message || "There was a problem updating your password.",
-        variant: "destructive",
+        title: 'Failed to change password',
+        description: error.message,
+        variant: 'destructive',
       });
-    }
+    },
   });
   
   // Form submit handlers
@@ -335,8 +349,88 @@ export function ProfileSettings({
   };
   
   return (
-    <div className="space-y-6">
-      {/* Profile Information Form */}
+    <div className="max-w-2xl mx-auto">
+      {/* Profile Image Upload */}
+      <Card className="border shadow-sm mb-6">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-medium mb-4">Profile Image</h3>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                {uploadedImage ? (
+                  <img src={uploadedImage} alt="Preview" className="w-full h-full object-cover" />
+                ) : user?.profileImage ? (
+                  <img src={user.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl text-gray-800 dark:text-white font-medium">
+                    {user?.name?.charAt(0) || 'U'}
+                  </span>
+                )}
+              </div>
+              
+              {user?.profileImage && !uploadedImage && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                  onClick={() => deleteProfileImageMutation.mutate()}
+                  disabled={deleteProfileImageMutation.isPending}
+                >
+                  <span className="text-xs">×</span>
+                </Button>
+              )}
+            </div>
+            
+            <div className="flex-1 space-y-4">
+              <PhotoGuidelines />
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                  <Button type="button" variant="outline" disabled={isUploading} asChild>
+                    <span>
+                      <ArrowUpFromLine className="h-4 w-4 mr-2" />
+                      {isUploading ? "Processing..." : "Choose Image"}
+                    </span>
+                  </Button>
+                </label>
+                
+                {uploadedImage && selectedFile && (
+                  <>
+                    <Button
+                      type="button"
+                      onClick={() => uploadProfileImageMutation.mutate()}
+                      disabled={uploadProfileImageMutation.isPending}
+                    >
+                      {uploadProfileImageMutation.isPending ? "Uploading..." : "Upload"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUploadedImage(null);
+                        setSelectedFile(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Profile Form */}
       <Card className="border shadow-sm mb-6">
         <CardContent className="p-6">
           <h3 className="text-lg font-medium mb-4">
@@ -347,50 +441,6 @@ export function ProfileSettings({
           
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-              <div className="flex flex-col items-center gap-4 mb-6">
-                <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700 relative group">
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-2xl text-white">
-                      {user?.name?.charAt(0) || 'U'}{user?.name?.split(' ')[1]?.charAt(0) || ''}
-                    </span>
-                  )}
-                  
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Input
-                      id="profile-image"
-                      type="file"
-                      accept="image/*"
-                      className="sr-only"
-                      onChange={handleImageUpload}
-                    />
-                    <label
-                      htmlFor="profile-image"
-                      className="cursor-pointer"
-                    >
-                      <div className="rounded-full p-1 bg-black/30">
-                        <ArrowUpFromLine className="h-5 w-5 text-white" />
-                      </div>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="text-center space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    Upload a new profile picture
-                  </p>
-                  <div className="flex items-center justify-center space-x-1">
-                    <PhotoGuidelines />
-                  </div>
-                </div>
-              </div>
-              
-              {/* Full Name field - only visible to admins */}
               {userRole === 'admin' && (
                 <FormField
                   control={profileForm.control}
@@ -442,65 +492,72 @@ export function ProfileSettings({
           
           <Form {...notificationForm}>
             <form onSubmit={notificationForm.handleSubmit(onNotificationSubmit)} className="space-y-6">
-              {userRole === 'student' && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-sm">SMS Notifications</h4>
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="smsExamResults"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel>Exam Results</FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Receive notifications when exam results are available
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={notificationForm.control}
-                        name="smsUpcomingExams"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel>Upcoming Exams</FormLabel>
-                              <p className="text-xs text-muted-foreground">
-                                Receive reminders about upcoming exams
-                              </p>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-              
-              {userRole === 'admin' && (
-                <>
-                  {/* SMS notifications removed - only email notifications for admin */}
-                </>
-              )}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm">Email Notifications</h4>
+                
+                <FormField
+                  control={notificationForm.control}
+                  name="emailNotifications"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-y-0">
+                      <div className="space-y-0.5">
+                        <FormLabel>Email Notifications</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Receive email notifications
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={notificationForm.control}
+                  name="emailExamResults"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-y-0">
+                      <div className="space-y-0.5">
+                        <FormLabel>Exam Results</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Receive notifications when exam results are available
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={notificationForm.control}
+                  name="emailUpcomingExams"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between space-y-0">
+                      <div className="space-y-0.5">
+                        <FormLabel>Upcoming Exams</FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          Receive reminders about upcoming exams
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <div className="flex justify-start">
                 <Button type="submit" disabled={notificationMutation.isPending}>
@@ -630,19 +687,12 @@ export function ProfileSettings({
               
               <div className="flex flex-row space-x-2">
                 <Button type="submit" disabled={passwordMutation.isPending}>
-                  {passwordMutation.isPending ? "Updating..." : "Update Password"}
+                  {passwordMutation.isPending ? "Changing..." : "Change Password"}
                 </Button>
-                
-                <Button 
-                  type="button" 
+                <Button
+                  type="button"
                   variant="outline"
-                  onClick={() => {
-                    passwordForm.reset({
-                      currentPassword: '',
-                      newPassword: '',
-                      confirmPassword: '',
-                    });
-                  }}
+                  onClick={() => passwordForm.reset()}
                 >
                   Reset
                 </Button>
