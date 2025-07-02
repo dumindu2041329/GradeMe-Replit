@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { getDb, isDbConnected } from "./db-connection";
-import { desc, eq, and } from "drizzle-orm";
+import { desc, eq, and, sql } from "drizzle-orm";
 import { exams, users, students, results, type User, type Student, type Exam, type Result } from "@shared/schema";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
@@ -402,8 +402,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Students CRUD operations - Admin only
   app.get("/api/students", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const students = await storage.getStudents();
-      res.json(students);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const noPagination = req.query.noPagination === 'true';
+      
+      // If no pagination is requested, return all students (for backwards compatibility)
+      if (noPagination) {
+        const students = await storage.getStudents();
+        return res.json(students);
+      }
+      
+      const search = req.query.search as string || '';
+      const offset = (page - 1) * limit;
+
+      const db = getDb();
+      
+      // Get all students and filter/paginate manually for simplicity
+      const allStudents = await db.select().from(students).orderBy(students.name);
+      
+      // Filter if search is provided
+      let filteredStudents = allStudents;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredStudents = allStudents.filter(
+          student => 
+            student.name.toLowerCase().includes(searchLower) ||
+            student.email.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      // Paginate
+      const paginatedStudents = filteredStudents.slice(offset, offset + limit);
+      
+      res.json({
+        students: paginatedStudents,
+        pagination: {
+          page,
+          limit,
+          total: filteredStudents.length,
+          totalPages: Math.ceil(filteredStudents.length / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching students:", error);
       res.status(500).json({ message: "Failed to fetch students" });
@@ -593,8 +632,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Exams CRUD operations
   app.get("/api/exams", requireAuth, async (req: Request, res: Response) => {
     try {
-      const exams = await storage.getExams();
-      res.json(exams);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const noPagination = req.query.noPagination === 'true';
+      
+      // If no pagination is requested, return all exams (for backwards compatibility)
+      if (noPagination) {
+        const exams = await storage.getExams();
+        return res.json(exams);
+      }
+      
+      const search = req.query.search as string || '';
+      const offset = (page - 1) * limit;
+
+      const db = getDb();
+      
+      // Get all exams and filter/paginate manually for simplicity
+      const allExams = await db.select().from(exams).orderBy(desc(exams.date), exams.name);
+      
+      // Filter if search is provided
+      let filteredExams = allExams;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredExams = allExams.filter(
+          exam => 
+            exam.name.toLowerCase().includes(searchLower) ||
+            exam.subject.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      // Paginate
+      const paginatedExams = filteredExams.slice(offset, offset + limit);
+      
+      res.json({
+        exams: paginatedExams,
+        pagination: {
+          page,
+          limit,
+          total: filteredExams.length,
+          totalPages: Math.ceil(filteredExams.length / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching exams:", error);
       res.status(500).json({ message: "Failed to fetch exams" });
@@ -908,8 +986,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Results CRUD operations - Admin only
   app.get("/api/results", requireAdmin, async (req: Request, res: Response) => {
     try {
-      const results = await storage.getResults();
-      res.json(results);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const noPagination = req.query.noPagination === 'true';
+      
+      // If no pagination is requested, return all results (for backwards compatibility)
+      if (noPagination) {
+        const results = await storage.getResults();
+        return res.json(results);
+      }
+      
+      const search = req.query.search as string || '';
+      const offset = (page - 1) * limit;
+
+      // Get all results - storage already joins the necessary data
+      const allResults = await storage.getResults();
+      
+      // Filter if search is provided
+      let filteredResults = allResults;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredResults = allResults.filter(
+          result => 
+            result.student.name.toLowerCase().includes(searchLower) ||
+            result.exam.name.toLowerCase().includes(searchLower) ||
+            result.exam.subject.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      // Paginate
+      const paginatedResults = filteredResults.slice(offset, offset + limit);
+      
+      res.json({
+        results: paginatedResults,
+        pagination: {
+          page,
+          limit,
+          total: filteredResults.length,
+          totalPages: Math.ceil(filteredResults.length / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching results:", error);
       res.status(500).json({ message: "Failed to fetch results" });

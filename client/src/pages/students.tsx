@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { format } from "date-fns";
@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { PlusCircle, Search, Pencil, Trash2, Users, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, Search, Pencil, Trash2, Users, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Define Student interface
 interface Student {
@@ -111,6 +111,8 @@ type EditStudentFormValues = z.infer<typeof editFormSchema>;
 
 export default function Students() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -121,19 +123,40 @@ export default function Students() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: students = [], isLoading } = useQuery<Student[]>({
-    queryKey: ["/api/students"],
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: response, isLoading } = useQuery<{
+    students: Student[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>({
+    queryKey: ["/api/students", currentPage, debouncedSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "10",
+        search: debouncedSearch,
+      });
+      const res = await fetch(`/api/students?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
 
-  // Search students by name or email
-  const filteredStudents = students.filter((student) => {
-    if (!searchQuery) return true;
-    
-    const query = searchQuery.toLowerCase();
-    return student.name.toLowerCase().includes(query) || 
-           student.email.toLowerCase().includes(query) ||
-           student.class.toLowerCase().includes(query);
-  });
+  const students = response?.students || [];
+  const pagination = response?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
 
   const handleEditStudent = (student: Student) => {
     setSelectedStudent(student);
@@ -388,8 +411,8 @@ export default function Students() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
+              ) : students.length > 0 ? (
+                students.map((student: Student) => (
                   <TableRow key={student.id} className="hover:bg-muted/50">
                     <TableCell className="font-medium">{student.name}</TableCell>
                     <TableCell>{student.email}</TableCell>
@@ -430,6 +453,48 @@ export default function Students() {
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} students
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {[...Array(pagination.totalPages)].map((_, i) => (
+                  <Button
+                    key={i + 1}
+                    variant={currentPage === i + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={currentPage === i + 1 ? "" : "w-10"}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                disabled={currentPage === pagination.totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
       
       {/* Create Student Modal */}

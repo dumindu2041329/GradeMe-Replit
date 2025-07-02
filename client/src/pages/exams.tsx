@@ -26,6 +26,8 @@ import { useLocation } from "wouter";
 
 export default function Exams() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -33,9 +35,40 @@ export default function Exams() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   
-  const { data: exams = [], isLoading } = useQuery<Exam[]>({
-    queryKey: ["/api/exams"],
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  const { data: response, isLoading } = useQuery<{
+    exams: Exam[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>({
+    queryKey: ["/api/exams", currentPage, debouncedSearch],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: "10",
+        search: debouncedSearch,
+      });
+      const res = await fetch(`/api/exams?${params}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+
+  const exams = response?.exams || [];
+  const pagination = response?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 };
 
   // Check if we should open create modal from dashboard or edit a specific exam
   useEffect(() => {
@@ -59,13 +92,7 @@ export default function Exams() {
     }
   }, [exams]);
 
-  // Search exams only by name
-  const filteredExams = exams.filter((exam) => {
-    if (!searchQuery) return true;
-    
-    const query = searchQuery.toLowerCase();
-    return exam.name.toLowerCase().includes(query);
-  });
+
 
   const handleEditExam = (exam: Exam) => {
     setSelectedExam(exam);
@@ -205,7 +232,7 @@ export default function Exams() {
 
         <DataTable
           columns={columns}
-          data={filteredExams}
+          data={exams}
           isLoading={isLoading}
           emptyState={
             <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -221,6 +248,59 @@ export default function Exams() {
             </div>
           }
         />
+        
+        {/* Pagination Controls */}
+        {pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {((currentPage - 1) * pagination.limit) + 1} to {Math.min(currentPage * pagination.limit, pagination.total)} of {pagination.total} exams
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {[...Array(Math.min(5, pagination.totalPages))].map((_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="w-10"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                disabled={currentPage === pagination.totalPages}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <ExamModal
