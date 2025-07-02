@@ -11,12 +11,22 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, ClockIcon } from "lucide-react";
+import { CalendarIcon, ClockIcon, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocation } from "wouter";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = insertExamSchema.extend({
   date: z.date(),
@@ -40,6 +50,8 @@ interface ExamModalProps {
 export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<ExamFormValues | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -58,16 +70,25 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
     defaultValues,
   });
 
-  const onSubmit = async (data: ExamFormValues) => {
+  const onSubmit = (data: ExamFormValues) => {
+    // Store the form data and show confirmation dialog
+    setPendingFormData(data);
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!pendingFormData) return;
+    
     try {
       setIsSubmitting(true);
-      console.log("Submitting exam form with data:", data);
+      setShowConfirmDialog(false);
+      console.log("Submitting exam form with data:", pendingFormData);
       
       // Convert date and times to ISO strings for API request
       const examData = {
-        ...data,
-        date: data.date.toISOString(),
-        startTime: data.startTime ? data.startTime.toISOString() : null,
+        ...pendingFormData,
+        date: pendingFormData.date.toISOString(),
+        startTime: pendingFormData.startTime ? pendingFormData.startTime.toISOString() : null,
       };
       
       if (mode === "create") {
@@ -110,21 +131,24 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
         await queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
         onOpenChange(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting exam form:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to save exam. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to save exam. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
+      setPendingFormData(null);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Create New Exam" : "Edit Exam"}
@@ -421,5 +445,61 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
         </Form>
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center gap-2 text-xl">
+            <AlertCircle className="h-5 w-5 text-amber-500" />
+            Are you sure?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-base">
+            {mode === "create" ? (
+              <div className="space-y-3">
+                <p>You are about to create a new exam with the following details:</p>
+                <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium">{pendingFormData?.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Subject: {pendingFormData?.subject} • 
+                    Date: {pendingFormData?.date ? format(pendingFormData.date, "PPP") : ""} •
+                    Duration: {pendingFormData?.duration} minutes
+                  </p>
+                  {pendingFormData?.startTime && (
+                    <p className="text-sm text-muted-foreground">
+                      Start Time: {format(pendingFormData.startTime, "h:mm a")}
+                    </p>
+                  )}
+                </div>
+                <p className="text-sm">
+                  This action will create the exam and redirect you to the paper creation page.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p>You are about to update the exam details.</p>
+                <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
+                  <p className="font-medium">{pendingFormData?.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Changes will be saved immediately.
+                  </p>
+                </div>
+              </div>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingFormData(null)}>
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleConfirmSubmit}
+            className="bg-primary hover:bg-primary/90"
+          >
+            {mode === "create" ? "Create Exam" : "Update Exam"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

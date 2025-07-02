@@ -218,6 +218,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 2, 2025. **Added automatic exam completion** - Implemented automatic exam status update to "completed" when all students finish taking an exam. After each student submission, the system checks if all registered students have completed the exam and automatically updates the status from "active" to "completed", eliminating manual intervention
 - July 2, 2025. **Migration to Replit environment completed** - Successfully migrated project from Replit Agent to Replit environment with all functionality intact. Server runs cleanly on port 5000, all dependencies properly installed, and exam status protection working correctly
 - July 2, 2025. **Fixed completed exam edit protection** - Added proper disabled state to exam edit button for completed exams with visual feedback (grayed out icon) and tooltip. Also added backend validation to prevent API-level editing of completed exams, ensuring data integrity across the application
+- July 2, 2025. **Added exam uniqueness validation** - Implemented backend validation to prevent duplicate exam names and start times. When creating or updating exams, the system now checks for conflicts and returns clear error messages if another exam already has the same name or start time
+- July 2, 2025. **Added custom confirmation dialog for exam submission** - Implemented a beautifully designed "Are you sure?" confirmation dialog when creating or updating exams. The dialog displays exam details in a formatted preview with amber warning icon, providing clear confirmation before proceeding with exam creation or updates
 
 ## User Preferences
 

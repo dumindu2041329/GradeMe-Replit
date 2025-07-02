@@ -726,6 +726,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/exams", requireAdmin, async (req: Request, res: Response) => {
     try {
+      // Check for duplicate exam name
+      const existingExams = await storage.getExams();
+      const duplicateName = existingExams.find(exam => 
+        exam.name.toLowerCase() === req.body.name.toLowerCase()
+      );
+      
+      if (duplicateName) {
+        return res.status(400).json({ 
+          message: "An exam with this name already exists. Please choose a different name." 
+        });
+      }
+      
+      // Check for duplicate start time if provided
+      if (req.body.startTime) {
+        const newStartTime = new Date(req.body.startTime);
+        const duplicateStartTime = existingExams.find(exam => {
+          if (exam.startTime) {
+            const existingStartTime = new Date(exam.startTime);
+            return existingStartTime.getTime() === newStartTime.getTime();
+          }
+          return false;
+        });
+        
+        if (duplicateStartTime) {
+          return res.status(400).json({ 
+            message: "Another exam is already scheduled at this start time. Please choose a different time." 
+          });
+        }
+      }
+      
       // Convert date string to Date object and force status to "upcoming" for new exams
       const examData = {
         ...req.body,
@@ -766,6 +796,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ 
           message: "Cannot change active exam back to upcoming status while students are taking it" 
         });
+      }
+      
+      // Check for duplicate exam name if name is being changed
+      if (req.body.name && req.body.name !== currentExam.name) {
+        const existingExams = await storage.getExams();
+        const duplicateName = existingExams.find(exam => 
+          exam.id !== id && exam.name.toLowerCase() === req.body.name.toLowerCase()
+        );
+        
+        if (duplicateName) {
+          return res.status(400).json({ 
+            message: "An exam with this name already exists. Please choose a different name." 
+          });
+        }
+      }
+      
+      // Check for duplicate start time if start time is being changed
+      if (req.body.startTime) {
+        const newStartTime = new Date(req.body.startTime);
+        const existingExams = await storage.getExams();
+        const duplicateStartTime = existingExams.find(exam => {
+          if (exam.id !== id && exam.startTime) {
+            const existingStartTime = new Date(exam.startTime);
+            return existingStartTime.getTime() === newStartTime.getTime();
+          }
+          return false;
+        });
+        
+        if (duplicateStartTime) {
+          return res.status(400).json({ 
+            message: "Another exam is already scheduled at this start time. Please choose a different time." 
+          });
+        }
       }
       
       // Check if exam name is changing and handle paper file renaming
