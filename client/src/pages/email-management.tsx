@@ -53,10 +53,12 @@ export default function EmailManagementPage() {
   const [showTestDialog, setShowTestDialog] = useState(false);
 
   // Fetch exams for reminder sending
-  const { data: exams = [] } = useQuery<Exam[]>({
+  const { data } = useQuery<{ exams: Exam[] }>({
     queryKey: ["/api/exams"],
     enabled: !!user,
   });
+  
+  const exams = data?.exams || [];
 
   // Fetch students for individual reminders
   const { data: students = [] } = useQuery<Student[]>({

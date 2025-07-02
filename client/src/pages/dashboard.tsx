@@ -24,9 +24,11 @@ export default function Dashboard() {
     queryKey: ["/api/statistics"],
   });
 
-  const { data: exams = [], isLoading: isExamsLoading } = useQuery<Exam[]>({
+  const { data, isLoading: isExamsLoading } = useQuery<{ exams: Exam[] }>({
     queryKey: ["/api/exams"],
   });
+  
+  const exams = data?.exams || [];
   
   const [, navigate] = useLocation();
 
