@@ -325,6 +325,14 @@ export default function StudentDashboard() {
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span>{examDate.toLocaleDateString()}</span>
                             </div>
+                            {exam.startTime && (
+                              <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  Start Time: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
                               <span>Duration: {exam.duration} min</span>
@@ -496,6 +504,16 @@ export default function StudentDashboard() {
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-muted-foreground" />
                               <span>{examDate.toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              {exam.startTime ? (
+                                <span className="text-primary font-medium">
+                                  {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">Time TBA</span>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
