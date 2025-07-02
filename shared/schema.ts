@@ -44,8 +44,6 @@ export const exams = pgTable('exams', {
   name: text('name').notNull(),
   subject: text('subject').notNull(),
   date: timestamp('date').notNull(),
-  startTime: timestamp('start_time'),
-  endTime: timestamp('end_time'),
   duration: integer('duration').notNull(),
   totalMarks: integer('total_marks').notNull(),
   status: examStatusEnum('status').notNull().default('upcoming'),

@@ -646,8 +646,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const examData = {
         ...req.body,
         date: new Date(req.body.date),
-        startTime: req.body.startTime ? new Date(req.body.startTime) : null,
-        endTime: req.body.endTime ? new Date(req.body.endTime) : null,
         duration: parseInt(req.body.duration),
         totalMarks: req.body.totalMarks ? parseInt(req.body.totalMarks) : 100, // Default to 100 if not provided
         status: "upcoming"
@@ -687,8 +685,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const examData = {
         ...req.body,
         ...(req.body.date && { date: new Date(req.body.date) }),
-        ...(req.body.startTime && { startTime: new Date(req.body.startTime) }),
-        ...(req.body.endTime && { endTime: new Date(req.body.endTime) }),
         ...(req.body.duration && { duration: parseInt(req.body.duration) }),
         ...(req.body.totalMarks && { totalMarks: parseInt(req.body.totalMarks) })
       };
