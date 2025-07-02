@@ -6,6 +6,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { registerRoutes } from "./routes";
 import { setupInitialData } from "./setup-database";
 import { migrateStudentsToUsers } from "./migrate-students";
+import { createTablesIfNotExist } from "./create-tables";
 import dotenv from "dotenv";
 
 // Load environment variables
@@ -46,6 +47,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Create database tables if they don't exist
+  await createTablesIfNotExist();
+  
   // Setup initial database data
   await setupInitialData();
   

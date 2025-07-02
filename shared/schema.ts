@@ -140,7 +140,6 @@ export const insertExamSchema = z.object({
   subject: z.string(),
   date: z.date(),
   startTime: z.date().optional().nullable(),
-  endTime: z.date().optional().nullable(),
   duration: z.number().min(1, "Duration must be at least 1 minute"),
   totalMarks: z.number().min(1, "Total marks must be at least 1"),
   status: z.enum(["upcoming", "active", "completed"]).default("upcoming"),
