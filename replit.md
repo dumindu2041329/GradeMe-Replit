@@ -212,6 +212,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 2, 2025. **Added start time display to Completed Exams section** - Enhanced Completed Exams section in student dashboard to display exam start times alongside other exam details, providing consistent information display across all exam sections
 - July 2, 2025. **Removed end_time column from database** - Completely removed end_time column from exams table in Supabase database and cleaned up all references in codebase including Zod validation schema, ensuring cleaner data model focused on start time and duration
 - July 2, 2025. **Added automatic database table creation** - Implemented automatic table creation on server startup. If tables don't exist in Supabase database, they are automatically created using migration SQL files, ensuring the project runs smoothly even with a fresh database
+- July 2, 2025. **Enhanced security by removing hardcoded credentials** - Removed all hardcoded admin and student credentials from the codebase for security. Initial users are now created only through environment variables (INITIAL_ADMIN_EMAIL, INITIAL_ADMIN_PASSWORD, etc.). Created SETUP_GUIDE.md with secure setup instructions. This prevents credential exposure in source code and enforces stronger password practices
 
 ## User Preferences
 

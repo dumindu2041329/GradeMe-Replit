@@ -371,10 +371,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         enrollmentDate: students.enrollmentDate
       }).from(students).limit(5);
       
+      const hasAdmins = adminUsers.length > 0;
+      const hasStudents = studentUsers.length > 0;
+      
       res.json({
         admins: adminUsers,
         students: studentUsers,
-        note: "Passwords are not displayed for security reasons. Check your database setup or contact admin for login credentials."
+        setupRequired: !hasAdmins,
+        note: hasAdmins 
+          ? "For security, passwords are not displayed. Contact your administrator for login credentials."
+          : "No users configured. Please see SETUP_GUIDE.md for instructions on creating initial users securely using environment variables."
       });
     } catch (error) {
       console.error("Error fetching demo credentials:", error);
