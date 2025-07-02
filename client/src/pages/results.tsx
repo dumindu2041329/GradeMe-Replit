@@ -30,6 +30,7 @@ export default function Results() {
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
   const [selectedExam, setSelectedExam] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const { toast } = useToast();
   
   const { data: results = [], isLoading } = useQuery<ResultWithDetails[]>({
@@ -225,7 +226,7 @@ export default function Results() {
 
             {/* Date Filter */}
             <div className="flex-1 min-w-[200px]">
-              <Popover>
+              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -242,7 +243,10 @@ export default function Results() {
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={setSelectedDate}
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      setIsDatePickerOpen(false);
+                    }}
                     initialFocus
                   />
                 </PopoverContent>
