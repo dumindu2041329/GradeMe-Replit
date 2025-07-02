@@ -545,7 +545,7 @@ export default function StudentProfile() {
                     <Form {...personalInfoForm}>
                       <form id="studentPersonalInfoForm" onSubmit={personalInfoForm.handleSubmit(onPersonalInfoSubmit)} className="space-y-6">
                         {/* Profile Image */}
-                        <div className="flex flex-col items-center gap-4 mb-6 py-8 bg-gray-900 rounded-lg">
+                        <div className="flex flex-col items-center gap-4 mb-6 py-8 bg-white dark:bg-[#030711] rounded-lg">
                           {imagePreview ? (
                             <Avatar className="h-32 w-32">
                               <AvatarImage src={imagePreview} alt="Profile" />

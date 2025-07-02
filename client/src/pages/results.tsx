@@ -1,32 +1,95 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { DataTable } from "@/components/ui/data-table";
-import { Download, BarChart2 } from "lucide-react";
+import { Download, BarChart2, Filter } from "lucide-react";
 import { ResultWithDetails } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Results() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<string>("all");
+  const [selectedExam, setSelectedExam] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
   
   const { data: results = [], isLoading } = useQuery<ResultWithDetails[]>({
     queryKey: ["/api/results"],
   });
 
+  // Extract unique students and exams for filters
+  const uniqueStudents = useMemo(() => {
+    const students = new Map();
+    results.forEach(result => {
+      if (result.student?.id) {
+        students.set(result.student.id, result.student.name);
+      }
+    });
+    return Array.from(students, ([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [results]);
+
+  const uniqueExams = useMemo(() => {
+    const exams = new Map();
+    results.forEach(result => {
+      if (result.exam?.id) {
+        exams.set(result.exam.id, result.exam.name);
+      }
+    });
+    return Array.from(exams, ([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [results]);
+
   const filteredResults = results.filter((result) => {
-    if (!searchQuery) return true;
+    // Search query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = result.student?.name.toLowerCase().includes(query) ||
+        result.exam?.name.toLowerCase().includes(query) ||
+        result.exam?.subject.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
     
-    const query = searchQuery.toLowerCase();
-    return (
-      result.student?.name.toLowerCase().includes(query) ||
-      result.exam?.name.toLowerCase().includes(query) ||
-      result.exam?.subject.toLowerCase().includes(query)
-    );
+    // Student filter
+    if (selectedStudent !== "all" && result.student?.id !== parseInt(selectedStudent)) {
+      return false;
+    }
+    
+    // Exam filter
+    if (selectedExam !== "all" && result.exam?.id !== parseInt(selectedExam)) {
+      return false;
+    }
+    
+    // Date filter
+    if (selectedDate) {
+      const resultDate = new Date(result.submittedAt);
+      const filterDate = new Date(selectedDate);
+      // Compare only the date part, not time
+      if (resultDate.toDateString() !== filterDate.toDateString()) {
+        return false;
+      }
+    }
+    
+    return true;
   });
 
   const handleExport = () => {
@@ -40,8 +103,8 @@ export default function Results() {
             `"${result.student.name}"`,
             `"${result.exam.name}"`,
             result.score,
-            `${result.percentage}%`,
-            format(new Date(result.submittedAt), "yyyy-MM-dd"),
+            `${parseFloat(result.percentage as string)}%`,
+            result.submittedAt ? format(new Date(result.submittedAt), "yyyy-MM-dd") : "",
           ].join(",");
         }),
       ].join("\n");
@@ -96,12 +159,12 @@ export default function Results() {
     {
       header: "Score",
       accessorKey: "percentage" as keyof ResultWithDetails,
-      cell: (result: ResultWithDetails) => getScoreBadge(result.percentage),
+      cell: (result: ResultWithDetails) => getScoreBadge(parseFloat(result.percentage as string)),
     },
     {
       header: "Date",
       accessorKey: "submittedAt" as keyof ResultWithDetails,
-      cell: (result: ResultWithDetails) => format(new Date(result.submittedAt), "MM/dd/yyyy"),
+      cell: (result: ResultWithDetails) => result.submittedAt ? format(new Date(result.submittedAt), "MM/dd/yyyy") : "N/A",
     },
   ];
 
@@ -116,11 +179,94 @@ export default function Results() {
           </Button>
         </div>
 
-        <SearchInput
-          placeholder="Search results..."
-          value={searchQuery}
-          onChange={setSearchQuery}
-        />
+        {/* Search and Filters */}
+        <div className="space-y-4">
+          <SearchInput
+            placeholder="Search results..."
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
+          
+          {/* Filter Controls */}
+          <div className="flex flex-wrap gap-4">
+            {/* Student Filter */}
+            <div className="flex-1 min-w-[200px]">
+              <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by student" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  {uniqueStudents.map((student) => (
+                    <SelectItem key={student.id} value={student.id.toString()}>
+                      {student.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Exam Filter */}
+            <div className="flex-1 min-w-[200px]">
+              <Select value={selectedExam} onValueChange={setSelectedExam}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by exam" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Exams</SelectItem>
+                  {uniqueExams.map((exam) => (
+                    <SelectItem key={exam.id} value={exam.id.toString()}>
+                      {exam.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Filter */}
+            <div className="flex-1 min-w-[200px]">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Clear Filters */}
+            {(selectedStudent !== "all" || selectedExam !== "all" || selectedDate || searchQuery) && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSelectedStudent("all");
+                  setSelectedExam("all");
+                  setSelectedDate(undefined);
+                  setSearchQuery("");
+                }}
+                className="h-10"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </div>
 
         <DataTable
           columns={columns}
