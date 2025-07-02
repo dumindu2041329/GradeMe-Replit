@@ -205,6 +205,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 2, 2025. **Added advanced filtering to admin results page** - Implemented comprehensive filtering functionality with dropdowns for student name, exam selection, and date picker. Filters work together with existing search functionality and include a clear filters button. Student and exam dropdowns are alphabetically sorted for better usability
 - July 2, 2025. **Added Today button to calendar component** - Enhanced the calendar date picker with a prominent "Today" button at the bottom that navigates to and selects today's date, improving user experience across all date selection interfaces
 - July 2, 2025. **Fixed calendar component bugs on results page** - Fixed date picker popover not closing after selection and Today button not working properly. Calendar now closes automatically when selecting dates and properly filters results
+- July 2, 2025. **Applied calendar auto-close functionality across all pages** - Updated all date picker implementations (student profile page and exam modal) to match the results page pattern. All date pickers now automatically close when a date is selected, providing consistent user experience throughout the application
 
 ## User Preferences
 

@@ -39,6 +39,7 @@ interface ExamModalProps {
 
 export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
@@ -228,7 +229,7 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Exam Date</FormLabel>
-                  <Popover>
+                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
@@ -251,7 +252,10 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setIsDatePickerOpen(false);
+                        }}
                         initialFocus
                       />
                     </PopoverContent>

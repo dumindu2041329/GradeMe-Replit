@@ -95,6 +95,7 @@ export default function StudentProfile() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(
     user?.profileImage || null
   );
@@ -681,7 +682,7 @@ export default function StudentProfile() {
                               render={({ field }) => (
                                 <FormItem className="flex flex-col">
                                   <FormLabel>Date of Birth</FormLabel>
-                                  <Popover>
+                                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                                     <PopoverTrigger asChild>
                                       <FormControl>
                                         <Button
@@ -704,7 +705,10 @@ export default function StudentProfile() {
                                       <CalendarComponent
                                         mode="single"
                                         selected={field.value || undefined}
-                                        onSelect={field.onChange}
+                                        onSelect={(date) => {
+                                          field.onChange(date);
+                                          setIsDatePickerOpen(false);
+                                        }}
                                         disabled={(date) =>
                                           date > new Date() || date < new Date("1900-01-01")
                                         }
