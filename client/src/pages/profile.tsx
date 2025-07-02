@@ -525,26 +525,7 @@ export default function ProfilePage() {
                       )}
                     />
                     
-                    <FormField
-                      control={notificationForm.control}
-                      name="smsNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div className="space-y-0.5">
-                            <FormLabel>SMS Notifications</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Receive exam submission notifications via SMS
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
+                    {/* SMS Notifications removed */}
                     
                     <div className="flex justify-start">
                       <Button type="submit" disabled={notificationMutation.isPending}>

@@ -382,7 +382,7 @@ export function StudentProfileSettings({
               <form onSubmit={personalInfoForm.handleSubmit(onPersonalInfoSubmit)} className="space-y-6">
                 {/* Profile Image */}
                 <div className="flex flex-col items-center gap-4 mb-6">
-                  <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-[#070b14] relative group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700 relative group">
                     {imagePreview ? (
                       <img
                         src={imagePreview}
@@ -639,74 +639,7 @@ export function StudentProfileSettings({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                   
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-sm">SMS Notifications</h4>
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="smsNotifications"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel className="text-base">
-                              SMS Notifications
-                            </FormLabel>
-                            <FormDescription>
-                              Receive all notifications via SMS
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="smsExamResults"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Exam Results</FormLabel>
-                            <FormDescription>
-                              Receive notifications when exam results are available
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={notificationForm.control}
-                      name="smsUpcomingExams"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-y-0 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Upcoming Exams</FormLabel>
-                            <FormDescription>
-                              Receive reminders about upcoming exams
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  {/* SMS Notifications section removed */}
                 </div>
                 
                 <div className="flex justify-end pt-4">

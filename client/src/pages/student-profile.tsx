@@ -554,8 +554,8 @@ export default function StudentProfile() {
                               </AvatarFallback>
                             </Avatar>
                           ) : (
-                            <div className="h-32 w-32 rounded-full bg-gray-700 flex items-center justify-center">
-                              <span className="text-3xl text-white font-medium">
+                            <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <span className="text-3xl text-gray-800 dark:text-white font-medium">
                                 {profileData?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'S'}
                               </span>
                             </div>
@@ -904,53 +904,7 @@ export default function StudentProfile() {
                           />
                         </div>
 
-                        <Separator />
-
-                        <div className="space-y-4">
-                          <h4 className="font-medium">SMS Notifications</h4>
-                          
-                          <FormField
-                            control={notificationForm.control}
-                            name="smsExamResults"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between space-y-0">
-                                <div className="space-y-0.5">
-                                  <FormLabel>Exam Results</FormLabel>
-                                  <p className="text-xs text-muted-foreground">
-                                    Receive exam results via SMS
-                                  </p>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={notificationForm.control}
-                            name="smsUpcomingExams"
-                            render={({ field }) => (
-                              <FormItem className="flex flex-row items-center justify-between space-y-0">
-                                <div className="space-y-0.5">
-                                  <FormLabel>Upcoming Exams</FormLabel>
-                                  <p className="text-xs text-muted-foreground">
-                                    Receive reminders about upcoming exams
-                                  </p>
-                                </div>
-                                <FormControl>
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                        {/* SMS Notifications section removed */}
 
                         <div className="flex flex-row space-x-2">
                           <Button type="submit" disabled={notificationMutation.isPending}>

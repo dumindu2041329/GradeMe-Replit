@@ -348,7 +348,7 @@ export function ProfileSettings({
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
               <div className="flex flex-col items-center gap-4 mb-6">
-                <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-[#070b14] relative group">
+                <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center bg-gray-200 dark:bg-gray-700 relative group">
                   {imagePreview ? (
                     <img
                       src={imagePreview}
@@ -498,28 +498,7 @@ export function ProfileSettings({
               
               {userRole === 'admin' && (
                 <>
-
-                  
-                  <FormField
-                    control={notificationForm.control}
-                    name="smsNotifications"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between">
-                        <div className="space-y-0.5">
-                          <FormLabel>SMS Notifications</FormLabel>
-                          <p className="text-sm text-muted-foreground">
-                            Receive system notifications via SMS
-                          </p>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  {/* SMS notifications removed - only email notifications for admin */}
                 </>
               )}
               
