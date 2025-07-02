@@ -6,7 +6,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Clock, AlertTriangle } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Clock, 
+  AlertTriangle, 
+  Send, 
+  CheckCircle, 
+  BookOpen,
+  Target,
+  BarChart,
+  FileCheck
+} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -66,6 +76,7 @@ export default function StudentExamPage() {
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [examResult, setExamResult] = useState<ExamResult | null>(null);
   const [showResultDialog, setShowResultDialog] = useState(false);
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
   
   // Fetch exam data
   const { data: exam, isLoading } = useQuery<Exam>({
@@ -129,8 +140,14 @@ export default function StudentExamPage() {
   
   // Submit exam handler
   const handleSubmitExam = useCallback(() => {
+    setShowSubmitConfirmation(true);
+  }, []);
+  
+  // Confirm submission handler
+  const handleConfirmSubmit = useCallback(() => {
     if (!exam) return;
     
+    setShowSubmitConfirmation(false);
     submitExamMutation.mutate({
       examId: exam.id,
       answers
@@ -414,6 +431,122 @@ export default function StudentExamPage() {
         </DialogContent>
       </Dialog>
       
+      {/* Submit Confirmation Dialog */}
+      <Dialog open={showSubmitConfirmation} onOpenChange={setShowSubmitConfirmation}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-semibold">
+              Submit Exam?
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-6">
+            <div className="flex justify-center mb-6">
+              <div className="bg-amber-100 dark:bg-amber-900/20 p-4 rounded-full">
+                <FileCheck className="h-10 w-10 text-amber-600" />
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="text-center">
+                <h4 className="font-semibold text-lg mb-2">Are you sure you want to submit your exam?</h4>
+                <p className="text-sm text-muted-foreground">
+                  Once submitted, you cannot change your answers.
+                </p>
+              </div>
+              
+              {exam && (
+                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-3">
+                  <h5 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-3">
+                    Exam Summary
+                  </h5>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4 text-primary" />
+                      <span>Exam Name:</span>
+                    </div>
+                    <span className="font-medium">{exam.name}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span>Questions Answered:</span>
+                    </div>
+                    <span className="font-medium">
+                      {Object.keys(answers).length} / {exam.questions.length}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-blue-500" />
+                      <span>Total Marks:</span>
+                    </div>
+                    <span className="font-medium">{exam.totalMarks}</span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      <span>Time Remaining:</span>
+                    </div>
+                    <span className="font-medium">
+                      {timeRemaining !== null ? formatTimeRemaining(timeRemaining) : '--:--:--'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              
+              {exam && Object.keys(answers).length < exam.questions.length && (
+                <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <div className="flex gap-2">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-900 dark:text-amber-400">
+                        Warning: Unanswered Questions
+                      </p>
+                      <p className="text-amber-700 dark:text-amber-300 mt-1">
+                        You have {exam.questions.length - Object.keys(answers).length} unanswered question(s). 
+                        These will be marked as incorrect.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSubmitConfirmation(false)}
+              className="sm:flex-1"
+            >
+              Review Answers
+            </Button>
+            <Button 
+              onClick={handleConfirmSubmit}
+              className="sm:flex-1 bg-primary hover:bg-primary/90"
+              disabled={submitExamMutation.isPending}
+            >
+              {submitExamMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-background border-t-transparent mr-2" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  Submit Exam
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Leave Exam Dialog */}
       <Dialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
         <DialogContent className="sm:max-w-md">
