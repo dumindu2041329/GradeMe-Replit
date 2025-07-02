@@ -61,10 +61,12 @@ export default function EmailManagementPage() {
   const exams = data?.exams || [];
 
   // Fetch students for individual reminders
-  const { data: students = [] } = useQuery<Student[]>({
+  const { data: studentsData } = useQuery<{ students: Student[] }>({
     queryKey: ["/api/students"],
     enabled: !!user,
   });
+  
+  const students = studentsData?.students || [];
 
   // Test email mutation
   const testEmailMutation = useMutation({

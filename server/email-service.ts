@@ -87,41 +87,43 @@ export class EmailService {
     }
   }
 
-  async sendUpcomingExamNotification(studentId: number, examId: number): Promise<boolean> {
+  async sendUpcomingExamNotification(studentId: number, examId: number): Promise<{ success: boolean; error?: string }> {
     try {
       const student = await this.db.select().from(students).where(eq(students.id, studentId)).limit(1);
       const exam = await this.db.select().from(exams).where(eq(exams.id, examId)).limit(1);
       
       if (!student[0] || !exam[0]) {
         console.error('Student or exam not found');
-        return false;
+        return { success: false, error: 'Student or exam not found' };
       }
 
       // Check if student has email notifications enabled
       const user = await this.db.select().from(users).where(eq(users.studentId, studentId)).limit(1);
       if (user[0] && !user[0].emailUpcomingExams) {
         console.log('Student has disabled upcoming exam notifications');
-        return false;
+        return { success: false, error: `${student[0].name} has disabled exam reminder notifications. They can enable them in their profile settings.` };
       }
 
       const subject = `Upcoming Exam Reminder: ${exam[0].name}`;
       const html = this.generateUpcomingExamEmailHTML(student[0], exam[0]);
       const text = `Reminder: You have an upcoming exam "${exam[0].name}" on ${exam[0].date}. Duration: ${exam[0].duration} minutes. Total Marks: ${exam[0].totalMarks}`;
 
-      return await this.sendEmail({
+      const emailSent = await this.sendEmail({
         to: student[0].email,
         from: this.fromEmail,
         subject,
         html,
         text
       });
+      
+      return { success: emailSent };
     } catch (error) {
       console.error('Error sending upcoming exam notification:', error);
-      return false;
+      return { success: false, error: 'Failed to send notification due to a system error' };
     }
   }
 
-  async sendBulkUpcomingExamNotifications(examId: number): Promise<{ sent: number; failed: number }> {
+  async sendBulkUpcomingExamNotifications(examId: number): Promise<{ sent: number; failed: number; errors: string[] }> {
     try {
       const exam = await this.db.select().from(exams).where(eq(exams.id, examId)).limit(1);
       if (!exam[0]) {
@@ -145,20 +147,27 @@ export class EmailService {
 
       let sent = 0;
       let failed = 0;
+      const errors: string[] = [];
 
       for (const { student } of studentsWithNotifications) {
-        const success = await this.sendUpcomingExamNotification(student.id, examId);
-        if (success) sent++;
-        else failed++;
+        const result = await this.sendUpcomingExamNotification(student.id, examId);
+        if (result.success) {
+          sent++;
+        } else {
+          failed++;
+          if (result.error) {
+            errors.push(result.error);
+          }
+        }
         
         // Add small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      return { sent, failed };
+      return { sent, failed, errors };
     } catch (error) {
       console.error('Error sending bulk notifications:', error);
-      return { sent: 0, failed: 0 };
+      return { sent: 0, failed: 0, errors: ['System error occurred while sending notifications'] };
     }
   }
 

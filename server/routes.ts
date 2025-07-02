@@ -1655,24 +1655,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (studentId) {
         // Send to specific student
-        const success = await emailService.sendUpcomingExamNotification(studentId, examId);
-        if (success) {
+        const result = await emailService.sendUpcomingExamNotification(studentId, examId);
+        if (result.success) {
           res.json({ message: 'Exam reminder sent successfully' });
         } else {
-          res.status(500).json({ error: 'Failed to send exam reminder' });
+          // Return 400 for user errors (like disabled notifications), 500 for system errors
+          const statusCode = result.error && result.error.includes('disabled') ? 400 : 500;
+          res.status(statusCode).json({ error: result.error || 'Failed to send exam reminder' });
         }
       } else {
         // Send to all students
         const result = await emailService.sendBulkUpcomingExamNotifications(examId);
-        res.json({ 
+        const response: any = { 
           message: `Exam reminders sent to ${result.sent} students`, 
           sent: result.sent, 
           failed: result.failed 
-        });
+        };
+        
+        // Add errors to response if any exist
+        if (result.errors && result.errors.length > 0) {
+          response.errors = result.errors;
+        }
+        
+        res.json(response);
       }
     } catch (error) {
       console.error("Error sending exam reminders:", error);
-      res.status(500).json({ error: 'Failed to send exam reminders' });
+      res.status(500).json({ error: 'Failed to send exam reminders due to a system error' });
     }
   });
 

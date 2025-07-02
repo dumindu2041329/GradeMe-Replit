@@ -222,6 +222,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 2, 2025. **Added custom confirmation dialog for exam creation** - Implemented a beautifully designed "Are you sure?" confirmation dialog when creating or updating exams. The dialog displays exam details in a formatted preview with amber warning icon, providing clear confirmation before proceeding with exam creation or updates
 - July 2, 2025. **Added custom confirmation dialog for exam submission** - Implemented a custom "Are you sure?" confirmation dialog when students submit exams. The dialog displays exam summary with questions answered count, total marks, time remaining, and warning for unanswered questions with amber styling
 - July 2, 2025. **Implemented dynamic uptime calculation** - Replaced hardcoded 99% uptime with actual server uptime calculation based on server start time. Shows "Starting..." for first 6 minutes, then displays percentage between 99.5-100% with slight variation for realism
+- July 2, 2025. **Enhanced email notification error handling** - When admins try to send exam reminders to students who have disabled notifications, the system now displays a user-friendly error message explaining that the student has disabled notifications and can enable them in their profile settings, instead of showing a generic error
 
 ## User Preferences
 
