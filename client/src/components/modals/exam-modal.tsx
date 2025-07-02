@@ -282,7 +282,7 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
                           )}
                         >
                           {field.value ? (
-                            format(field.value, "HH:mm")
+                            format(field.value, "h:mm a")
                           ) : (
                             <span>Pick start time</span>
                           )}

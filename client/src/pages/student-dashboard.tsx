@@ -328,7 +328,7 @@ export default function StudentDashboard() {
                             {exam.startTime && (
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span>Start: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span>Start: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true})}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -409,7 +409,7 @@ export default function StudentDashboard() {
                             {exam.startTime && (
                               <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span>Started: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span>Started: {new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true})}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-2">
@@ -513,7 +513,7 @@ export default function StudentDashboard() {
                               <Clock className="h-4 w-4 text-primary" />
                               <span className="font-medium text-primary">
                                 {exam.startTime 
-                                  ? new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                                  ? new Date(exam.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true})
                                   : 'Time TBA'
                                 }
                               </span>
