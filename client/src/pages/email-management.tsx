@@ -21,7 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Mail, Send, TestTube, Users, User } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
@@ -181,22 +182,22 @@ export default function EmailManagementPage() {
 
   return (
     <AppShell title="Email Management" sidebar="admin">
-      <div className="space-y-6">
-        <div className="flex items-center space-x-2">
+      <div className="space-y-8 max-w-7xl mx-auto">
+        <div className="flex items-center space-x-3">
           <Mail className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-bold">Email Management</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Test Email Section */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-2">
               <TestTube className="h-5 w-5" />
               <span>Test Email Connection</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-2">
             <p className="text-sm text-muted-foreground">
               Send a test email to verify your SendGrid configuration is working correctly.
             </p>
@@ -208,26 +209,40 @@ export default function EmailManagementPage() {
                   Send Test Email
                 </Button>
               </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Send Test Email</DialogTitle>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader className="space-y-3">
+                  <DialogTitle className="text-lg font-semibold">Send Test Email</DialogTitle>
+                  <DialogDescription className="text-sm text-muted-foreground">
+                    Send a test email to verify your SendGrid configuration is working correctly.
+                  </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="testEmail">Email Address</Label>
+                <div className="space-y-6 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="testEmail" className="text-sm font-medium">
+                      Email Address
+                    </Label>
                     <Input
                       id="testEmail"
                       type="email"
                       placeholder="Enter email address to test"
                       value={testEmail}
                       onChange={(e) => setTestEmail(e.target.value)}
+                      className="w-full"
                     />
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowTestDialog(false)}
+                    className="mr-2"
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     onClick={handleTestEmail}
                     disabled={testEmailMutation.isPending}
+                    className="min-w-[120px]"
                   >
                     {testEmailMutation.isPending ? "Sending..." : "Send Test Email"}
                   </Button>
@@ -239,19 +254,19 @@ export default function EmailManagementPage() {
 
         {/* Exam Reminder Section */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-2">
               <Send className="h-5 w-5" />
               <span>Send Exam Reminders</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-2">
             <p className="text-sm text-muted-foreground">
               Send upcoming exam reminders to students via email.
             </p>
 
-            <div className="space-y-4">
-              <div>
+            <div className="space-y-5">
+              <div className="space-y-2">
                 <Label htmlFor="sendingType">Sending Type</Label>
                 <Select value={sendingType} onValueChange={(value: "bulk" | "individual") => setSendingType(value)}>
                   <SelectTrigger>
@@ -274,7 +289,7 @@ export default function EmailManagementPage() {
                 </Select>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="examSelect">Select Exam</Label>
                 <Select value={selectedExam} onValueChange={setSelectedExam}>
                   <SelectTrigger>
@@ -306,7 +321,7 @@ export default function EmailManagementPage() {
               </div>
 
               {sendingType === "individual" && (
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="studentSelect">Select Student</Label>
                   <Select value={selectedStudent} onValueChange={setSelectedStudent}>
                     <SelectTrigger>
@@ -347,23 +362,35 @@ export default function EmailManagementPage() {
         </Card>
       </div>
 
-      {/* Email Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Email Notification Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <h4 className="font-semibold mb-2">How Email Notifications Work:</h4>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              <li>• <strong>Automatic Result Emails:</strong> Sent automatically when students complete exams</li>
-              <li>• <strong>Manual Reminders:</strong> Send upcoming exam reminders using the form above</li>
-              <li>• <strong>Student Preferences:</strong> Students can control their email preferences in their profile</li>
-              <li>• <strong>Admin Notifications:</strong> You can control your email preferences in your profile settings</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Email Statistics */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-4">
+            <CardTitle>Email Notification Statistics</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="bg-muted/50 p-6 rounded-lg">
+              <h4 className="font-semibold mb-4">How Email Notifications Work:</h4>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-medium">•</span>
+                  <span><strong>Automatic Result Emails:</strong> Sent automatically when students complete exams</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-medium">•</span>
+                  <span><strong>Manual Reminders:</strong> Send upcoming exam reminders using the form above</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-medium">•</span>
+                  <span><strong>Student Preferences:</strong> Students can control their email preferences in their profile</span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="text-primary font-medium">•</span>
+                  <span><strong>Admin Notifications:</strong> You can control your email preferences in your profile settings</span>
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppShell>
   );
