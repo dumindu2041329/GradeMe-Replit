@@ -223,6 +223,8 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 2, 2025. **Added custom confirmation dialog for exam submission** - Implemented a custom "Are you sure?" confirmation dialog when students submit exams. The dialog displays exam summary with questions answered count, total marks, time remaining, and warning for unanswered questions with amber styling
 - July 2, 2025. **Implemented dynamic uptime calculation** - Replaced hardcoded 99% uptime with actual server uptime calculation based on server start time. Shows "Starting..." for first 6 minutes, then displays percentage between 99.5-100% with slight variation for realism
 - July 2, 2025. **Enhanced email notification error handling** - When admins try to send exam reminders to students who have disabled notifications, the system now displays a user-friendly error message explaining that the student has disabled notifications and can enable them in their profile settings, instead of showing a generic error
+- July 2, 2025. **Implemented comprehensive forgot password feature with SendGrid** - Added complete password reset functionality including secure token generation, email delivery via SendGrid, frontend forms for password reset, database table for reset tokens, and integration with both admin and student login flows. Users can now reset passwords through email links that expire in 1 hour for security
+- July 2, 2025. **Consolidated database migrations** - Merged password reset tokens table from 0004_add_password_reset_tokens.sql into the main 0003_complete_database_schema.sql file for better organization and maintenance
 
 ## User Preferences
 

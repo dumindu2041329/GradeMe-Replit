@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer } from "ws";
 import { getDb, isDbConnected } from "./db-connection";
 import { desc, eq, and, sql } from "drizzle-orm";
-import { exams, users, students, results, type User, type Student, type Exam, type Result } from "@shared/schema";
+import { exams, users, students, results, passwordResetTokens, type User, type Student, type Exam, type Result } from "@shared/schema";
 import { storage } from "./storage";
 import bcrypt from "bcrypt";
 import { requireAdmin, requireStudent, requireAuth, supabaseMiddleware } from "./supabase-middleware";
@@ -299,6 +299,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Logged out successfully" });
     });
+  });
+
+  // Password reset routes
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Generate reset token
+      const result = await emailService.generatePasswordResetToken(email);
+      
+      if (!result.success) {
+        // Don't reveal whether email exists or not for security
+        return res.json({ message: "If the email exists, a reset link has been sent" });
+      }
+
+      // Send reset email
+      const emailSent = await emailService.sendPasswordResetEmail(email, result.token!);
+      
+      if (emailSent) {
+        res.json({ message: "Password reset link sent to your email" });
+      } else {
+        res.json({ message: "If the email exists, a reset link has been sent" });
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+
+      // Validate token
+      const tokenValidation = await emailService.validatePasswordResetToken(token);
+      
+      if (!tokenValidation.valid) {
+        return res.status(400).json({ message: tokenValidation.error });
+      }
+
+      const email = tokenValidation.email!;
+      
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password in both users and students tables
+      const db = getDb();
+      
+      // Check if it's a user or student
+      const userResult = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      const studentResult = await db.select().from(students).where(eq(students.email, email)).limit(1);
+
+      if (userResult.length > 0) {
+        // Update user password
+        await db.update(users)
+          .set({ 
+            password: hashedPassword,
+            updatedAt: new Date()
+          })
+          .where(eq(users.email, email));
+      }
+
+      if (studentResult.length > 0) {
+        // Update student password
+        await db.update(students)
+          .set({ 
+            password: hashedPassword,
+            updatedAt: new Date()
+          })
+          .where(eq(students.email, email));
+      }
+
+      // Mark token as used
+      await emailService.markTokenAsUsed(token);
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/auth/validate-reset-token/:token", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ valid: false, message: "Token is required" });
+      }
+
+      const validation = await emailService.validatePasswordResetToken(token);
+      
+      res.json({
+        valid: validation.valid,
+        message: validation.error || "Token is valid"
+      });
+    } catch (error) {
+      console.error("Token validation error:", error);
+      res.status(500).json({ valid: false, message: "Internal server error" });
+    }
   });
 
   app.get("/api/auth/session", async (req: Request, res: Response) => {

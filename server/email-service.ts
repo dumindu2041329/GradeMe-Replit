@@ -1,7 +1,8 @@
 import sgMail from '@sendgrid/mail';
 import { getDb } from './db-connection';
-import { users, students, exams, results } from './db';
-import { eq, and } from 'drizzle-orm';
+import { users, students, exams, results, passwordResetTokens } from './db';
+import { eq, and, gt } from 'drizzle-orm';
+import crypto from 'crypto';
 
 // Initialize SendGrid
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
@@ -295,6 +296,126 @@ export class EmailService {
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px; text-align: center;">
             This email was sent automatically by the GradeMe system.<br>
             If you don't want to receive these reminders, you can disable them in your profile settings.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+
+  async generatePasswordResetToken(email: string): Promise<{ success: boolean; token?: string; error?: string }> {
+    try {
+      // Check if user exists (in both users and students tables)
+      const userExists = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+      const studentExists = await this.db.select().from(students).where(eq(students.email, email)).limit(1);
+      
+      if (userExists.length === 0 && studentExists.length === 0) {
+        return { success: false, error: 'Email address not found' };
+      }
+
+      // Generate secure token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 3600000); // 1 hour from now
+
+      // Store token in database
+      await this.db.insert(passwordResetTokens).values({
+        email,
+        token,
+        expiresAt,
+        used: false
+      });
+
+      return { success: true, token };
+    } catch (error) {
+      console.error('Error generating password reset token:', error);
+      return { success: false, error: 'Failed to generate reset token' };
+    }
+  }
+
+  async sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+    
+    const emailData: EmailData = {
+      to: email,
+      from: this.fromEmail,
+      subject: 'Password Reset Request - GradeMe',
+      html: this.generatePasswordResetEmailHTML(resetUrl),
+      text: `You requested a password reset. Please visit this link to reset your password: ${resetUrl}`
+    };
+
+    return await this.sendEmail(emailData);
+  }
+
+  async validatePasswordResetToken(token: string): Promise<{ valid: boolean; email?: string; error?: string }> {
+    try {
+      const tokenRecord = await this.db
+        .select()
+        .from(passwordResetTokens)
+        .where(and(
+          eq(passwordResetTokens.token, token),
+          eq(passwordResetTokens.used, false),
+          gt(passwordResetTokens.expiresAt, new Date())
+        ))
+        .limit(1);
+
+      if (tokenRecord.length === 0) {
+        return { valid: false, error: 'Invalid or expired token' };
+      }
+
+      return { valid: true, email: tokenRecord[0].email };
+    } catch (error) {
+      console.error('Error validating password reset token:', error);
+      return { valid: false, error: 'Token validation failed' };
+    }
+  }
+
+  async markTokenAsUsed(token: string): Promise<boolean> {
+    try {
+      await this.db
+        .update(passwordResetTokens)
+        .set({ used: true })
+        .where(eq(passwordResetTokens.token, token));
+      return true;
+    } catch (error) {
+      console.error('Error marking token as used:', error);
+      return false;
+    }
+  }
+
+  private generatePasswordResetEmailHTML(resetUrl: string): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+        <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0; font-size: 28px;">GradeMe</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Exam Management System</p>
+          </div>
+          
+          <h2 style="color: #1f2937; margin-bottom: 20px;">Password Reset Request</h2>
+          
+          <p style="color: #374151; font-size: 16px;">Hello,</p>
+          
+          <p style="color: #374151;">We received a request to reset your password for your GradeMe account. If you made this request, please click the button below to reset your password:</p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Reset Password</a>
+          </div>
+          
+          <p style="color: #374151;">This link will expire in 1 hour for security reasons.</p>
+          
+          <div style="background: #fef2f2; padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444; margin: 20px 0;">
+            <p style="color: #b91c1c; margin: 0; font-size: 14px;">
+              <strong>Security Notice:</strong> If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
+            </p>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px;">
+            If the button doesn't work, you can copy and paste this link into your browser:<br>
+            <a href="${resetUrl}" style="color: #2563eb; word-break: break-all;">${resetUrl}</a>
+          </p>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px; text-align: center;">
+            This email was sent automatically by the GradeMe system.<br>
+            If you continue to have issues, please contact your administrator.
           </p>
         </div>
       </div>

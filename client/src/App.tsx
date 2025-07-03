@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
-import ResetPassword from "@/pages/reset-password";
+import { ResetPasswordPage } from "@/pages/reset-password";
 import Dashboard from "@/pages/dashboard";
 import Exams from "@/pages/exams";
 import Students from "@/pages/students";
@@ -184,7 +184,7 @@ function Router() {
         
         {/* Auth routes */}
         {/* Login handled by popups on landing page */}
-        <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/reset-password" component={ResetPasswordPage} />
         
         {/* Admin routes */}
         <Route path="/admin">

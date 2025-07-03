@@ -94,6 +94,23 @@ CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(date);
 
 --> statement-breakpoint
 
+-- Create password reset tokens table
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Create indexes for password reset tokens table
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_email ON password_reset_tokens(email);
+CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
+
+--> statement-breakpoint
+
 -- Create triggers for updated_at columns
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -137,6 +154,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE password_reset_tokens ENABLE ROW LEVEL SECURITY;
 
 --> statement-breakpoint
 
@@ -265,6 +283,33 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'results' AND policyname = 'Only admins can delete results') THEN
     CREATE POLICY "Only admins can delete results" ON results
       FOR DELETE USING (is_admin(auth.uid()::text));
+  END IF;
+END
+$$;
+
+--> statement-breakpoint
+
+-- Create RLS policies for password_reset_tokens table
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'password_reset_tokens' AND policyname = 'Anyone can insert password reset tokens') THEN
+    CREATE POLICY "Anyone can insert password reset tokens" ON password_reset_tokens
+      FOR INSERT WITH CHECK (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'password_reset_tokens' AND policyname = 'Anyone can select password reset tokens') THEN
+    CREATE POLICY "Anyone can select password reset tokens" ON password_reset_tokens
+      FOR SELECT USING (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'password_reset_tokens' AND policyname = 'Anyone can update password reset tokens') THEN
+    CREATE POLICY "Anyone can update password reset tokens" ON password_reset_tokens
+      FOR UPDATE USING (true);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'password_reset_tokens' AND policyname = 'Anyone can delete password reset tokens') THEN
+    CREATE POLICY "Anyone can delete password reset tokens" ON password_reset_tokens
+      FOR DELETE USING (true);
   END IF;
 END
 $$;

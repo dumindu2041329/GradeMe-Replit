@@ -64,6 +64,15 @@ export const results = pgTable('results', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull(),
+  token: text('token').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 
 
 
@@ -73,6 +82,7 @@ export type User = typeof users.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Exam = typeof exams.$inferSelect;
 export type Result = typeof results.$inferSelect;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 export type UserRole = 'admin' | 'student';
 export type ExamStatus = 'upcoming' | 'active' | 'completed';

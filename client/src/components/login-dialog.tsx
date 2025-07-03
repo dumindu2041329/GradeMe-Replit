@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 import {
   Dialog,
@@ -47,6 +48,7 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
   const [open, setOpen] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const { user, setUser } = useAuth();
@@ -146,7 +148,9 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
         </DialogHeader>
         
         <div className="py-4">
-          {loginSuccess ? (
+          {showForgotPassword ? (
+            <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+          ) : loginSuccess ? (
             <Alert className="mb-4">
               <AlertTitle>Successfully logged in</AlertTitle>
               <AlertDescription>
@@ -225,6 +229,16 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
                       </div>
                     )}
                   </Button>
+                </div>
+                
+                <div className="text-center text-sm text-muted-foreground mt-2">
+                  <button
+                    type="button"
+                    className="text-blue-400 hover:text-blue-300 underline"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot your password?
+                  </button>
                 </div>
                 
                 <div className="text-center text-sm text-muted-foreground mt-2">
