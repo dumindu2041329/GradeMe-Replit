@@ -229,6 +229,7 @@ GradeMe is a comprehensive exam management system designed for educational insti
 - July 3, 2025. **Enhanced email management page layout** - Improved padding, margins, and spacing throughout the email management page. Added proper responsive grid layout, enhanced card spacing, and improved list formatting for better visual hierarchy and user experience
 - July 3, 2025. **Improved toast notifications for mobile users** - Made close buttons always visible with proper touch targets (44px minimum), enhanced button styling with hover effects, and optimized toast container padding for better mobile accessibility and user experience
 - July 3, 2025. **Applied landing page styles to password reset page** - Added consistent GradeMe header with logo and Three.js animated background to password reset form page, ensuring brand consistency across all authentication pages. The page now features the same gradient overlays, backdrop blur effects, and glassmorphism design as the landing page
+- July 3, 2025. **Fixed password reset functionality** - Resolved API response format mismatch between server and client. Server now returns consistent response format with success field and error field. Client now sends correct field name (newPassword) matching server expectations. Password reset now works properly with minimum 6 character validation
 
 ## User Preferences
 

@@ -337,18 +337,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { token, newPassword } = req.body;
       
       if (!token || !newPassword) {
-        return res.status(400).json({ message: "Token and new password are required" });
+        return res.status(400).json({ success: false, error: "Token and new password are required" });
       }
 
       if (newPassword.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+        return res.status(400).json({ success: false, error: "Password must be at least 6 characters long" });
       }
 
       // Validate token
       const tokenValidation = await emailService.validatePasswordResetToken(token);
       
       if (!tokenValidation.valid) {
-        return res.status(400).json({ message: tokenValidation.error });
+        return res.status(400).json({ success: false, error: tokenValidation.error });
       }
 
       const email = tokenValidation.email!;
@@ -386,10 +386,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mark token as used
       await emailService.markTokenAsUsed(token);
 
-      res.json({ message: "Password reset successfully" });
+      res.json({ success: true, message: "Password reset successfully" });
     } catch (error) {
       console.error("Reset password error:", error);
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ success: false, error: "Internal server error" });
     }
   });
 
