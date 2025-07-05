@@ -265,30 +265,30 @@ export default function LandingPage() {
           </div>
           
           <div className="relative z-20 container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-cyan-400 mb-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+              <div className="text-center p-4 md:p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-cyan-400 mb-2">
                   {isLoading ? "..." : stats?.activeStudents?.toLocaleString() || "0"}
                 </div>
-                <div className="text-white/70">Active Students</div>
+                <div className="text-sm md:text-base text-white/70">Active Students</div>
               </div>
-              <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-purple-400 mb-2">
+              <div className="text-center p-4 md:p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-purple-400 mb-2">
                   {isLoading ? "..." : stats?.educators?.toLocaleString() || "0"}
                 </div>
-                <div className="text-white/70">Educators</div>
+                <div className="text-sm md:text-base text-white/70">Educators</div>
               </div>
-              <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-yellow-400 mb-2">
+              <div className="text-center p-4 md:p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
+                <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-400 mb-2">
                   {isLoading ? "..." : stats?.examsCompleted?.toLocaleString() || "0"}
                 </div>
-                <div className="text-white/70">Exams Completed</div>
+                <div className="text-sm md:text-base text-white/70">Exams Completed</div>
               </div>
-              <div className="text-center p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
-                <div className="text-3xl md:text-4xl font-bold text-green-400 mb-2">
+              <div className="text-center p-4 md:p-6 rounded-xl backdrop-blur-md bg-white/5 border border-white/10">
+                <div className="text-lg sm:text-2xl md:text-4xl font-bold text-green-400 mb-2 break-words">
                   {isLoading ? "..." : stats?.uptime || "99%"}
                 </div>
-                <div className="text-white/70">Uptime</div>
+                <div className="text-sm md:text-base text-white/70">Uptime</div>
               </div>
             </div>
           </div>
