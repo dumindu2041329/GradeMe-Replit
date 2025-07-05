@@ -139,7 +139,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Performance Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Performance Trend Chart */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -147,13 +147,13 @@ export default function StudentDashboard() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             <Card className="border-primary/10 dark:border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   Performance Trend
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4 sm:p-6">
                 {dashboardData?.examHistory && dashboardData.examHistory.length > 0 ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -167,7 +167,7 @@ export default function StudentDashboard() {
                           color: "hsl(var(--chart-1))",
                         },
                       }}
-                      className="h-[200px]"
+                      className="h-[200px] sm:h-[250px] md:h-[200px] lg:h-[250px] xl:h-[300px] w-full"
                     >
                       <AreaChart
                         data={dashboardData.examHistory
@@ -176,7 +176,7 @@ export default function StudentDashboard() {
                           .map((exam, index) => ({
                             exam: `Exam ${index + 1}`,
                             percentage: exam.percentage,
-                            name: exam.exam.name.length > 15 ? exam.exam.name.substring(0, 15) + '...' : exam.exam.name
+                            name: exam.exam.name
                           }))}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
@@ -194,7 +194,7 @@ export default function StudentDashboard() {
                     </ChartContainer>
                   </motion.div>
                 ) : (
-                  <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+                  <div className="h-[200px] sm:h-[250px] md:h-[200px] lg:h-[250px] xl:h-[300px] flex items-center justify-center text-muted-foreground">
                     No performance data available
                   </div>
                 )}
