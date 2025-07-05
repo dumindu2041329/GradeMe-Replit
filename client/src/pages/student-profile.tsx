@@ -60,11 +60,8 @@ const personalInfoSchema = z.object({
 
 const notificationFormSchema = z.object({
   emailNotifications: z.boolean().default(false),
-  smsNotifications: z.boolean().default(false),
   emailExamResults: z.boolean().default(false),
   emailUpcomingExams: z.boolean().default(false),
-  smsExamResults: z.boolean().default(false),
-  smsUpcomingExams: z.boolean().default(false),
 });
 
 const passwordFormSchema = z.object({
@@ -143,11 +140,8 @@ export default function StudentProfile() {
     resolver: zodResolver(notificationFormSchema),
     defaultValues: {
       emailNotifications: user?.emailNotifications || false,
-      smsNotifications: user?.smsNotifications || false,
       emailExamResults: user?.emailExamResults || false,
       emailUpcomingExams: user?.emailUpcomingExams || false,
-      smsExamResults: user?.smsExamResults || false,
-      smsUpcomingExams: user?.smsUpcomingExams || false,
     },
   });
 
@@ -443,8 +437,8 @@ export default function StudentProfile() {
       <StudentHeader />
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto py-8 pt-20 px-4">
-        <h1 className="text-3xl font-bold mb-4">Profile Settings</h1>
+      <main className="flex-1 container mx-auto py-4 sm:py-6 md:py-8 pt-20 px-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Profile Settings</h1>
         
         <Tabs defaultValue="edit" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -527,15 +521,15 @@ export default function StudentProfile() {
           <TabsContent value="edit">
             <Tabs defaultValue="personal" className="w-full space-y-6">
               <TabsList className="grid grid-cols-3 w-full">
-                <TabsTrigger value="personal">Personal Info</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
+                <TabsTrigger value="personal" className="text-xs sm:text-sm">Personal Info</TabsTrigger>
+                <TabsTrigger value="notifications" className="text-xs sm:text-sm">Notifications</TabsTrigger>
+                <TabsTrigger value="security" className="text-xs sm:text-sm">Security</TabsTrigger>
               </TabsList>
               
               {/* Personal Information Tab */}
               <TabsContent value="personal" className="space-y-6">
                 <Card className="border shadow-sm">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="mb-6">
                       <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
                       <p className="text-sm text-muted-foreground">
@@ -852,7 +846,7 @@ export default function StudentProfile() {
               {/* Notification Settings Tab */}
               <TabsContent value="notifications" className="space-y-6">
                 <Card className="border shadow-sm">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="mb-6">
                       <h3 className="text-xl font-semibold mb-2">Notification Settings</h3>
                       <p className="text-sm text-muted-foreground">
@@ -924,7 +918,7 @@ export default function StudentProfile() {
               {/* Security Tab */}
               <TabsContent value="security" className="space-y-6">
                 <Card className="border shadow-sm">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 sm:p-6">
                     <div className="mb-6">
                       <h3 className="text-xl font-semibold mb-2">Change Password</h3>
                       <p className="text-sm text-muted-foreground">

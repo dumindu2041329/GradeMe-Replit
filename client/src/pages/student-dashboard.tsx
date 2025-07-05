@@ -58,22 +58,22 @@ export default function StudentDashboard() {
       <StudentHeader />
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto py-8 pt-20 px-4">
-        <h1 className="text-3xl font-bold mb-8">Student Dashboard</h1>
+      <main className="flex-1 container mx-auto py-4 sm:py-6 md:py-8 pt-20 px-4">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Student Dashboard</h1>
         
         {/* Enhanced Stats cards with progress indicators */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card className="border-primary/10 dark:border-primary/20 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams</CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <div className="bg-blue-100 dark:bg-blue-950/20 p-3 rounded-full">
-                <BookOpen className="h-6 w-6 text-blue-600 dark:text-blue-500" />
+            <CardContent className="flex items-center gap-2 sm:gap-4 p-4 sm:p-6">
+              <div className="bg-blue-100 dark:bg-blue-950/20 p-2 sm:p-3 rounded-full">
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-500" />
               </div>
               <div className="flex flex-col">
-                <span className="text-3xl font-bold">{dashboardData?.totalExams || 0}</span>
+                <span className="text-2xl sm:text-3xl font-bold">{dashboardData?.totalExams || 0}</span>
                 <span className="text-xs text-muted-foreground">Completed</span>
               </div>
             </CardContent>
@@ -84,12 +84,12 @@ export default function StudentDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-4">
-                <div className="bg-purple-100 dark:bg-purple-950/20 p-3 rounded-full">
-                  <BarChart2 className="h-6 w-6 text-purple-600 dark:text-purple-500" />
+            <CardContent className="space-y-3 p-4 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="bg-purple-100 dark:bg-purple-950/20 p-2 sm:p-3 rounded-full">
+                  <BarChart2 className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-500" />
                 </div>
-                <span className="text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
+                <span className="text-2xl sm:text-3xl font-bold">{dashboardData?.averageScore ? dashboardData.averageScore.toFixed(1) : '0'}%</span>
               </div>
               <Progress value={dashboardData?.averageScore || 0} className="h-2" />
             </CardContent>
@@ -100,12 +100,12 @@ export default function StudentDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Your Rank in Class</CardTitle>
             </CardHeader>
-            <CardContent className="flex items-center gap-4">
-              <div className="bg-amber-100 dark:bg-amber-950/20 p-3 rounded-full">
-                <Award className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+            <CardContent className="flex items-center gap-2 sm:gap-4 p-4 sm:p-6">
+              <div className="bg-amber-100 dark:bg-amber-950/20 p-2 sm:p-3 rounded-full">
+                <Award className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-500" />
               </div>
               <div className="flex flex-col">
-                <span className="text-3xl font-bold">
+                <span className="text-2xl sm:text-3xl font-bold">
                   {dashboardData?.overallRank ? dashboardData.overallRank : '-'}
                 </span>
                 {dashboardData?.totalStudents ? (
@@ -120,12 +120,12 @@ export default function StudentDashboard() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Progress Goal</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center gap-4">
-                <div className="bg-green-100 dark:bg-green-950/20 p-3 rounded-full">
-                  <Target className="h-6 w-6 text-green-600 dark:text-green-500" />
+            <CardContent className="space-y-3 p-4 sm:p-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="bg-green-100 dark:bg-green-950/20 p-2 sm:p-3 rounded-full">
+                  <Target className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-500" />
                 </div>
-                <span className="text-3xl font-bold">
+                <span className="text-2xl sm:text-3xl font-bold">
                   {dashboardData?.averageScore && dashboardData.averageScore >= 80 ? '🎯' : 
                    dashboardData?.averageScore && dashboardData.averageScore >= 70 ? '📈' : '💪'}
                 </span>
@@ -139,7 +139,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Performance Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           {/* Performance Trend Chart */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -298,14 +298,14 @@ export default function StudentDashboard() {
                   <p className="text-sm text-muted-foreground mt-1">Active exams will appear here when available.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
                   {dashboardData.activeExams.map((exam) => {
                     const examDate = new Date(exam.date);
                     
                     return (
                       <div 
                         key={exam.id} 
-                        className="p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950/30 hover:border-green-300 dark:hover:border-green-700 transition-colors relative overflow-hidden group"
+                        className="p-4 sm:p-6 border border-green-200 dark:border-green-800 rounded-lg bg-green-50 dark:bg-green-950/30 hover:border-green-300 dark:hover:border-green-700 transition-colors relative overflow-hidden group"
                       >
                         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-green-500 to-green-600"></div>
                         
@@ -380,7 +380,7 @@ export default function StudentDashboard() {
                   <p className="text-sm text-muted-foreground mt-1">Completed exams will appear here after you finish them.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
                   {dashboardData.completedExams.map((exam) => {
                     const examDate = new Date(exam.date);
                     const studentResult = dashboardData.examHistory.find(result => result.exam.id === exam.id);
@@ -388,7 +388,7 @@ export default function StudentDashboard() {
                     return (
                       <div 
                         key={exam.id} 
-                        className="p-6 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors relative overflow-hidden group"
+                        className="p-4 sm:p-6 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors relative overflow-hidden group"
                       >
                         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-blue-600"></div>
                         
