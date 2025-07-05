@@ -421,6 +421,158 @@ export class EmailService {
       </div>
     `;
   }
+
+  async sendAdminExamSubmissionNotification(studentId: number, examId: number, score: number, totalMarks: number): Promise<{ sent: number; failed: number }> {
+    try {
+      // Get student and exam details
+      const student = await this.db.select().from(students).where(eq(students.id, studentId)).limit(1);
+      const exam = await this.db.select().from(exams).where(eq(exams.id, examId)).limit(1);
+      
+      if (!student[0] || !exam[0]) {
+        console.error('Student or exam not found for admin notification');
+        return { sent: 0, failed: 0 };
+      }
+
+      // Get all admin users who have email notifications enabled
+      const admins = await this.db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, 'admin'),
+            eq(users.emailNotifications, true),
+            eq(users.emailExamResults, true)
+          )
+        );
+
+      if (admins.length === 0) {
+        console.log('No admins with email notifications enabled');
+        return { sent: 0, failed: 0 };
+      }
+
+      const percentage = Math.round((score / totalMarks) * 100);
+      const grade = this.calculateGrade(percentage);
+      const subject = `Student Exam Submission: ${student[0].name} - ${exam[0].name}`;
+      const html = this.generateAdminExamSubmissionEmailHTML(student[0], exam[0], score, totalMarks, percentage, grade);
+      const text = `${student[0].name} has submitted ${exam[0].name}. Score: ${score}/${totalMarks} (${percentage}%)`;
+
+      let sent = 0;
+      let failed = 0;
+
+      // Send email to each admin
+      for (const admin of admins) {
+        try {
+          const emailSent = await this.sendEmail({
+            to: admin.email,
+            from: this.fromEmail,
+            subject,
+            html,
+            text
+          });
+          
+          if (emailSent) {
+            sent++;
+          } else {
+            failed++;
+          }
+        } catch (error) {
+          console.error(`Failed to send notification to admin ${admin.email}:`, error);
+          failed++;
+        }
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      return { sent, failed };
+    } catch (error) {
+      console.error('Error sending admin exam submission notifications:', error);
+      return { sent: 0, failed: 0 };
+    }
+  }
+
+  private generateAdminExamSubmissionEmailHTML(student: any, exam: any, score: number, totalMarks: number, percentage: number, grade: string): string {
+    const gradeColor = percentage >= 75 ? '#10b981' : percentage >= 60 ? '#f59e0b' : '#ef4444';
+    
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+        <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0; font-size: 28px;">GradeMe</h1>
+            <p style="color: #6b7280; margin: 5px 0 0 0;">Exam Management System</p>
+          </div>
+          
+          <h2 style="color: #1f2937; margin-bottom: 20px;">📋 Student Exam Submission</h2>
+          
+          <p style="color: #374151; font-size: 16px;">Dear Administrator,</p>
+          
+          <p style="color: #374151;">A student has just submitted an exam. Here are the details:</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin: 0 0 15px 0;">Student Information</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #6b7280;">Name:</span>
+              <strong style="color: #1f2937;">${student.name}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #6b7280;">Email:</span>
+              <strong style="color: #1f2937;">${student.email}</strong>
+            </div>
+            ${student.classGrade ? `
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #6b7280;">Grade:</span>
+              <strong style="color: #1f2937;">${student.classGrade}</strong>
+            </div>
+            ` : ''}
+          </div>
+
+          <div style="background: #e0e7ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #312e81; margin: 0 0 15px 0;">Exam Details</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #4c1d95;">Exam Name:</span>
+              <strong style="color: #312e81;">${exam.name}</strong>
+            </div>
+            ${exam.subject ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #4c1d95;">Subject:</span>
+              <strong style="color: #312e81;">${exam.subject}</strong>
+            </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #4c1d95;">Submitted At:</span>
+              <strong style="color: #312e81;">${new Date().toLocaleString()}</strong>
+            </div>
+          </div>
+
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #1f2937; margin: 0 0 15px 0;">Result Summary</h3>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #6b7280;">Score:</span>
+              <strong style="color: #1f2937;">${score} / ${totalMarks}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span style="color: #6b7280;">Percentage:</span>
+              <strong style="color: ${gradeColor};">${percentage}%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #6b7280;">Grade:</span>
+              <strong style="color: ${gradeColor}; font-size: 18px;">${grade}</strong>
+            </div>
+          </div>
+          
+          <div style="background: #eff6ff; padding: 15px; border-radius: 8px; border-left: 4px solid #2563eb;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              You can view detailed results and analytics in the admin dashboard.
+            </p>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; margin-top: 30px; text-align: center;">
+            This email was sent automatically by the GradeMe system.
+          </p>
+        </div>
+      </div>
+    `;
+  }
 }
 
 export const emailService = new EmailService();

@@ -1168,6 +1168,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the exam submission if email fails
       }
 
+      // Send notification to admins about the exam submission
+      try {
+        const adminNotificationResult = await emailService.sendAdminExamSubmissionNotification(user.studentId, examId, score, exam.totalMarks);
+        if (adminNotificationResult.sent > 0) {
+          console.log(`Sent exam submission notification to ${adminNotificationResult.sent} admin(s)`);
+        }
+      } catch (adminEmailError) {
+        console.error("Failed to send admin notification email:", adminEmailError);
+        // Don't fail the exam submission if admin email fails
+      }
+
       // Check if all students have completed the exam
       try {
         const totalStudents = await storage.getStudents();
