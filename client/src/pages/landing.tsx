@@ -400,7 +400,7 @@ export default function LandingPage() {
           <div className="border-t border-white/10 pt-8 text-center">
             <div className="flex flex-col items-center">
               <p className="text-sm text-white/70 mb-4">
-                © 2024 GradeMe. All rights reserved.
+                © {new Date().getFullYear()} GradeMe. All rights reserved.
               </p>
               <div className="flex space-x-6 text-sm text-white/70">
                 <a href="#" className="hover:text-cyan-400 transition-colors">Terms of Service</a>

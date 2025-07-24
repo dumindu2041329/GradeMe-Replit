@@ -26,7 +26,7 @@ export default function Footer() {
           </div>
           <div className="border-t border-slate-600 pt-8">
             <p className="text-slate-400">
-              &copy; 2024 Alex Morgan. All rights reserved.
+              &copy; {new Date().getFullYear()} Alex Morgan. All rights reserved.
             </p>
           </div>
         </div>
