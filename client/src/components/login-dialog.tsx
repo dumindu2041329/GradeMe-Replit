@@ -131,8 +131,21 @@ export function LoginDialog({ isAdmin = false, trigger }: LoginDialogProps) {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    
+    // Reset all dialog states when closing
+    if (!newOpen) {
+      setShowForgotPassword(false);
+      setLoginSuccess(false);
+      setShowPassword(false);
+      setIsLoading(false);
+      form.reset();
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
