@@ -167,7 +167,7 @@ export default function LandingPage() {
               </div>
               
               {/* Feature highlights */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 mb-16">
                 <div className="p-6 rounded-xl backdrop-blur-md border bg-white/5 border-white/10 text-center">
                   <div className="flex justify-center">
                     <BookOpen className="h-10 w-10 mb-4 text-cyan-400" />
