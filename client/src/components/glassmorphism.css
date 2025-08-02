@@ -270,6 +270,23 @@
   color: hsl(215, 20%, 65%) !important;
 }
 
+/* Prevent browser autofill from overriding the background in login modal */
+.login-modal-dark .glass-input:-webkit-autofill,
+.login-modal-dark .glass-input:-webkit-autofill:hover,
+.login-modal-dark .glass-input:-webkit-autofill:focus,
+.login-modal-dark .glass-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px rgba(20, 22, 36, 0.6) inset !important;
+  -webkit-text-fill-color: hsl(213, 31%, 91%) !important;
+  background: rgba(20, 22, 36, 0.6) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Additional autofill fix for other browsers */
+.login-modal-dark .glass-input:autofill {
+  background: rgba(20, 22, 36, 0.6) !important;
+  color: hsl(213, 31%, 91%) !important;
+}
+
 /* Ensure password fields allow text selection */
 input[type="password"] {
   user-select: text !important;
