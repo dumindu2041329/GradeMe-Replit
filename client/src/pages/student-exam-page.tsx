@@ -258,7 +258,7 @@ export default function StudentExamPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Exam Header */}
-      <header className="border-b border-border bg-background sticky top-0 z-10">
+      <header className="border-b border-border bg-background sticky top-16 z-10">
         <div className="container mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center">

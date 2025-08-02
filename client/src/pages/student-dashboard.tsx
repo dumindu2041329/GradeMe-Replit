@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookOpen, BarChart2, Award, ArrowRight, TrendingUp, Target, Calendar, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { BookOpen, BarChart2, Award, ArrowRight, TrendingUp, Target, Calendar, Clock, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
@@ -21,6 +22,11 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+  
+  // Search states for each exam section
+  const [activeExamSearch, setActiveExamSearch] = React.useState("");
+  const [completedExamSearch, setCompletedExamSearch] = React.useState("");
+  const [upcomingExamSearch, setUpcomingExamSearch] = React.useState("");
 
   // Fetch student dashboard data
   const { data: dashboardData, isLoading, refetch } = useQuery<StudentDashboardData>({
@@ -44,6 +50,22 @@ export default function StudentDashboard() {
     }
   }, [user?.studentId, queryClient]);
 
+  // Filter functions for each exam section
+  const filterExams = (exams: Exam[] | undefined, searchTerm: string) => {
+    if (!exams || !searchTerm.trim()) {
+      return exams || [];
+    }
+    return exams.filter(exam => 
+      exam.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      exam.subject.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Filtered exam arrays
+  const filteredActiveExams = filterExams(dashboardData?.activeExams, activeExamSearch);
+  const filteredCompletedExams = filterExams(dashboardData?.completedExams, completedExamSearch);
+  const filteredUpcomingExams = filterExams(dashboardData?.availableExams, upcomingExamSearch);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -58,7 +80,7 @@ export default function StudentDashboard() {
       <StudentHeader />
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto py-4 sm:py-6 md:py-8 pt-20 px-4">
+      <main className="flex-1 container mx-auto pt-24 pb-4 sm:pb-6 md:pb-8 px-4">
         <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Student Dashboard</h1>
         
         {/* Enhanced Stats cards with progress indicators */}
@@ -289,6 +311,17 @@ export default function StudentDashboard() {
                 <BookOpen className="h-5 w-5" />
                 Active Exams
               </CardTitle>
+              <div className="relative pt-4">
+                <div className="absolute inset-y-0 left-0 pt-4 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  placeholder="Search active exams by name or subject..."
+                  value={activeExamSearch}
+                  onChange={(e) => setActiveExamSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {!dashboardData?.activeExams || dashboardData.activeExams.length === 0 ? (
@@ -297,9 +330,15 @@ export default function StudentDashboard() {
                   <p className="text-muted-foreground">No active exams at the moment.</p>
                   <p className="text-sm text-muted-foreground mt-1">Active exams will appear here when available.</p>
                 </div>
+              ) : filteredActiveExams.length === 0 ? (
+                <div className="text-center py-8">
+                  <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No active exams match your search.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search terms.</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-                  {dashboardData.activeExams.map((exam) => {
+                  {filteredActiveExams.map((exam) => {
                     const examDate = new Date(exam.date);
                     
                     return (
@@ -371,6 +410,17 @@ export default function StudentDashboard() {
                 <Award className="h-5 w-5" />
                 Completed Exams
               </CardTitle>
+              <div className="relative pt-4">
+                <div className="absolute inset-y-0 left-0 pt-4 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  placeholder="Search completed exams by name or subject..."
+                  value={completedExamSearch}
+                  onChange={(e) => setCompletedExamSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {!dashboardData?.completedExams || dashboardData.completedExams.length === 0 ? (
@@ -379,9 +429,15 @@ export default function StudentDashboard() {
                   <p className="text-muted-foreground">No completed exams yet.</p>
                   <p className="text-sm text-muted-foreground mt-1">Completed exams will appear here after you finish them.</p>
                 </div>
+              ) : filteredCompletedExams.length === 0 ? (
+                <div className="text-center py-8">
+                  <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No completed exams match your search.</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try adjusting your search terms.</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-                  {dashboardData.completedExams.map((exam) => {
+                  {filteredCompletedExams.map((exam) => {
                     const examDate = new Date(exam.date);
                     const studentResult = dashboardData.examHistory.find(result => result.exam.id === exam.id);
                     
@@ -464,17 +520,34 @@ export default function StudentDashboard() {
                   <Calendar className="h-5 w-5" />
                   Upcoming Exams
                 </CardTitle>
+                <div className="relative pt-4">
+                  <div className="absolute inset-y-0 left-0 pt-4 pl-3 flex items-center pointer-events-none">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <Input
+                    placeholder="Search upcoming exams by name or subject..."
+                    value={upcomingExamSearch}
+                    onChange={(e) => setUpcomingExamSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
-                {dashboardData?.availableExams?.length === 0 ? (
+                {!dashboardData?.availableExams || dashboardData.availableExams.length === 0 ? (
                   <div className="text-center py-12">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <p className="text-muted-foreground">No exams scheduled at the moment.</p>
                     <p className="text-sm text-muted-foreground mt-2">Check back later for new assignments.</p>
                   </div>
+                ) : filteredUpcomingExams.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">No upcoming exams match your search.</p>
+                    <p className="text-sm text-muted-foreground mt-1">Try adjusting your search terms.</p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {dashboardData?.availableExams?.map((exam) => {
+                    {filteredUpcomingExams.map((exam) => {
                       const examDate = new Date(exam.date);
                       const isToday = examDate.toDateString() === new Date().toDateString();
                       const isUpcoming = examDate > new Date();

@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, GraduationCap, User } from "lucide-react";
+import { LogOut, GraduationCap, User, Home } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +69,15 @@ export function StudentHeader({ onMenuClick }: StudentHeaderProps = {}) {
           
           {/* User menu and theme toggle */}
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/student/dashboard")}
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
             <ThemeToggle />
             
             <DropdownMenu>
@@ -85,6 +94,7 @@ export function StudentHeader({ onMenuClick }: StudentHeaderProps = {}) {
               <DropdownMenuContent align="end" className="cursor-pointer">
                 <DropdownMenuLabel className="cursor-pointer">My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+
                 <DropdownMenuItem onClick={() => navigate("/student/profile")} className="cursor-pointer">
                   <div className="flex items-center w-full cursor-pointer">
                     <User className="mr-2 h-4 w-4" />

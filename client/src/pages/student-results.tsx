@@ -29,7 +29,7 @@ export default function StudentResults() {
     <div className="min-h-screen bg-background">
       <StudentHeader />
       
-      <main className="container mx-auto py-8 pt-20 px-4">
+      <main className="container mx-auto pt-24 pb-8 px-4">
         <h1 className="text-3xl font-bold mb-8">Exam Results</h1>
         
         {!results || results.length === 0 ? (

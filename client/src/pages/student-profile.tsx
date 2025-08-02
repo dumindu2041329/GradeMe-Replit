@@ -437,7 +437,7 @@ export default function StudentProfile() {
       <StudentHeader />
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto py-4 sm:py-6 md:py-8 pt-20 px-4">
+      <main className="flex-1 container mx-auto pt-24 pb-4 sm:pb-6 md:pb-8 px-4">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4">Profile Settings</h1>
         
         <Tabs defaultValue="edit" className="w-full">

@@ -31,7 +31,7 @@ export default function StudentExams() {
     <div className="min-h-screen bg-background">
       <StudentHeader />
       
-      <main className="container mx-auto py-8 pt-20 px-4">
+      <main className="container mx-auto pt-24 pb-8 px-4">
         <h1 className="text-3xl font-bold mb-8">Available Exams</h1>
         
         {!exams || exams.length === 0 ? (
