@@ -73,7 +73,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         <Button
           variant="outline"
           onClick={onBack}
-          className="w-full"
+          className="w-full glass-button"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Login
@@ -135,7 +135,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
             type="button"
             variant="outline"
             onClick={onBack}
-            className="w-full"
+            className="w-full glass-button"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Login

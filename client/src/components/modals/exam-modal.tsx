@@ -148,12 +148,12 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby="exam-modal-description">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Create New Exam" : "Edit Exam"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="exam-modal-description">
             {mode === "create" 
               ? "Add a new exam to the system by filling out the form below." 
               : "Update the exam details using the form below."
@@ -456,32 +456,32 @@ export function ExamModal({ isOpen, onOpenChange, exam, mode }: ExamModalProps) 
           <AlertDialogDescription className="text-base">
             {mode === "create" ? (
               <div className="space-y-3">
-                <p>You are about to create a new exam with the following details:</p>
+                <span className="block">You are about to create a new exam with the following details:</span>
                 <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
-                  <p className="font-medium">{pendingFormData?.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="font-medium">{pendingFormData?.name}</div>
+                  <div className="text-sm text-muted-foreground">
                     Subject: {pendingFormData?.subject} • 
                     Date: {pendingFormData?.date ? format(pendingFormData.date, "PPP") : ""} •
                     Duration: {pendingFormData?.duration} minutes
-                  </p>
+                  </div>
                   {pendingFormData?.startTime && (
-                    <p className="text-sm text-muted-foreground">
+                    <div className="text-sm text-muted-foreground">
                       Start Time: {format(pendingFormData.startTime, "h:mm a")}
-                    </p>
+                    </div>
                   )}
                 </div>
-                <p className="text-sm">
+                <span className="text-sm block">
                   This action will create the exam and redirect you to the paper creation page.
-                </p>
+                </span>
               </div>
             ) : (
               <div className="space-y-3">
-                <p>You are about to update the exam details.</p>
+                <span className="block">You are about to update the exam details.</span>
                 <div className="bg-secondary/50 rounded-lg p-3 space-y-1">
-                  <p className="font-medium">{pendingFormData?.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <div className="font-medium">{pendingFormData?.name}</div>
+                  <div className="text-sm text-muted-foreground">
                     Changes will be saved immediately.
-                  </p>
+                  </div>
                 </div>
               </div>
             )}

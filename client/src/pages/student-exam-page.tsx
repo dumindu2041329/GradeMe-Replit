@@ -433,7 +433,7 @@ export default function StudentExamPage() {
       
       {/* Submit Confirmation Dialog */}
       <Dialog open={showSubmitConfirmation} onOpenChange={setShowSubmitConfirmation}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg" aria-describedby="submit-exam-description">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-semibold">
               Submit Exam?
@@ -448,7 +448,7 @@ export default function StudentExamPage() {
             </div>
             
             <div className="space-y-6">
-              <div className="text-center">
+              <div className="text-center" id="submit-exam-description">
                 <h4 className="font-semibold text-lg mb-2">Are you sure you want to submit your exam?</h4>
                 <p className="text-sm text-muted-foreground">
                   Once submitted, you cannot change your answers.

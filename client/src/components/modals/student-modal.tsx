@@ -92,12 +92,12 @@ export function StudentModal({ isOpen, onOpenChange, student, mode }: StudentMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800">
+      <DialogContent className="sm:max-w-[500px] bg-slate-900 border-slate-800" aria-describedby="student-modal-description">
         <DialogHeader>
           <DialogTitle>
             {mode === "create" ? "Add New Student" : "Edit Student"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription id="student-modal-description">
             {mode === "create" 
               ? "Register a new student by filling out the form below." 
               : "Update the student information using the form below."

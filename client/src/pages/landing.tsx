@@ -7,6 +7,7 @@ import { LoginDialog } from "@/components/login-dialog";
 import { ThreeScene } from "@/components/three-scene";
 import { useQuery } from "@tanstack/react-query";
 
+
 interface LandingStatistics {
   activeStudents: number;
   educators: number;
@@ -69,6 +70,8 @@ export default function LandingPage() {
       }, 15);
     }
   };
+
+
 
   const features = [
     {
