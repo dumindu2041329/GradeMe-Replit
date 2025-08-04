@@ -6,13 +6,14 @@ GradeMe is a comprehensive exam management system designed for educational insti
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 Recent Changes:
-- Successfully migrated project from Replit Agent to Replit environment (August 2, 2025)
+- Successfully migrated project from Replit Agent to Replit environment (August 4, 2025)
 - Fixed autofill background color issues in login dialog email/password fields
 - Updated forgot password form buttons to match dark glassmorphism theme
 - Resolved package dependency issues with tsx installation
 - Confirmed server running properly on port 5000 with database connectivity
 - Implemented dark-themed glassmorphism toast notifications on landing page (August 2, 2025)
 - Fixed all console errors and warnings including DialogContent accessibility and validateDOMNesting issues (August 2, 2025)
+- Fixed exam header styling to remove top margin (changed sticky top-16 to top-0) for better UI experience (August 4, 2025)
 
 ## System Architecture
 ### Frontend
